@@ -1,9 +1,9 @@
-文件操作:
-于F盘下新建一个名为gal的文件夹，将仓库中的文件拷贝至其下
-确保电脑中有:
-SDL2
-SDL2_image
-SDL2_mixer
-SDL2_ttf
-运行操作:
-请阅读FourYears中的REDME.txt
+## 文件操作:
+### 于F盘下新建一个名为gal的文件夹，将仓库中的文件拷贝至其下
+#### 确保电脑中有:
+- SDL2
+- SDL2_image
+- SDL2_mixer
+- SDL2_ttf
+## 运行操作:
+### 请阅读FourYears中的REDME.txt
