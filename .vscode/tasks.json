@@ -1,0 +1,59 @@
+{
+    "version": "2.0.0",
+
+    "tasks": [
+        {
+            "label": "Build FourYears",
+
+            "type": "process",
+
+            "command": "C:\\msys64\\ucrt64\\bin\\g++.exe",
+
+            "args": [
+
+                "${workspaceFolder}\\FourYears\\main.cpp",
+
+                "${workspaceFolder}\\FourYears\\StoryParser.cpp",
+
+                "-o",
+
+                "${workspaceFolder}\\FourYears\\game.exe",
+
+
+                "-IC:\\msys64\\ucrt64\\include\\SDL2",
+
+                "-LC:\\msys64\\ucrt64\\lib",
+
+
+                "-lmingw32",
+                "-lSDL2main",
+                "-lSDL2",
+                "-lSDL2_image",
+                "-lSDL2_ttf"
+
+            ],
+
+
+            "options":
+            {
+                "cwd":
+                "${workspaceFolder}\\FourYears"
+            },
+
+
+            "group":
+            {
+                "kind":"build",
+                "isDefault":true
+            },
+
+
+            "problemMatcher":
+            [
+                "$gcc"
+            ]
+
+        }
+
+    ]
+}
