@@ -5,39 +5,37 @@
 | 项目 | 版本 |
 |------|------|
 | 开发语言 | C++17 |
+| 编译器 | GCC (g++) |
 | 图形库 | SDL2 |
 | 图片库 | SDL2_image |
 | 字体库 | SDL2_ttf |
-| 编译器 | GCC (g++) |
 | IDE | Visual Studio Code |
 
 ---
 
-# Windows 平台
+# Windows（MSYS2 UCRT64）
 
-## 环境部署
-
-### 1. 安装 MSYS2
+## 安装 MSYS2
 
 下载并安装：
 
-> https://www.msys2.org/
+https://www.msys2.org/
 
 安装完成后打开 **MSYS2 UCRT64**。
 
 ---
 
-### 2. 更新软件源
+## 更新软件源
 
 ```bash
 pacman -Syu
 ```
 
-关闭终端，重新打开 **MSYS2 UCRT64**。
+关闭终端后重新打开 **MSYS2 UCRT64**。
 
 ---
 
-### 3. 安装 GCC 与 SDL2
+## 安装依赖
 
 ```bash
 pacman -S \
@@ -51,15 +49,9 @@ mingw-w64-ucrt-x86_64-SDL2_ttf
 
 ## 编译
 
-进入项目目录：
-
 ```powershell
 cd F:\gal\FourYears
-```
 
-执行编译：
-
-```powershell
 C:\msys64\ucrt64\bin\g++.exe main.cpp StoryParser.cpp ^
 -o game.exe ^
 -IC:/msys64/ucrt64/include/SDL2 ^
@@ -89,43 +81,13 @@ game.exe
 
 ---
 
-# Linux 平台（Ubuntu）
+# Ubuntu / Debian
 
-## 环境部署
-
-更新软件源：
+## 安装依赖
 
 ```bash
 sudo apt update
-```
 
-安装 GCC：
-
-```bash
-sudo apt install g++
-```
-
-安装 SDL2：
-
-```bash
-sudo apt install libsdl2-dev
-```
-
-安装 SDL2_image：
-
-```bash
-sudo apt install libsdl2-image-dev
-```
-
-安装 SDL2_ttf：
-
-```bash
-sudo apt install libsdl2-ttf-dev
-```
-
-也可以一次安装：
-
-```bash
 sudo apt install \
 g++ \
 libsdl2-dev \
@@ -137,13 +99,75 @@ libsdl2-ttf-dev
 
 ## 编译
 
-进入项目目录：
-
 ```bash
-cd FourYears
+g++ main.cpp StoryParser.cpp \
+-o game \
+-lSDL2 \
+-lSDL2_image \
+-lSDL2_ttf
 ```
 
-执行编译：
+---
+
+## 运行
+
+```bash
+./game
+```
+
+---
+
+# Arch Linux
+
+## 安装依赖
+
+```bash
+sudo pacman -Syu
+
+sudo pacman -S \
+gcc \
+sdl2 \
+sdl2_image \
+sdl2_ttf
+```
+
+---
+
+## 编译
+
+```bash
+g++ main.cpp StoryParser.cpp \
+-o game \
+-lSDL2 \
+-lSDL2_image \
+-lSDL2_ttf
+```
+
+---
+
+## 运行
+
+```bash
+./game
+```
+
+---
+
+# Fedora
+
+## 安装依赖
+
+```bash
+sudo dnf install \
+gcc-c++ \
+SDL2-devel \
+SDL2_image-devel \
+SDL2_ttf-devel
+```
+
+---
+
+## 编译
 
 ```bash
 g++ main.cpp StoryParser.cpp \
@@ -186,16 +210,19 @@ FourYears/
 │   ├── character/
 │   └── font/
 │
-└── game.exe（Windows）
+├── game.exe      # Windows 编译生成
+└── game          # Linux 编译生成
 ```
 
----
+## 说明
 
-# 依赖
+本项目采用 **C++17** 开发，基于 **SDL2、SDL2_image、SDL2_ttf** 实现图形界面、图片加载和字体渲染。
 
-- GCC ≥ 10
-- SDL2
-- SDL2_image
-- SDL2_ttf
+支持的平台包括：
 
-项目采用 C++17 标准开发，可在 Windows（MSYS2 UCRT64）和 Linux（Ubuntu）环境下完成编译与运行。
+- Windows（MSYS2 UCRT64）
+- Ubuntu / Debian
+- Arch Linux
+- Fedora
+
+不同平台仅依赖安装方式不同，编译命令保持一致，仅生成的可执行文件名称有所区别（Windows 为 `game.exe`，Linux 为 `game`）。
