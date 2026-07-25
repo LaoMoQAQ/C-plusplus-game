@@ -290,9 +290,6 @@ bool StoryParser::Load(
 
 
 
-
-
-
             //========================
             // 普通角色
             //========================
@@ -302,7 +299,24 @@ bool StoryParser::Load(
             tag;
 
 
+            if(
+                tag=="旁白" ||
+                tag=="系统"
+            )
+            {
 
+                current.character="";
+
+            }
+            //区
+            if(tag=="结局")
+            {
+
+                current.isEnding=true;
+
+            }
+            //区
+            
             continue;
 
 
