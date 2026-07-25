@@ -15,6 +15,7 @@ using namespace std;
 struct StoryEvent
 {
 
+
     //角色名
     string name;
 
@@ -25,44 +26,33 @@ struct StoryEvent
 
 
 
-    //背景图片
-    //例如：
-    //school_gate.png
+    //背景
     string background;
 
 
 
-    //人物立绘
-    //例如：
-    //wuhongtao.png
+    //立绘
     string character;
 
 
 
-    //是否为选择
+    //选择
     bool isChoice=false;
 
 
 
-    //选择内容
-    //例如：
-    //  去图书馆
-    //  回宿舍
+    //选项
     vector<string> choices;
 
 
 
-    //每个选择对应的结果
-    //
-    // choices[0]
-    // 对应
-    // choiceResult[0]
-    //
-    // 例如：
-    // li
-    // zhang
-    // none
+    //路线标记
     string choiceResult;
+
+
+
+    //是否结局
+    bool isEnding=false;
 
 
 };
@@ -84,6 +74,17 @@ public:
 
     vector<StoryEvent> events;
 
+
+
+    StoryEvent& Get(
+        int index
+    )
+    {
+
+        return events[index];
+
+    }
+    
 
 
     void Add(
