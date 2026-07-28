@@ -1,31 +1,26 @@
 #define SDL_MAIN_HANDLED
 
-
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
-
 
 #include <iostream>
 #include <string>
 #include <vector>
 #include <map>
 #include <filesystem>
-
+#include <fstream>
 
 #ifdef _WIN32
 #include <windows.h>
 #endif
 
-
 #include "Story.h"
 #include "StoryParser.h"
 #include "GameState.h"
-
+#include "SavePage.h"
 
 using namespace std;
-
-
 
 //================================
 // 菜单类型
@@ -37,18 +32,12 @@ enum class MenuType
     PAUSE
 };
 
-
-
-
 //================================
 // 屏幕
 //================================
 
-const int SCREEN_WIDTH=1600;
-const int SCREEN_HEIGHT=900;
-
-
-
+const int SCREEN_WIDTH = 1600;
+const int SCREEN_HEIGHT = 900;
 
 //================================
 // 根目录
@@ -56,469 +45,304 @@ const int SCREEN_HEIGHT=900;
 
 string ROOT;
 
-
-
 void InitRoot()
 {
 
-    ROOT=
-    filesystem::current_path().string();
+    ROOT =
+        filesystem::current_path().string();
 
-
-    if(
+    if (
         filesystem::exists(
-            ROOT+"/resource"
-        )
-    )
+            ROOT + "/resource"))
     {
         return;
     }
 
-
-
-    if(
+    if (
         filesystem::exists(
-            ROOT+"/FourYears/resource"
-        )
-    )
+            ROOT + "/FourYears/resource"))
     {
 
-        ROOT+="/FourYears";
+        ROOT += "/FourYears";
 
         return;
-
     }
-
-
 
     cout
-    <<"找不到游戏目录"
-    <<endl;
-
-
+        << "找不到游戏目录"
+        << endl;
 }
-
-
-
 
 string Path(string p)
 {
 
-    return ROOT+"/"+p;
-
+    return ROOT + "/" + p;
 }
 
+//================================
+// 存档
+//================================
 
+bool SaveGame(
+    string file,
+    int current,
+    bool choosing,
+    int choiceIndex,
+    string route)
+{
 
+    filesystem::create_directories(
+        filesystem::path(file).parent_path());
 
+    ofstream out(file);
 
+    if (!out)
+    {
+
+        cout
+            << "存档失败:"
+            << file
+            << endl;
+
+        return false;
+    }
+
+    out
+        << current
+        << endl;
+
+    out
+        << choosing
+        << endl;
+
+    out
+        << choiceIndex
+        << endl;
+
+    out
+        << route
+        << endl;
+
+    out.close();
+
+    cout
+        << "保存成功"
+        << endl;
+
+    return true;
+}
+
+bool LoadGame(
+    string file,
+    int &current,
+    bool &choosing,
+    int &choiceIndex,
+    string &route)
+{
+
+    ifstream in(file);
+
+    if (!in)
+    {
+
+        cout
+            << "没有存档"
+            << endl;
+
+        return false;
+    }
+
+    in >> current;
+
+    in >> choosing;
+
+    in >> choiceIndex;
+
+    in.ignore();
+
+    getline(
+        in,
+        route);
+
+    in.close();
+
+    cout
+        << "读取成功"
+        << endl;
+
+    return true;
+}
 
 //================================
 // 图片加载
 //================================
 
-
-SDL_Texture* LoadTexture(
-    SDL_Renderer* renderer,
-    string file
-)
+SDL_Texture *LoadTexture(
+    SDL_Renderer *renderer,
+    string file)
 {
 
-    SDL_Surface* surface=
-    IMG_Load(
-        Path(file).c_str()
-    );
+    string realPath;
 
+    if (
+        filesystem::exists(
+            file))
+    {
+        realPath = file;
+    }
+    else
+    {
+        realPath = Path(file);
+    }
 
-    if(!surface)
+    SDL_Surface *surface =
+        IMG_Load(
+            realPath.c_str());
+
+    if (!surface)
     {
 
         cout
-        <<"图片失败:"
-        <<Path(file)
-        <<endl;
-
+            << "图片失败:"
+            << Path(file)
+            << endl;
 
         return nullptr;
-
     }
 
+    SDL_Texture *tex =
+        SDL_CreateTextureFromSurface(
+            renderer,
+            surface);
 
-
-    SDL_Texture* tex=
-    SDL_CreateTextureFromSurface(
-        renderer,
-        surface
-    );
-
-
+    SDL_SetTextureBlendMode(
+        tex,
+        SDL_BLENDMODE_BLEND);
 
     SDL_FreeSurface(surface);
 
-
-
     return tex;
-
 }
-
-
-
-
-
 
 //================================
 // UTF8切割
 //================================
-
 
 vector<string> SplitUTF8(string text)
 {
 
     vector<string> result;
 
-
-    for(size_t i=0;i<text.size();)
+    for (size_t i = 0; i < text.size();)
     {
 
-        unsigned char c=text[i];
+        unsigned char c = text[i];
 
+        int len = 1;
 
-        int len=1;
+        if (c >= 0xF0)
+            len = 4;
 
+        else if (c >= 0xE0)
+            len = 3;
 
-        if(c>=0xF0)
-            len=4;
-
-        else if(c>=0xE0)
-            len=3;
-
-        else if(c>=0xC0)
-            len=2;
-
-
+        else if (c >= 0xC0)
+            len = 2;
 
         result.push_back(
-            text.substr(i,len)
-        );
+            text.substr(i, len));
 
-
-        i+=len;
-
+        i += len;
     }
 
-
     return result;
-
 }
-
-
-
-
-
 
 //================================
 // 创建文字
 //================================
 
-
-SDL_Texture* CreateText(
-    SDL_Renderer* renderer,
-    TTF_Font* font,
-    string text
-)
+SDL_Texture *CreateText(
+    SDL_Renderer *renderer,
+    TTF_Font *font,
+    string text)
 {
 
-    SDL_Color white=
+    if (!font)
+        return nullptr;
+
+    SDL_Color white =
+        {
+            255,
+            255,
+            255,
+            255};
+
+    SDL_Surface *surface =
+        TTF_RenderUTF8_Blended(
+            font,
+            text.c_str(),
+            white);
+
+    if (!surface)
     {
-        255,
-        255,
-        255,
-        255
-    };
+        cout
+            << "文字创建失败:"
+            << TTF_GetError()
+            << endl;
 
-
-
-    SDL_Surface* surface=
-    TTF_RenderUTF8_Blended(
-        font,
-        text.c_str(),
-        white
-    );
-
-
-    if(!surface)
-    {
         return nullptr;
     }
 
+    SDL_Texture *tex =
+        SDL_CreateTextureFromSurface(
+            renderer,
+            surface);
 
+    SDL_SetTextureScaleMode(
+        tex,
+        SDL_ScaleModeBest);
 
-    SDL_Texture* tex=
-    SDL_CreateTextureFromSurface(
-        renderer,
-        surface
-    );
-
+    SDL_SetTextureBlendMode(
+        tex,
+        SDL_BLENDMODE_BLEND);
 
     SDL_FreeSurface(surface);
 
-
     return tex;
-
 }
+
 //================================
-// 打字系统
+// UI提示
 //================================
 
-
-class TextSystem
+void DrawMessage(
+    SDL_Renderer* renderer,
+    TTF_Font* font,
+    string msg
+)
 {
 
-public:
+    if(msg=="")
+        return;
 
 
-    SDL_Renderer* renderer;
-
-
-    TTF_Font* simhei;
-
-
-    vector<string> chars;
-
-
-    int index=0;
-
-
-    int speed=80;
-
-
-    Uint32 timer=0;
-
-
-    bool finished=true;
-
-
-    SDL_Texture* texture=nullptr;
-
-
-
-    TextSystem(
-        SDL_Renderer* r,
-        TTF_Font* f
-    )
-    {
-
-        renderer=r;
-
-        simhei=f;
-
-    }
-
-
-
-
-    void Clear()
-    {
-
-        if(texture)
-        {
-
-            SDL_DestroyTexture(
-                texture
-            );
-
-            texture=nullptr;
-
-        }
-
-    }
-
-
-
-
-
-
-    void SetText(
-        string text
-    )
-    {
-
-        Clear();
-
-
-        chars=
-        SplitUTF8(
-            text
+    SDL_Texture* tex =
+        CreateText(
+            renderer,
+            font,
+            msg
         );
 
 
-        index=0;
-
-
-        finished=false;
-
-
-    }
-
-
-
-
-
-
-    void Update()
+    if(tex)
     {
-
-        if(finished)
-            return;
-
-
-
-        Uint32 now=
-        SDL_GetTicks();
-
-
-
-        if(now-timer>speed)
-        {
-
-
-            index++;
-
-
-
-            if(index>=chars.size())
-            {
-
-                index=chars.size();
-
-                finished=true;
-
-            }
-
-
-            UpdateTexture();
-
-
-            timer=now;
-
-        }
-
-    }
-
-
-
-
-
-    void UpdateTexture()
-    {
-
-        Clear();
-
-
-        string show;
-
-
-
-        for(
-            int i=0;
-            i<index;
-            i++
-        )
-        {
-
-            show+=chars[i];
-
-        }
-
-
-
-        if(show.empty())
-            return;
-
-
-
-
-        SDL_Color white=
-        {
-            255,
-            255,
-            255,
-            255
-        };
-
-
-
-        SDL_Surface* surface=
-        TTF_RenderUTF8_Blended_Wrapped(
-            simhei,
-            show.c_str(),
-            white,
-            1300
-        );
-
-
-
-        if(surface)
-        {
-
-
-            texture=
-            SDL_CreateTextureFromSurface(
-                renderer,
-                surface
-            );
-
-
-            SDL_FreeSurface(
-                surface
-            );
-
-
-        }
-
-
-    }
-
-
-
-
-
-
-
-    void Finish()
-    {
-
-        index=
-        chars.size();
-
-
-        finished=true;
-
-
-        UpdateTexture();
-
-    }
-
-
-
-
-
-
-    void Render(
-        SDL_Rect rect
-    )
-    {
-
-        if(!texture)
-            return;
-
-
 
         int w,h;
 
 
         SDL_QueryTexture(
-            texture,
+            tex,
             nullptr,
             nullptr,
             &w,
@@ -526,324 +350,436 @@ public:
         );
 
 
-
-        SDL_Rect dst=
+        SDL_Rect r =
         {
-            rect.x,
-            rect.y,
+            SCREEN_WIDTH/2-w/2,
+            760,
             w,
             h
         };
 
 
+        SDL_RenderCopy(
+            renderer,
+            tex,
+            nullptr,
+            &r
+        );
+
+
+        SDL_DestroyTexture(
+            tex
+        );
+
+    }
+
+}
+
+//================================
+// 打字系统
+//================================
+
+class TextSystem
+{
+
+public:
+    SDL_Renderer *renderer;
+
+    TTF_Font *simhei;
+
+    TTF_Font *choiceFont;
+
+    vector<string> chars;
+
+    int index = 0;
+
+    int speed = 80;
+
+    Uint32 timer = 0;
+
+    bool finished = true;
+
+    SDL_Texture *texture = nullptr;
+
+    TextSystem(
+        SDL_Renderer *r,
+        TTF_Font *f,
+        TTF_Font *cf)
+    {
+
+        renderer = r;
+
+        simhei = f;
+
+        choiceFont = cf;
+    }
+
+    void Clear()
+    {
+
+        if (texture)
+        {
+
+            SDL_DestroyTexture(
+                texture);
+
+            texture = nullptr;
+        }
+    }
+
+    void SetText(
+        string text)
+    {
+
+        Clear();
+
+        chars =
+            SplitUTF8(
+                text);
+
+        index = 0;
+
+        finished = false;
+    }
+
+    void Update()
+    {
+
+        if (finished)
+            return;
+
+        Uint32 now =
+            SDL_GetTicks();
+
+        if (now - timer > speed)
+        {
+
+            index++;
+
+            if (index >= chars.size())
+            {
+
+                index = chars.size();
+
+                finished = true;
+            }
+
+            UpdateTexture();
+
+            timer = now;
+        }
+    }
+
+    void UpdateTexture()
+    {
+
+        Clear();
+
+        string show;
+
+        for (
+            int i = 0;
+            i < index;
+            i++)
+        {
+
+            show += chars[i];
+        }
+
+        if (show.empty())
+            return;
+
+        SDL_Color white =
+            {
+                255,
+                255,
+                255,
+                255};
+
+        SDL_Surface *surface =
+            TTF_RenderUTF8_Blended_Wrapped(
+                simhei,
+                show.c_str(),
+                white,
+                1200);
+
+        if (surface)
+        {
+
+            texture =
+                SDL_CreateTextureFromSurface(
+                    renderer,
+                    surface);
+
+            SDL_SetTextureScaleMode(
+                texture,
+                SDL_ScaleModeBest);
+
+            SDL_FreeSurface(
+                surface);
+        }
+    }
+
+    void Finish()
+    {
+
+        index =
+            chars.size();
+
+        finished = true;
+
+        UpdateTexture();
+    }
+
+    void Render(
+        SDL_Rect rect)
+    {
+
+        if (!texture)
+            return;
+
+        int w, h;
+
+        SDL_QueryTexture(
+            texture,
+            nullptr,
+            nullptr,
+            &w,
+            &h);
+
+        SDL_Rect dst =
+            {
+                rect.x,
+                rect.y,
+                w,
+                h};
 
         SDL_RenderCopy(
             renderer,
             texture,
             nullptr,
-            &dst
-        );
-
-
+            &dst);
     }
     //================================
-// 选择显示
-//================================
+    // 选择显示
+    //================================
 
-void RenderChoice(
-    vector<string> choices,
-    int select,
-    int x,
-    int y
-)
-{
-
-    int yy=y;
-
-
-    for(
-        int i=0;
-        i<choices.size();
-        i++
-    )
+    void RenderChoice(
+        vector<string> choices,
+        int select,
+        int x,
+        int y)
     {
 
+        int yy = y;
 
-        string s;
-
-
-        if(i==select)
-        {
-            s="> ";
-        }
-        else
-        {
-            s="  ";
-        }
-
-
-        s+=choices[i];
-
-
-
-        SDL_Color white=
-        {
-            255,
-            255,
-            255,
-            255
-        };
-
-
-
-        SDL_Surface* surface=
-        TTF_RenderUTF8_Blended(
-            simhei,
-            s.c_str(),
-            white
-        );
-
-
-
-        if(surface)
+        for (
+            int i = 0;
+            i < choices.size();
+            i++)
         {
 
+            string s;
 
-            SDL_Texture* tex=
-            SDL_CreateTextureFromSurface(
-                renderer,
-                surface
-            );
-
-
-
-            SDL_Rect r=
+            if (i == select)
             {
-                x,
-                yy,
-                surface->w,
-                surface->h
-            };
+                s = "> ";
+            }
+            else
+            {
+                s = "  ";
+            }
 
+            s += choices[i];
 
+            SDL_Color white =
+                {
+                    255,
+                    255,
+                    255,
+                    255};
 
-            SDL_RenderCopy(
-                renderer,
-                tex,
-                nullptr,
-                &r
-            );
+            SDL_Surface *surface =
+                TTF_RenderUTF8_Blended(
+                    choiceFont,
+                    s.c_str(),
+                    white);
 
+            if (surface)
+            {
 
+                SDL_Texture *tex =
+                    SDL_CreateTextureFromSurface(
+                        renderer,
+                        surface);
 
-            SDL_DestroyTexture(
-                tex
-            );
+                SDL_Rect r =
+                    {
+                        x,
+                        yy,
+                        surface->w,
+                        surface->h};
 
+                SDL_RenderCopy(
+                    renderer,
+                    tex,
+                    nullptr,
+                    &r);
 
-            SDL_FreeSurface(
-                surface
-            );
+                SDL_DestroyTexture(
+                    tex);
 
+                SDL_FreeSurface(
+                    surface);
+            }
 
+            yy += 42;
         }
-
-
-        yy+=50;
-
-
     }
-
-
-}
-
-
 };
-
-
-
-
-
-
-
-
 
 //================================
 // 资源管理
 //================================
 
-
 class ResourceManager
 {
 
 public:
+    SDL_Renderer *renderer;
 
+    map<string, SDL_Texture *> backgrounds;
 
-    SDL_Renderer* renderer;
-
-
-    map<string,SDL_Texture*> backgrounds;
-
-
-    map<string,SDL_Texture*> characters;
-
-
-
-
+    map<string, SDL_Texture *> characters;
 
     ResourceManager(
-        SDL_Renderer* r
-    )
+        SDL_Renderer *r)
     {
 
-        renderer=r;
-
+        renderer = r;
     }
 
-
-
-
-
-
-
-    SDL_Texture* GetBackground(
-        string name
-    )
+    SDL_Texture *GetBackground(
+        string name)
     {
 
-        if(name=="")
+        if (name == "")
             return nullptr;
 
-
-
-        if(backgrounds.count(name))
+        if (backgrounds.count(name))
         {
 
             return backgrounds[name];
-
         }
 
+        SDL_Texture *tex =
+            LoadTexture(
+                renderer,
+                "resource/bg/" + name);
 
-
-        SDL_Texture* tex=
-        LoadTexture(
-            renderer,
-            "resource/bg/"+name
-        );
-
-
-
-        backgrounds[name]=tex;
-
+        backgrounds[name] = tex;
 
         return tex;
-
-
     }
 
-
-
-
-
-
-
-
-    SDL_Texture* GetCharacter(
-        string name
-    )
+    SDL_Texture *GetCharacter(
+        string name)
     {
 
-        if(
-            name.empty()
-        )
-        {
-
+        if (name.empty())
             return nullptr;
 
+        if (characters.count(name))
+        {
+            return characters[name];
         }
 
+        string file;
 
+        //================================
+        // 兼容剧情文件路径
+        //================================
 
-        if(characters.count(name))
+        // 情况1:
+        //  li_junhao/normal.png
+
+        if (
+            filesystem::exists(
+                Path(
+                    "resource/character/" + name)))
         {
 
-            return characters[name];
-
+            file =
+                "resource/character/" + name;
         }
 
+        // 情况2:
+        //  resource/character/li_junhao/normal.png
 
+        else if (
+            filesystem::exists(
+                Path(name)))
+        {
 
-        SDL_Texture* tex=
-        LoadTexture(
-            renderer,
-            "resource/character/"+name
-        );
+            file = name;
+        }
 
+        else
+        {
 
-        characters[name]=tex;
+            cout
+                << "找不到立绘:"
+                << name
+                << endl;
 
+            characters[name] = nullptr;
+
+            return nullptr;
+        }
+
+        SDL_Texture *tex =
+            LoadTexture(
+                renderer,
+                file);
+
+        characters[name] = tex;
 
         return tex;
-
-
     }
-
-
-
-
-
-
 
     void Clear()
     {
 
-
-        for(auto& x:backgrounds)
+        for (auto &x : backgrounds)
         {
 
-            if(x.second)
+            if (x.second)
             {
 
                 SDL_DestroyTexture(
-                    x.second
-                );
-
+                    x.second);
             }
-
         }
 
-
-
-
-
-        for(auto& x:characters)
+        for (auto &x : characters)
         {
 
-            if(x.second)
+            if (x.second)
             {
 
                 SDL_DestroyTexture(
-                    x.second
-                );
-
+                    x.second);
             }
-
         }
-
-
     }
-
-
 };
 
 //================================
 // main
 //================================
 
-
 int main()
 {
-
 
 #ifdef _WIN32
 
@@ -852,1544 +788,1326 @@ int main()
 
 #endif
 
-
-
     InitRoot();
 
-
-
     cout
-    <<"游戏目录:"
-    <<ROOT
-    <<endl;
-
-
-
-
-
+        << "游戏目录:"
+        << ROOT
+        << endl;
 
     //==============================
     // SDL
     //==============================
 
-
-    if(
+    if (
         SDL_Init(
-            SDL_INIT_VIDEO
-        )
-        !=0
-    )
+            SDL_INIT_VIDEO) != 0)
     {
 
         return -1;
-
     }
 
-
-
     IMG_Init(
-        IMG_INIT_PNG
-    );
-
+        IMG_INIT_PNG);
 
     TTF_Init();
 
+    SDL_Window *window =
+        SDL_CreateWindow(
 
+            "FourYears",
 
+            SDL_WINDOWPOS_CENTERED,
+            SDL_WINDOWPOS_CENTERED,
 
+            SCREEN_WIDTH,
+            SCREEN_HEIGHT,
 
+            SDL_WINDOW_SHOWN
 
+        );
 
-
-    SDL_Window* window=
-    SDL_CreateWindow(
-
-        "FourYears",
-
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
-
-        SCREEN_WIDTH,
-        SCREEN_HEIGHT,
-
-        SDL_WINDOW_SHOWN
-
-    );
-
-
-
-    if(!window)
+    if (!window)
         return -1;
 
+    SDL_Renderer *renderer =
+        SDL_CreateRenderer(
+            window,
+            -1,
+            SDL_RENDERER_ACCELERATED |
+                SDL_RENDERER_PRESENTVSYNC);
 
-
-
-
-
-    SDL_Renderer* renderer=
-    SDL_CreateRenderer(
-
-        window,
-
-        -1,
-
-        SDL_RENDERER_ACCELERATED
-
-    );
-
-
-
-    if(!renderer)
+    if (!renderer)
         return -1;
-
-
-
-
-
-
-
 
     //==============================
     // 字体
     //==============================
 
+    TTF_Font *simhei =
+        TTF_OpenFont(
 
-    TTF_Font* simhei=
-    TTF_OpenFont(
+            Path(
+                "resource/font/simhei.ttf")
+                .c_str(),
 
-        Path(
-        "resource/font/simhei.ttf"
-        ).c_str(),
+            28
 
-        32
+        );
 
-    );
+    TTF_Font *number =
+        TTF_OpenFont(
+
+            Path(
+                "resource/font/number.ttf")
+                .c_str(),
+
+            28
+
+        );
+
+    TTF_Font *title =
+        TTF_OpenFont(
+
+            Path(
+                "resource/font/title.ttf")
+                .c_str(),
+
+            42
+
+        );
+
+    if (
+        !simhei ||
+        !number ||
+        !title)
+    {
+
+        cout
+            << "字体失败"
+            << endl;
+
+        return -1;
+    }
+
+    //==============================
+    // 资源
+    //==============================
+
+    ResourceManager resource(
+        renderer);
+
+    //==============================
+    // 剧情
+    //==============================
+
+    Story story;
+
+    StoryParser parser;
+
+    vector<string> scripts =
+        {
+
+            "script/chapter01.txt",
+
+            "script/chapter02.txt",
+
+            "script/ending.txt"
+
+        };
+
+    for (auto &s : scripts)
+    {
+
+        if (
+            !parser.Load(
+                Path(s),
+                story))
+        {
+
+            cout
+                << "剧情读取失败:"
+                << s
+                << endl;
+
+            return -1;
+        }
+    }
+
+    if (story.events.empty())
+    {
+
+        cout
+            << "剧情为空"
+            << endl;
+
+        return -1;
+    }
+
+    //==============================
+    // 剧情变量
+    //==============================
+
+    int current = 0;
+
+    string currentRoute = "";
+
+    bool choosing = false;
+
+    int choiceIndex = 0;
+
+    //================================
+    // UI提示
+    //================================
+
+    string message="";
+
+    Uint32 messageTimer=0;
+
+    TextSystem text(
+        renderer,
+        simhei,
+        simhei);
+
+    // 注意：
+    // 这里不加载剧情
+    // 等待开始菜单
+
+    bool running = true;
+
+    //==============================
+    // 游戏状态
+    //==============================
+
+    GameState state =
+        GameState::MENU;
+
+    MenuType menuType =
+        MenuType::START;
+
+    int menuIndex = 0;
+
+    //================================
+    // 存档界面
+    //================================
+
+    SavePage savePage =
+    SavePage::LOAD;
+
+string saveMessage="";
+
+Uint32 saveMessageTime=0;
+
+    SDL_Event event;
+
+    // 下面进入游戏循环
+    //================================
+    // 游戏循环
+    //================================
+
+    while (running)
+    {
+
+        while (SDL_PollEvent(&event))
+        {
+
+            if (event.type == SDL_QUIT)
+            {
+
+                running = false;
+            }
+
+            if (event.type == SDL_KEYDOWN)
+            {
+SDL_Keycode key =
+                    event.key.keysym.sym;
+//================================
+// 存档页面
+//================================
+
+if(
+state==
+GameState::SAVE_MENU
+)
+{
 
 
+    if(key==SDLK_ESCAPE)
+    {
 
-    TTF_Font* number=
-    TTF_OpenFont(
+        state=
+        GameState::MENU;
 
-        Path(
-        "resource/font/number.ttf"
-        ).c_str(),
+        continue;
 
-        28
-
-    );
-
-
-
-    TTF_Font* title=
-    TTF_OpenFont(
-
-        Path(
-        "resource/font/title.ttf"
-        ).c_str(),
-
-        48
-
-    );
+    }
 
 
 
     if(
-        !simhei ||
-        !number ||
-        !title
-    )
-    {
-
-        cout
-        <<"字体失败"
-        <<endl;
-
-
-        return -1;
-
-    }
-
-
-
-
-
-
-
-
-
-    //==============================
-    //资源
-    //==============================
-
-
-    ResourceManager resource(
-        renderer
-    );
-
-
-
-
-
-
-
-
-
-    //==============================
-    //剧情
-    //==============================
-
-
-    Story story;
-
-
-    StoryParser parser;
-
-
-
-    vector<string> scripts=
-    {
-
-        "script/chapter01.txt",
-
-        "script/chapter02.txt",
-
-        "script/ending.txt"
-
-    };
-
-
-
-
-
-    for(auto& s:scripts)
-    {
-
-        if(
-            !parser.Load(
-                Path(s),
-                story
-            )
-        )
-        {
-
-            cout
-            <<"剧情读取失败:"
-            <<s
-            <<endl;
-
-
-            return -1;
-
-        }
-
-
-    }
-
-
-
-
-
-
-
-
-    if(story.events.empty())
-    {
-
-        cout
-        <<"剧情为空"
-        <<endl;
-
-
-        return -1;
-
-    }
-
-
-
-
-
-
-
-
-
-    //==============================
-    //剧情变量
-    //==============================
-
-
-    int current=0;
-
-
-    string currentRoute="";
-
-
-    bool choosing=false;
-
-
-    int choiceIndex=0;
-
-
-
-
-
-
-    TextSystem text(
-        renderer,
-        simhei
-    );
-
-
-
-    //注意：
-    //这里不加载剧情
-    //等待开始菜单
-
-
-    bool running=true;
-
-
-
-
-
-    //==============================
-    //游戏状态
-    //==============================
-
-
-    GameState state=
-    GameState::MENU;
-
-
-
-    MenuType menuType=
-    MenuType::START;
-
-
-
-    int menuIndex=0;
-
-
-
-
-
-    SDL_Event event;
-
-
-
-    //下面进入游戏循环
-//================================
-// 游戏循环
-//================================
-
-
-while(running)
-{
-
-
-    while(SDL_PollEvent(&event))
+    key==SDLK_RETURN ||
+    key==SDLK_KP_ENTER)
     {
 
 
-
-        if(event.type==SDL_QUIT)
-        {
-
-            running=false;
-
-        }
-
-
-
-
-
-
-        if(event.type==SDL_KEYDOWN)
+        if(savePage==
+        SavePage::LOAD)
         {
 
 
-            SDL_Keycode key=
-            event.key.keysym.sym;
-
-
-
-
-
-            //================================
-            // ESC
-            //================================
-
-
-            if(key==SDLK_ESCAPE)
+            if(
+            LoadGame(
+            Path("resource/save.dat"),
+            current,
+            choosing,
+            choiceIndex,
+            currentRoute))
             {
-
 
                 if(
-                    state==
-                    GameState::PLAYING
-                )
+                current<
+                story.events.size())
                 {
 
-                    state=
-                    GameState::MENU;
-
-
-                    menuType=
-                    MenuType::PAUSE;
-
-
-                    menuIndex=0;
-
+                    text.SetText(
+                    story.events[current].text);
 
                 }
 
 
-                else if(
-                    state==
-                    GameState::MENU
-                    &&
-                    menuType==
-                    MenuType::PAUSE
-                )
-                {
+                state=
+                GameState::PLAYING;
 
+            }
+            else
+            {
 
-                    state=
-                    GameState::PLAYING;
+                saveMessage=
+                "没有找到存档";
 
-
-                }
-
-
-                continue;
-
+                saveMessageTime=
+                SDL_GetTicks();
 
             }
 
 
+        }
 
 
+    }
 
 
+    continue;
 
-            //================================
-            // 菜单
-            //================================
+}
 
+                
 
-            if(
-                state==
-                GameState::MENU
-            )
-            {
+                //================================
+                // ESC
+                //================================
 
-
-
-                if(key==SDLK_UP)
+                if (key == SDLK_ESCAPE)
                 {
 
-                    menuIndex--;
-
-
-                    if(menuIndex<0)
+                    if (
+                        state ==
+                        GameState::PLAYING)
                     {
 
-                        menuIndex=3;
+                        state =
+                            GameState::PAUSE;
 
+                        menuType =
+                            MenuType::PAUSE;
+
+                        menuIndex = 0;
                     }
-
-                }
-
-
-
-
-
-                else if(key==SDLK_DOWN)
-                {
-
-
-                    menuIndex++;
-
-
-                    if(menuIndex>3)
-                    {
-
-                        menuIndex=0;
-
-                    }
-
-
-                }
-
-
-
-
-
-
-
-
-                else if(
-                    key==SDLK_RETURN
-                    ||
-                    key==SDLK_KP_ENTER
-                )
-                {
-
-
-
-                    //========================
-                    //开始菜单
-                    //========================
-
-
-                    if(
-                        menuType==
-                        MenuType::START
-                    )
-                    {
-
-
-                        if(menuIndex==0)
-                        {
-
-
-                            state=
-                            GameState::PLAYING;
-
-
-
-                            current=0;
-
-
-
-                            choosing=false;
-
-
-
-                            text.SetText(
-                                story.events[current].text
-                            );
-
-
-                        }
-
-
-
-
-                        else if(menuIndex==3)
-                        {
-
-                            running=false;
-
-                        }
-
-
-                    }
-
-
-
-
-
-
-
-                    //========================
-                    //暂停菜单
-                    //========================
-
-
-                    else
-                    {
-
-
-                        if(menuIndex==0)
-                        {
-
-                            state=
-                            GameState::PLAYING;
-
-                        }
-
-
-
-                        else if(menuIndex==3)
-                        {
-
-                            running=false;
-
-                        }
-
-
-
-                    }
-
-
-
-                }
-
-
-                continue;
-
-
-            }
-
-
-
-
-
-
-
-
-
-            //================================
-            //剧情输入
-            //================================
-
-
-            if(
-                state==
-                GameState::PLAYING
-            )
-            {
-
-
-
-
-                //========================
-                //选择
-                //========================
-
-
-                if(choosing)
-                {
-
-
-
-                    if(key==SDLK_UP)
-                    {
-
-                        choiceIndex--;
-
-
-                        if(choiceIndex<0)
-                        {
-
-                            choiceIndex=
-                            story.events[current]
-                            .choices.size()-1;
-
-                        }
-
-
-                    }
-
-
-
-
-                    else if(key==SDLK_DOWN)
-                    {
-
-
-                        choiceIndex++;
-
-
-                        if(
-                            choiceIndex >=
-                            story.events[current]
-                            .choices.size()
-                        )
-                        {
-
-                            choiceIndex=0;
-
-                        }
-
-
-                    }
-
-
-
-
 
                     else if(
-                        key==SDLK_RETURN
-                        ||
-                        key==SDLK_KP_ENTER
-                    )
-                    {
+    state==
+    GameState::PAUSE
+)
+{
 
+    state=
+    GameState::PLAYING;
 
-                        string choice=
-                        story.events[current]
-                        .choices[choiceIndex];
+    menuType=
+    MenuType::PAUSE;
 
+}
 
-
-                        choosing=false;
-
-
-
-                        Story route;
-
-
-
-
-                        if(
-                            choice.find("陪伴")
-                            !=string::npos
-                        )
-                        {
-
-
-                            parser.Load(
-                                Path(
-                                "script/li_junhao_route.txt"
-                                ),
-                                route
-                            );
-
-
-                        }
-
-
-
-                        else if(
-                            choice.find("未来")
-                            !=string::npos
-                        )
-                        {
-
-
-                            parser.Load(
-                                Path(
-                                "script/zhang_hanyu_route.txt"
-                                ),
-                                route
-                            );
-
-
-                        }
-
-
-
-                        else
-                        {
-
-
-                            parser.Load(
-                                Path(
-                                "script/alone_ending.txt"
-                                ),
-                                route
-                            );
-
-
-                        }
-
-
-
-
-
-                        int oldSize=
-                        story.events.size();
-
-
-
-
-                        story.events.insert(
-                            story.events.end(),
-                            route.events.begin(),
-                            route.events.end()
-                        );
-
-
-
-
-                        current=
-                        oldSize;
-
-
-
-                        text.SetText(
-                            story.events[current].text
-                        );
-
-
-
-                    }
-
-
+                    continue;
                 }
 
+                //================================
+                // 菜单
+                //================================
 
-
-
-
-
-                //========================
-                //普通剧情
-                //========================
-
-
-                else
+                if (
+                    state ==
+                    GameState::MENU ||
+                    state ==
+                    GameState::PAUSE
+                    )
                 {
 
-
-                    if(
-                        key==SDLK_SPACE
-                        ||
-                        key==SDLK_RETURN
-                        ||
-                        key==SDLK_KP_ENTER
-                    )
+                    if (key == SDLK_UP)
                     {
 
+                        menuIndex--;
 
-
-                        if(!text.finished)
+                        if (menuIndex < 0)
                         {
 
-                            text.Finish();
-
+                            menuIndex = 3;
                         }
+                    }
 
+                    else if (key == SDLK_DOWN)
+                    {
 
-                        else
+                        menuIndex++;
+
+                        if (menuIndex > 3)
                         {
 
+                            menuIndex = 0;
+                        }
+                    }
 
-                            current++;
+                    else if (
+                        key == SDLK_RETURN ||
+                        key == SDLK_KP_ENTER)
+                    {
 
+                        //========================
+                        // 开始菜单
+                        //========================
 
+                        if (
+                            menuType ==
+                            MenuType::START)
+                        {
 
-                            if(
-                                current<
-                                story.events.size()
-                            )
+                            if (menuIndex == 0)
                             {
 
+                                state =
+                                    GameState::PLAYING;
 
+                                current = 0;
 
-                                if(
-                                    story.events[current]
-                                    .isChoice
-                                )
+                                choosing = false;
+
+                                if (
+                                    story.events[current].isChoice)
                                 {
 
-                                    choosing=true;
-
-                                    choiceIndex=0;
-
-                                    text.Clear();
-
+                                    choosing = true;
                                 }
-
-
                                 else
                                 {
 
-                                    text.SetText(
-                                        story.events[current].text
-                                    );
-
-
+                                    choosing = false;
                                 }
+                            }
+                            else if (menuIndex == 1)
+                            {
 
+                                state=
+                                GameState::SAVE_MENU;
 
+                                savePage=
+                                SavePage::LOAD;
 
                             }
 
+                            else if (menuIndex == 3)
+                            {
+
+                                running = false;
+                            }
+                        }
+
+                        //========================
+                        // 暂停菜单
+                        //========================
+
+                        else
+                        {
+
+                            // 继续游戏
+
+                            if (menuIndex == 0)
+                            {
+
+                                state =
+                                    GameState::PLAYING;
+                            }
+
+                            // 保存
+
+                            else if (menuIndex == 1)
+                            {
+
+                                if(
+SaveGame(
+Path("resource/save.dat"),
+current,
+choosing,
+choiceIndex,
+currentRoute))
+{
+
+saveMessage=
+"保存成功";
+
+
+saveMessageTime=
+SDL_GetTicks();
+
+}
+                            }
+
+                            // 读取
+
+                            else if (menuIndex == 2)
+                            {
+
+                                state=GameState::SAVE_MENU;
+
+                                savePage=SavePage::MANAGE;
+
+                            }
+
+                            // 退出
+
+                            else if (menuIndex == 3)
+                            {
+
+                                running = false;
+                            }
+                        }
+                    }
+
+                    continue;
+                }
+
+                //================================
+                // 剧情输入
+                //================================
+
+                if (
+                    state ==
+                    GameState::PLAYING)
+                {
+
+                    //========================
+                    // 选择
+                    //========================
+
+                    if (choosing)
+                    {
+
+                        if (key == SDLK_UP)
+                        {
+
+                            choiceIndex--;
+
+                            if (choiceIndex < 0)
+                            {
+
+                                choiceIndex =
+                                    story.events[current]
+                                        .choices.size() -
+                                    1;
+                            }
+                        }
+
+                        else if (key == SDLK_DOWN)
+                        {
+
+                            choiceIndex++;
+
+                            if (
+                                choiceIndex >=
+                                story.events[current]
+                                    .choices.size())
+                            {
+
+                                choiceIndex = 0;
+                            }
+                        }
+
+                        else if (
+                            key == SDLK_RETURN ||
+                            key == SDLK_KP_ENTER)
+                        {
+
+                            string choice =
+                                story.events[current]
+                                    .choices[choiceIndex];
+
+                            choosing = false;
+
+                            Story route;
+
+                            if (
+                                choice.find("陪伴") != string::npos)
+                            {
+
+                                parser.Load(
+                                    Path(
+                                        "script/li_junhao_route.txt"),
+                                    route);
+                            }
+
+                            else if (
+                                choice.find("未来") != string::npos)
+                            {
+
+                                parser.Load(
+                                    Path(
+                                        "script/zhang_hanyu_route.txt"),
+                                    route);
+                            }
 
                             else
                             {
 
-                                running=false;
-
+                                parser.Load(
+                                    Path(
+                                        "script/alone_ending.txt"),
+                                    route);
                             }
 
+                            int oldSize =
+                                story.events.size();
 
+                            story.events.insert(
+                                story.events.end(),
+                                route.events.begin(),
+                                route.events.end());
+
+                            current =
+                                oldSize;
+
+                            text.SetText(
+                                story.events[current].text);
                         }
-
-
-
                     }
 
+                    //========================
+                    // 普通剧情
+                    //========================
 
+                    else
+                    {
+
+                        if (
+                            key == SDLK_SPACE ||
+                            key == SDLK_RETURN ||
+                            key == SDLK_KP_ENTER)
+                        {
+
+                            if (!text.finished)
+                            {
+
+                                text.Finish();
+                            }
+
+                            else
+                            {
+
+                                current++;
+
+                                if (
+                                    current <
+                                    story.events.size())
+                                {
+
+                                    if (
+                                        story.events[current]
+                                            .isChoice)
+                                    {
+
+                                        choosing = true;
+
+                                        choiceIndex = 0;
+
+                                        text.Clear();
+                                    }
+
+                                    else
+                                    {
+
+                                        text.SetText(
+                                            story.events[current].text);
+                                    }
+                                }
+
+                                else
+                                {
+
+                                    running = false;
+                                }
+                            }
+                        }
+                    }
                 }
-
-
-
             }
-
-
-
-
-
         }
 
-
-
-    }
-    
         //==============================
         // 更新文字
         //==============================
 
         text.Update();
 
+        if(
+saveMessage!="" &&
+SDL_GetTicks()-saveMessageTime>2000)
+{
 
+saveMessage="";
 
+}
 
         //==============================
         // 清屏
         //==============================
-
 
         SDL_SetRenderDrawColor(
             renderer,
             0,
             0,
             0,
-            255
-        );
-
+            255);
 
         SDL_RenderClear(
-            renderer
-        );
-
-
-
-
-
+            renderer);
 
         //================================
         // 游戏画面
         //================================
 
-
-        if(
-            state==
-            GameState::PLAYING
-        )
+        if (
+            state ==
+                GameState::PLAYING ||
+            state ==
+                GameState::PAUSE)
         {
 
-
-            StoryEvent& now =
-                story.events[current];
-
-            //背景
-
-
-            SDL_Texture* bg=
-            resource.GetBackground(
-                now.background
-            );
-
-
-
-            if(bg)
+            if (
+                current < 0 ||
+                current >= story.events.size())
             {
 
-                SDL_Rect dst=
-                {
-                    0,
-                    0,
-                    SCREEN_WIDTH,
-                    SCREEN_HEIGHT
-                };
+                current =
+                    story.events.size() - 1;
+            }
 
+            StoryEvent &now =
+                story.events[current];
+
+            // 背景
+
+            SDL_Texture *bg =
+                resource.GetBackground(
+                    now.background);
+
+            if (bg)
+            {
+
+                SDL_Rect dst =
+                    {
+                        0,
+                        0,
+                        SCREEN_WIDTH,
+                        SCREEN_HEIGHT};
 
                 SDL_RenderCopy(
                     renderer,
                     bg,
                     nullptr,
-                    &dst
-                );
-
+                    &dst);
             }
 
+            // 人物
 
+            SDL_Texture *character =
+                resource.GetCharacter(
+                    now.character);
 
-
-
-
-            //人物
-
-
-            SDL_Texture* character=
-            resource.GetCharacter(
-                now.character
-            );
-
-
-
-            if(character)
+            if (character)
             {
 
-                SDL_Rect dst=
-                {
-                    950,
-                    110,
-                    450,
-                    800
-                };
+                int w, h;
 
+                SDL_QueryTexture(
+                    character,
+                    nullptr,
+                    nullptr,
+                    &w,
+                    &h);
+
+                float scale =
+                    700.0f / h;
+
+                SDL_Rect dst =
+                    {
+                        950,
+                        static_cast<int>(850-h*scale),
+                        static_cast<int>(w*scale),
+                        700};
 
                 SDL_RenderCopy(
                     renderer,
                     character,
                     nullptr,
-                    &dst
-                );
-
-
+                    &dst);
             }
-
-
-
-
-
 
             //==============================
             // 对话框
             //==============================
 
-
             SDL_SetRenderDrawBlendMode(
                 renderer,
-                SDL_BLENDMODE_BLEND
-            );
-
-
+                SDL_BLENDMODE_BLEND);
 
             SDL_SetRenderDrawColor(
                 renderer,
                 0,
                 0,
                 0,
-                170
-            );
+                170);
 
-
-
-            SDL_Rect box=
-            {
-                50,
-                700,
-                1500,
-                120
-            };
-
-
+            SDL_Rect box =
+                {
+                    50,
+                    640,
+                    1500,
+                    220};
 
             SDL_RenderFillRect(
                 renderer,
-                &box
-            );
+                &box);
 
+            // 名字
 
-
-
-
-
-
-            //名字
-
-
-            if(
+            if (
                 !choosing &&
-                now.name!=""
-            )
+                now.name != "")
             {
 
+                SDL_Texture *name =
+                    CreateText(
+                        renderer,
+                        title,
+                        now.name);
 
-                SDL_Texture* name=
-                CreateText(
-                    renderer,
-                    title,
-                    now.name
-                );
-
-
-
-                if(name)
+                if (name)
                 {
 
-                    int nw,nh;
+                    int nw, nh;
 
                     SDL_QueryTexture(
                         name,
                         nullptr,
                         nullptr,
                         &nw,
-                        &nh
-                    );
+                        &nh);
 
-                    SDL_Rect r=
-                    {
-                        100,
-                        650,
-                        nw,
-                        nh
-                    };
-
-
+                    SDL_Rect r =
+                        {
+                            100,
+                            585,
+                            nw,
+                            nh};
 
                     SDL_RenderCopy(
                         renderer,
                         name,
                         nullptr,
-                        &r
-                    );
-
+                        &r);
 
                     SDL_DestroyTexture(
-                        name
-                    );
-
-
+                        name);
                 }
-
-
             }
 
+            // 正文
 
-
-
-
-
-            //正文
-
-
-            
-            if(!choosing)
+            if (!choosing)
             {
 
-                SDL_Rect textRect=
-                {
-                    100,
-                    710,
-                    1300,
-                    150
-                };
-
+                SDL_Rect textRect =
+                    {
+                        100,
+                        670,
+                        1300,
+                        150};
 
                 text.Render(
-                    textRect
-                );
-
+                    textRect);
             }
 
-
-
-
-
-
-
             //==============================
-            //选择
+            // 选择
             //==============================
 
-
-            if(choosing)
+            if (choosing)
             {
-
 
                 text.RenderChoice(
                     now.choices,
                     choiceIndex,
                     180,
-                    680
-                );
-
-
+                    680);
             }
 
+            //================================
+            // 暂停遮罩
+            //================================
 
-
-        }
-
-
-
-
-
-
-
-
-
-        //================================
-        // MENU
-        //================================
-
-
-        if(
-            state==
-            GameState::MENU
-        )
-        {
-
-
-
-            //标题
-
-
-            SDL_Texture* logo=
-            CreateText(
-                renderer,
-                title,
-                "FourYears"
-            );
-
-
-
-            if(logo)
+            if (
+                state ==
+                GameState::PAUSE)
             {
-
-
-                int lw,lh;
-
-                SDL_QueryTexture(
-                    logo,
-                    nullptr,
-                    nullptr,
-                    &lw,
-                    &lh
-                );
-
-                SDL_Rect r=
-                {
-                    100,
-                    120,
-                    lw,
-                    lh
-                };
-
-
-
-                SDL_RenderCopy(
-                    renderer,
-                    logo,
-                    nullptr,
-                    &r
-                );
-
-
-
-                SDL_DestroyTexture(
-                    logo
-                );
-
-
-            }
-
-
-
-
-
-
-
-            vector<string> menu;
-
-
-
-            if(
-                menuType==
-                MenuType::START
-            )
-            {
-
-                menu=
-                {
-
-                    "开始新游戏",
-
-                    "读取存档",
-
-                    "管理存档",
-
-                    "退出游戏"
-
-                };
-
-            }
-
-
-            else
-            {
-
-                menu=
-                {
-
-                    "继续游戏",
-
-                    "保存游戏",
-
-                    "读取存档",
-
-                    "退出游戏"
-
-                };
-
-            }
-
-
-
-
-
-
-
-
-            //暂停背景
-
-
-            if(
-                menuType==
-                MenuType::PAUSE
-            )
-            {
-
 
                 SDL_SetRenderDrawBlendMode(
                     renderer,
-                    SDL_BLENDMODE_BLEND
-                );
-
-
+                    SDL_BLENDMODE_BLEND);
 
                 SDL_SetRenderDrawColor(
                     renderer,
-                    180,
-                    180,
-                    180,
-                    210
-                );
+                    0,
+                    0,
+                    0,
+                    100);
 
-
-
-                SDL_Rect panel=
-                {
-                    520,
-                    180,
-                    560,
-                    520
-                };
-
-
+                SDL_Rect mask =
+                    {
+                        0,
+                        0,
+                        SCREEN_WIDTH,
+                        SCREEN_HEIGHT};
 
                 SDL_RenderFillRect(
                     renderer,
-                    &panel
-                );
-
-
+                    &mask);
             }
-
-
-
-
-
-
-
-            //菜单文字
-
-
-            for(
-                int i=0;
-                i<menu.size();
-                i++
-            )
-            {
-
-
-                string s;
-
-
-                if(i==menuIndex)
-                    s="> ";
-                else
-                    s="  ";
-
-
-
-                s+=menu[i];
-
-
-
-                SDL_Texture* t=
-                CreateText(
-                    renderer,
-                    simhei,
-                    s
-                );
-
-
-
-                if(t)
-                {
-
-
-                    SDL_Rect r;
-
-
-
-                    if(
-                        menuType==
-                        MenuType::START
-                    )
-                    {
-
-
-                        //左下角
-
-
-                        int mw,mh;
-
-                        SDL_QueryTexture(
-                            t,
-                            nullptr,
-                            nullptr,
-                            &mw,
-                            &mh
-                        );
-
-                        r=
-                        {
-                            100,
-                            680+i*55,
-                            mw,
-                            mh
-                        };
-
-
-                    }
-                    else
-                    {
-
-
-                        //暂停中央
-
-
-                        int mw,mh;
-
-                        SDL_QueryTexture(
-                            t,
-                            nullptr,
-                            nullptr,
-                            &mw,
-                            &mh
-                        );
-
-                        r=
-                        {
-                            SCREEN_WIDTH/2-mw/2,
-                            350+i*60,
-                            mw,
-                            mh
-                        };
-
-
-                    }
-
-
-
-
-
-                    SDL_RenderCopy(
-                        renderer,
-                        t,
-                        nullptr,
-                        &r
-                    );
-
-
-
-                    SDL_DestroyTexture(
-                        t
-                    );
-
-
-                }
-
-
-            }
-
-
-
         }
 
+//================================
+// SAVE MENU
+//================================
+
+if(
+state==
+GameState::SAVE_MENU
+)
+{
+
+
+    SDL_SetRenderDrawColor(
+        renderer,
+        30,
+        30,
+        30,
+        255
+    );
+
+
+    SDL_Rect panel =
+    {
+        250,
+        120,
+        1100,
+        600
+    };
+
+
+    SDL_RenderFillRect(
+        renderer,
+        &panel
+    );
 
 
 
+    string titleText;
 
 
-        SDL_RenderPresent(
-            renderer
+    if(
+    savePage==
+    SavePage::LOAD)
+    {
+
+        titleText=
+        "读取存档";
+
+    }
+    else
+    {
+
+        titleText=
+        "存档管理";
+
+    }
+
+
+
+    SDL_Texture* t=
+    CreateText(
+        renderer,
+        title,
+        titleText
+    );
+
+
+
+    if(t)
+    {
+
+        SDL_Rect r=
+        {
+            650,
+            180,
+            300,
+            50
+        };
+
+
+        SDL_RenderCopy(
+            renderer,
+            t,
+            nullptr,
+            &r
         );
 
 
-
-        SDL_Delay(
-            16
-        );
-
+        SDL_DestroyTexture(t);
 
     }
 
 
 
 
+    string info;
+
+
+    if(savePage==
+    SavePage::LOAD)
+    {
+
+        info=
+        "按 Enter 读取 save.dat";
+
+    }
+    else
+    {
+
+        info=
+        "当前只有一个存档槽";
+
+    }
 
 
 
+    SDL_Texture* infoTex=
+    CreateText(
+        renderer,
+        simhei,
+        info
+    );
+
+
+
+    if(infoTex)
+    {
+
+        SDL_Rect r=
+        {
+            500,
+            350,
+            600,
+            50
+        };
+
+
+        SDL_RenderCopy(
+            renderer,
+            infoTex,
+            nullptr,
+            &r
+        );
+
+
+        SDL_DestroyTexture(
+            infoTex
+        );
+
+    }
+
+
+
+
+    DrawMessage(
+        renderer,
+        simhei,
+        saveMessage
+    );
+
+
+}
+
+        //================================
+        // MENU
+        //================================
+
+        if (
+            state ==
+            GameState::MENU ||
+            state ==
+            GameState::PAUSE
+        )
+        {
+
+
+            if(menuType==MenuType::START)
+{
+
+    SDL_Texture *logo =
+    CreateText(
+        renderer,
+        title,
+        "FourYears");
+
+
+    if(logo)
+    {
+        int lw,lh;
+
+        SDL_QueryTexture(
+            logo,
+            nullptr,
+            nullptr,
+            &lw,
+            &lh);
+
+
+        SDL_Rect r=
+        {
+            100,
+            120,
+            lw,
+            lh
+        };
+
+
+        SDL_RenderCopy(
+            renderer,
+            logo,
+            nullptr,
+            &r);
+
+
+        SDL_DestroyTexture(
+            logo
+        );
+    }
+
+}
+
+            vector<string> menu;
+
+            if (
+                menuType ==
+                MenuType::START)
+            {
+
+                menu =
+                    {
+
+                        "开始新游戏",
+
+                        "读取存档",
+
+                        "管理存档",
+
+                        "退出游戏"
+
+                    };
+            }
+
+            else
+            {
+
+                menu =
+                    {
+
+                        "继续游戏",
+
+                        "保存游戏",
+
+                        "读取存档",
+
+                        "退出游戏"
+
+                    };
+            }
+
+            if (
+                menuType ==
+                MenuType::PAUSE)
+            {
+
+                SDL_SetRenderDrawBlendMode(
+                    renderer,
+                    SDL_BLENDMODE_BLEND);
+
+                SDL_SetRenderDrawColor(
+                    renderer,
+                    20,
+                    20,
+                    20,
+                    120);
+
+                SDL_Rect panel =
+                    {
+                        450,
+                        180,
+                        700,
+                        560};
+
+                SDL_RenderFillRect(
+                    renderer,
+                    &panel);
+            }
+
+            // 菜单文字
+
+            for (
+                int i = 0;
+                i < menu.size();
+                i++)
+            {
+
+                string s;
+
+                if (i == menuIndex)
+                    s = "> ";
+                else
+                    s = "  ";
+
+                s += menu[i];
+
+                SDL_Texture *t =
+                    CreateText(
+                        renderer,
+                        simhei,
+                        s);
+
+                if (t)
+                {
+
+                    SDL_Rect r;
+
+                    if (
+                        menuType ==
+                        MenuType::START)
+                    {
+
+                        // 左下角
+
+                        int mw, mh;
+
+                        SDL_QueryTexture(
+                            t,
+                            nullptr,
+                            nullptr,
+                            &mw,
+                            &mh);
+
+                        r =
+                            {
+                                100,
+                                680 + i * 55,
+                                mw,
+                                mh};
+                    }
+                    else
+                    {
+
+                        // 暂停中央
+
+                        int mw, mh;
+
+                        SDL_QueryTexture(
+                            t,
+                            nullptr,
+                            nullptr,
+                            &mw,
+                            &mh);
+
+                        r =
+                            {
+                                SCREEN_WIDTH / 2 - mw / 2,
+                                300 + i * 60,
+                                mw,
+                                mh};
+                    }
+
+                    SDL_RenderCopy(
+                        renderer,
+                        t,
+                        nullptr,
+                        &r);
+
+                    SDL_DestroyTexture(
+                        t);
+                }
+            }
+        }
+
+        SDL_RenderPresent(
+            renderer);
+
+        SDL_Delay(
+            16);
+    }
 
     //================================
-    //释放
+    // 释放
     //================================
-
 
     resource.Clear();
 
-
-
     text.Clear();
 
-
+    TTF_CloseFont(
+        simhei);
 
     TTF_CloseFont(
-        simhei
-    );
-
+        number);
 
     TTF_CloseFont(
-        number
-    );
-
-
-    TTF_CloseFont(
-        title
-    );
-
-
+        title);
 
     SDL_DestroyRenderer(
-        renderer
-    );
-
+        renderer);
 
     SDL_DestroyWindow(
-        window
-    );
-
+        window);
 
     TTF_Quit();
 
-
     IMG_Quit();
-
 
     SDL_Quit();
 
-
-
     return 0;
-
 }
