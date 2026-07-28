@@ -11,27 +11,76 @@
 
             "args": [
 
+                "-std=c++17",
+
+
+                "-finput-charset=UTF-8",
+                "-fexec-charset=UTF-8",
+
+                
                 "${workspaceFolder}\\FourYears\\main.cpp",
 
-                "${workspaceFolder}\\FourYears\\StoryParser.cpp",
+
+
+                "${workspaceFolder}\\FourYears\\core\\Game.cpp",
+                "${workspaceFolder}\\FourYears\\core\\Renderer.cpp",
+                "${workspaceFolder}\\FourYears\\core\\ResourceManager.cpp",
+                "${workspaceFolder}\\FourYears\\core\\TextSystem.cpp",
+                "${workspaceFolder}\\FourYears\\core\\ScriptPlayer.cpp",
+                "${workspaceFolder}\\FourYears\\core\\SaveSystem.cpp",
+                "${workspaceFolder}\\FourYears\\core\\AudioManager.cpp",
+                "${workspaceFolder}\\FourYears\\core\\FontManager.cpp",
+                "${workspaceFolder}\\FourYears\\core\\Config.cpp",
+                "${workspaceFolder}\\FourYears\\core\\Utils.cpp",
+
+
+
+                "${workspaceFolder}\\FourYears\\story\\Character.cpp",
+                "${workspaceFolder}\\FourYears\\story\\History.cpp",
+                "${workspaceFolder}\\FourYears\\story\\RouteManager.cpp",
+                "${workspaceFolder}\\FourYears\\story\\Story.cpp",
+                "${workspaceFolder}\\FourYears\\story\\StoryParser.cpp",
+
+
+
+                "${workspaceFolder}\\FourYears\\ui\\UIManager.cpp",
+                "${workspaceFolder}\\FourYears\\ui\\DialogueUI.cpp",
+                "${workspaceFolder}\\FourYears\\ui\\StartMenu.cpp",
+                "${workspaceFolder}\\FourYears\\ui\\PauseMenu.cpp",
+                "${workspaceFolder}\\FourYears\\ui\\SaveMenu.cpp",
+                "${workspaceFolder}\\FourYears\\ui\\HistoryMenu.cpp",
+                "${workspaceFolder}\\FourYears\\ui\\ConfigMenu.cpp",
+
+
 
                 "-o",
 
                 "${workspaceFolder}\\FourYears\\game.exe",
 
 
+
                 "-IC:\\msys64\\ucrt64\\include\\SDL2",
 
+                "-I${workspaceFolder}\\FourYears",
+                "-I${workspaceFolder}\\FourYears\\core",
+                "-I${workspaceFolder}\\FourYears\\story",
+                "-I${workspaceFolder}\\FourYears\\ui",
+
+
+
                 "-LC:\\msys64\\ucrt64\\lib",
+
 
 
                 "-lmingw32",
                 "-lSDL2main",
                 "-lSDL2",
                 "-lSDL2_image",
-                "-lSDL2_ttf"
+                "-lSDL2_ttf",
+                "-lSDL2_mixer"
 
             ],
+
 
 
             "options":
@@ -41,6 +90,7 @@
             },
 
 
+
             "group":
             {
                 "kind":"build",
@@ -48,12 +98,11 @@
             },
 
 
+
             "problemMatcher":
             [
                 "$gcc"
             ]
-
         }
-
     ]
 }
