@@ -32,59 +32,32 @@ StartMenu::StartMenu()
 
 
 void StartMenu::Render(
-
     Renderer& renderer
-
 )
 {
-
-
+    // 游戏标题（左上）
     renderer.DrawText(
-        "FourYears",
-        500,
-        120
+        "Four Years",
+        80,
+        60
     );
 
-
-
+    // 左下菜单
     for(int i=0;i<4;i++)
     {
-
-
         std::string text;
 
-
-
         if(i==choice)
-        {
-
-            text =
-            "> "
-            +
-            items[i];
-
-        }
-
+            text="> "+items[i];
         else
-        {
-
-            text =
-            items[i];
-
-        }
-
-
+            text=items[i];
 
         renderer.DrawText(
             text,
-            500,
-            250+i*60
+            90,
+            650+i*55
         );
-
-
     }
-
-
 }
 
 

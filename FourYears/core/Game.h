@@ -114,7 +114,13 @@ private:
 
 
 
+    SDL_Texture* currentBackground=nullptr;
 
+    SDL_Texture* currentCharacter=nullptr;
+
+
+
+    
     Story story;
 
 

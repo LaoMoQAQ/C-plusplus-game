@@ -42,105 +42,54 @@ Config::Config()
 
 
 
-bool Config::Load(
-
-    const std::string& path
-
-)
+bool Config::Load(const std::string& path)
 {
-
-
-    std::ifstream file(
-        path
-    );
-
-
+    std::ifstream file(path);
 
     if(!file.is_open())
-    {
-
         return false;
 
-    }
+    std::string line;
 
-
-
-    std::string key;
-
-
-
-    while(
-        file >> key
-    )
+    while(std::getline(file,line))
     {
+        if(line.empty())
+            continue;
 
+        if(line[0]=='[')
+            continue;
+
+        size_t pos=line.find('=');
+
+        if(pos==std::string::npos)
+            continue;
+
+        std::string key=line.substr(0,pos);
+        std::string value=line.substr(pos+1);
 
         if(key=="width")
-        {
-
-            file >> width;
-
-        }
-
+            width=std::stoi(value);
 
         else if(key=="height")
-        {
-
-            file >> height;
-
-        }
-
+            height=std::stoi(value);
 
         else if(key=="bgm")
-        {
-
-            file >> bgmVolume;
-
-        }
-
+            bgmVolume=std::stoi(value);
 
         else if(key=="se")
-        {
-
-            file >> seVolume;
-
-        }
-
+            seVolume=std::stoi(value);
 
         else if(key=="textSpeed")
-        {
-
-            file >> textSpeed;
-
-        }
-
+            textSpeed=std::stoi(value);
 
         else if(key=="fullscreen")
-        {
-
-            file >> fullscreen;
-
-        }
-
+            fullscreen=(value=="1"||value=="true");
 
         else if(key=="autoPlay")
-        {
-
-            file >> autoPlay;
-
-        }
-
-
+            autoPlay=(value=="1"||value=="true");
     }
 
-
-
-    file.close();
-
-
     return true;
-
-
 }
 
 

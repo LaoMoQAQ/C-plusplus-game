@@ -136,6 +136,8 @@ bool Game::Init()
 
     }
 
+    resourceManager.Init();
+
 
 
 
@@ -165,44 +167,31 @@ bool Game::Init()
 
 
     story.Load(
-        "script/chapter01.txt"
+    "script/chapter01.txt"
     );
 
+    for(auto& e : story.events)
+    {
+        if(!e.background.empty())
+        {
+            resourceManager.LoadTexture(
+                renderer.GetSDLRenderer(),
+                "resource/bg/" + e.background
+            );
+        }
 
-    // 推进第一句
-    story.Next();
+        if(!e.character.empty())
+        {
+            resourceManager.LoadTexture(
+                renderer.GetSDLRenderer(),
+                "resource/character/" + e.character
+            );
+        }
+    }
 
-
-    auto event =
-    story.GetCurrentEvent();
-
-
-
-    ui.GetDialogueUI()
-    .SetSpeaker(
-        event.name
-    );
-
-
-
-    ui.GetDialogueUI()
-    .SetText(
-        event.text,
-        event.waitTime
-    );
-
-
-
+    // 不要立即进入剧情
     ui.SetState(
-        UIState::DIALOGUE
-    );
-
-
-
-
-
-    ui.SetState(
-        UIState::DIALOGUE
+        UIState::START
     );
 
 
@@ -300,65 +289,92 @@ void Game::HandleEvents()
         {
 
 
-            switch(
-                event.key.keysym.sym
-            )
+            switch(event.key.keysym.sym)
             {
+            case SDLK_UP:
 
+                ui.HandleInput(1);
+
+                break;
+
+            case SDLK_DOWN:
+
+                ui.HandleInput(2);
+
+            break;
+
+            case SDLK_RETURN:
+
+                if(ui.GetState()==UIState::START)
+                {
+                    if(ui.GetStartMenu().GetChoice()==0)
+                    {
+                        story.SetIndex(0);
+
+                        StoryEvent e=
+                            story.GetCurrentEvent();
+
+                        ui.GetDialogueUI().SetSpeaker(
+                            e.name
+                        );
+
+                        ui.GetDialogueUI().SetText(
+                            e.text,
+                            e.waitTime
+                        );
+
+                        ui.SetState(
+                            UIState::DIALOGUE
+                        );
+                    }
+                }
+
+                break;
 
             case SDLK_ESCAPE:
 
-
-                ui.SetState(
-                    UIState::PAUSE
-                );
-
+                if(ui.GetState()==UIState::DIALOGUE)
+                {
+                    ui.SetState(
+                        UIState::PAUSE
+                    );
+                }
+                else if(ui.GetState()==UIState::PAUSE)
+                {
+                    ui.SetState(
+                        UIState::DIALOGUE
+                    );
+                }
 
                 break;
-
-
 
             case SDLK_SPACE:
 
-
-                if(
-                    ui.GetState()
-                    ==
-                    UIState::DIALOGUE
-                )
+                if(ui.GetState()==UIState::DIALOGUE)
                 {
+                    if(!ui.GetDialogueUI().Finished())
+                    {
+                        ui.GetDialogueUI().Skip();
+                    }
+                    else
+                    {
+                        story.Next();
 
+                        StoryEvent e=
+                            story.GetCurrentEvent();
 
-                    story.Next();
+                        ui.GetDialogueUI().SetSpeaker(
+                            e.name
+                        );
 
-
-
-                    auto line =
-                    story.GetCurrentEvent();
-
-
-
-                    ui.GetDialogueUI()
-                    .SetSpeaker(
-                        line.name
-                    );
-
-
-
-                    ui.GetDialogueUI()
-                    .SetText(
-                        line.text,
-                        line.waitTime
-                    );
-
-
+                        ui.GetDialogueUI().SetText(
+                            e.text,
+                            e.waitTime
+                        );
+                    }
                 }
 
-
                 break;
-
-
-
             }
 
 
@@ -399,13 +415,37 @@ void Game::Render()
 
     renderer.Clear();
 
+    if(
+        ui.GetState()!=UIState::START
+    )
+    {
+        StoryEvent e=
+        story.GetCurrentEvent();
 
+        SDL_Texture* bg=
+        resourceManager.GetTexture(
+            "resource/bg/"+e.background
+        );
 
-    ui.Render(
-        renderer
-    );
+        renderer.DrawTexture(
+            bg,
+            0,
+            0
+        );
 
+        SDL_Texture* ch=
+        resourceManager.GetTexture(
+            "resource/character/"+e.character
+        );
 
+        renderer.DrawTexture(
+            ch,
+            520,
+            80
+        );
+    }
+
+    ui.Render(renderer);
 
     renderer.Present();
 
