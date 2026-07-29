@@ -112,6 +112,33 @@ bool StoryParser::Load(
 
 
 
+        // <0.2> 停顿标签
+        if(
+            line.size()>2 &&
+            line.front()=='<' &&
+            line.back()=='>'
+        )
+        {
+            try
+            {
+                current.waitTime=
+                std::stof(
+                    line.substr(
+                        1,
+                    line.size()-2
+                    )
+                );
+            }
+            catch(...)
+            {
+                current.waitTime=0.0f;
+            }
+
+            continue;
+        }
+
+
+
         if(line.empty())
             continue;
 

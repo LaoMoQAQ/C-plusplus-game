@@ -33,17 +33,14 @@ void DialogueUI::SetSpeaker(
 
 
 void DialogueUI::SetText(
-
-    const std::string& text
-
+    const std::string& text,
+    float wait
 )
 {
-
     textSystem.SetText(
-        text
+        text,
+        wait
     );
-
-
 }
 
 
@@ -83,7 +80,7 @@ void DialogueUI::Render(
 
 
     renderer.DrawText(
-        text,
+        textSystem.GetCurrentText(),
         80,
         580
     );

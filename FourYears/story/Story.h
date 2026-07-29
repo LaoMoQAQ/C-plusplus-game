@@ -35,6 +35,8 @@ struct StoryEvent
     std::vector<std::string> choices;
 
 
+    float waitTime=0.0f;
+
 };
 
 

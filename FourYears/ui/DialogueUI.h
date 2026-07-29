@@ -34,7 +34,8 @@ public:
 
 
     void SetText(
-        const std::string& text
+        const std::string& text,
+        float wait=0.0f
     );
 
 
