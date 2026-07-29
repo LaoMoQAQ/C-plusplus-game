@@ -3,34 +3,21 @@
 
 
 #include <string>
-#include <map>
-
+#include <vector>
 
 
 struct SaveData
 {
+    std::string filename;
+
+    std::string displayName;
 
     int chapter;
 
+    int index;
 
-    int scriptIndex;
-
-
-    std::string background;
-
-
-    std::string speaker;
-
-
-    std::string text;
-
-
-
-    std::map<std::string,int> affection;
-
-
+    std::string time;
 };
-
 
 
 
@@ -44,32 +31,78 @@ public:
 
 
 
-    bool Save(
-        int slot,
-        const SaveData& data
+    // 初始化存档目录
+
+    void Init();
+
+
+
+    // 获取所有存档
+
+    std::vector<SaveData>
+    GetSaveList();
+
+
+
+    // 创建存档
+
+    bool CreateSave(
+        const std::string& name,
+        int chapter,
+        int index
     );
 
 
 
-    bool Load(
-        int slot,
-        SaveData& data
+    // 读取存档
+
+    bool LoadSave(
+        const std::string& filename,
+        int& chapter,
+        int& index
     );
 
 
 
-    bool Exists(
-        int slot
+    // 删除存档
+
+    bool DeleteSave(
+        const std::string& filename
     );
+
+
+
+    // 重命名
+
+    bool RenameSave(
+        const std::string& filename,
+        const std::string& newName
+    );
+
+
+
+    // 复制存档
+
+    bool CopySave(
+        const std::string& filename
+    );
+
+
+
+    // 判断是否为空
+
+    bool Empty();
 
 
 
 private:
 
 
-    std::string GetPath(
-        int slot
-    );
+    std::string savePath;
+
+
+
+    std::string GetCurrentTime();
 
 
 };

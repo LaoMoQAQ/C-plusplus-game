@@ -59,12 +59,14 @@ private:
     void HandleEvents();
 
 
-
     void Update();
 
 
-
     void Render();
+
+
+    // 更新当前剧情场景
+    void UpdateScene();
 
 
 

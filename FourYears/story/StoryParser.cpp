@@ -8,48 +8,40 @@ using namespace std;
 
 
 
-//================================
-// 清理文本
-//================================
-
 string StoryParser::Clean(
     string text
 )
 {
 
-
-    // UTF8 BOM
-
     if(
-        text.size()>=3 &&
-        (unsigned char)text[0]==0xEF &&
-        (unsigned char)text[1]==0xBB &&
+        text.size()>=3
+        &&
+        (unsigned char)text[0]==0xEF
+        &&
+        (unsigned char)text[1]==0xBB
+        &&
         (unsigned char)text[2]==0xBF
     )
     {
-
         text.erase(
             0,
             3
         );
-
     }
 
 
 
-    // 删除\r和尾空格
-
     while(
-        !text.empty() &&
+        !text.empty()
+        &&
         (
-            text.back()=='\r' ||
+            text.back()=='\r'
+            ||
             text.back()==' '
         )
     )
     {
-
         text.pop_back();
-
     }
 
 
@@ -62,9 +54,8 @@ string StoryParser::Clean(
 
 
 
-//================================
-// 加载剧情
-//================================
+
+
 
 bool StoryParser::Load(
     string file,
@@ -72,10 +63,8 @@ bool StoryParser::Load(
 )
 {
 
+    ifstream in(file);
 
-    ifstream in(
-        file
-    );
 
 
     if(!in)
@@ -94,15 +83,113 @@ bool StoryParser::Load(
 
 
 
+
+
     string line;
+
 
 
     StoryEvent current;
 
 
 
+
+    string currentBackground;
+
+
+    string currentCharacter;
+
+
+
+    float currentWait=0.0f;
+
+
+
+
+    auto SaveCurrent=[&]()
+    {
+
+
+        if(
+            current.name.empty()
+        )
+        {
+            return;
+
+        }
+
+
+        if(
+            current.text.empty()
+            &&
+            !current.isChoice
+        )
+        {
+            return;
+
+        }
+
+
+
+        if(
+            current.background.empty()
+        )
+        {
+            current.background=
+            currentBackground;
+        }
+
+
+
+        if(
+            current.character.empty()
+        )
+        {
+            current.character=
+            currentCharacter;
+        }
+
+
+
+
+        if(
+            current.waitTime==0
+        )
+        {
+            current.waitTime=
+            currentWait;
+        }
+
+
+
+        currentWait=0;
+
+
+
+        story.Add(
+            current
+        );
+
+
+
+        current=
+        StoryEvent();
+
+    };
+
+
+
+
+
+
+
+
+
     while(
-        getline(in,line)
+        getline(
+            in,
+            line
+        )
     )
     {
 
@@ -112,47 +199,72 @@ bool StoryParser::Load(
 
 
 
-        // <0.2> 停顿标签
+
+
         if(
-            line.size()>2 &&
-            line.front()=='<' &&
-            line.back()=='>'
+            line.empty()
         )
         {
-            try
-            {
-                current.waitTime=
-                std::stof(
-                    line.substr(
-                        1,
-                    line.size()-2
-                    )
-                );
-            }
-            catch(...)
-            {
-                current.waitTime=0.0f;
-            }
-
             continue;
         }
 
 
 
-        if(line.empty())
+
+
+
+
+        //========================
+        // 等待
+        //========================
+
+        if(
+            line.front()=='<'
+            &&
+            line.back()=='>'
+        )
+        {
+
+            try
+            {
+
+                currentWait=
+                stof(
+                    line.substr(
+                        1,
+                        line.size()-2
+                    )
+                );
+
+            }
+            catch(...)
+            {
+
+                currentWait=0;
+
+            }
+
+
             continue;
 
+        }
 
 
 
 
-        //================================
+
+
+
+
+
+        //========================
         // 标签
-        //================================
+        //========================
 
 
         if(
-            line.front()=='[' &&
+            line.front()=='['
+            &&
             line.back()==']'
         )
         {
@@ -168,40 +280,12 @@ bool StoryParser::Load(
 
 
 
-            // 保存上一段
+            // 背景
 
             if(
-                !current.name.empty() &&
-                (
-                    !current.text.empty() ||
-                    current.isChoice
-                )
+                tag=="背景"
             )
             {
-
-                story.Add(
-                    current
-                );
-
-
-                current=
-                StoryEvent();
-
-            }
-
-
-
-
-
-
-
-            //========================
-            // 背景
-            //========================
-
-            if(tag=="背景")
-            {
-
 
                 string bg;
 
@@ -212,8 +296,14 @@ bool StoryParser::Load(
                 );
 
 
-                current.background=
+                bg=
                 Clean(bg);
+
+
+
+                currentBackground=
+                bg;
+
 
 
                 continue;
@@ -227,14 +317,12 @@ bool StoryParser::Load(
 
 
 
-            //========================
             // 立绘
-            //========================
 
-
-            if(tag=="立绘")
+            if(
+                tag=="立绘"
+            )
             {
-
 
                 string c;
 
@@ -245,8 +333,14 @@ bool StoryParser::Load(
                 );
 
 
-                current.character=
+                c=
                 Clean(c);
+
+
+
+                currentCharacter=
+                c;
+
 
 
                 continue;
@@ -260,20 +354,87 @@ bool StoryParser::Load(
 
 
 
-            //========================
-            // 选择
-            //========================
+            // BGM预留
 
-
-            if(tag=="选择")
+            if(
+                tag=="BGM"
+            )
             {
+
+                string bgm;
+
+
+                getline(
+                    in,
+                    bgm
+                );
+
+
+                bgm=
+                Clean(bgm);
+
+
+
+                continue;
+
+            }
+
+
+
+
+
+
+
+
+            // SE预留
+
+            if(
+                tag=="SE"
+            )
+            {
+
+                string se;
+
+
+                getline(
+                    in,
+                    se
+                );
+
+
+                se=
+                Clean(se);
+
+
+
+                continue;
+
+            }
+
+
+
+
+
+
+
+
+            // 选择
+
+            if(
+                tag=="选择"
+            )
+            {
+
+                SaveCurrent();
+
+
 
                 current.name=
                 "选择";
 
 
-                current.isChoice=
-                true;
+                current.isChoice=true;
+
 
 
                 continue;
@@ -287,65 +448,28 @@ bool StoryParser::Load(
 
 
 
-            //========================
-            // 结果
-            //========================
+            // 普通人物
 
+            SaveCurrent();
 
-            if(tag=="结果")
-            {
-
-                string route;
-
-
-                getline(
-                    in,
-                    route
-                );
-
-
-                current.choiceResult=
-                Clean(route);
-
-
-                continue;
-
-            }
-
-
-
-
-
-
-            //========================
-            // 普通角色
-            //========================
 
 
             current.name=
             tag;
 
 
-            if(
-                tag=="旁白" ||
-                tag=="系统"
-            )
-            {
 
-                current.character="";
+            current.background=
+            currentBackground;
 
-            }
-            //区
-            if(tag=="结局")
-            {
 
-                current.isEnding=true;
 
-            }
-            //区
-            
+            current.character=
+            currentCharacter;
+
+
+
             continue;
-
 
         }
 
@@ -356,9 +480,13 @@ bool StoryParser::Load(
 
 
 
-        //================================
+
+
+
+
+        //========================
         // 选择内容
-        //================================
+        //========================
 
 
         if(
@@ -367,37 +495,24 @@ bool StoryParser::Load(
         {
 
 
-            //格式:
-            //
-            //1. 去找他
-            //2. 离开
-
-
             if(
-                line.size()>2 &&
-                line[0]>='0' &&
+                line.size()>2
+                &&
+                line[0]>='0'
+                &&
                 line[0]<='9'
             )
             {
 
-
-                string option=
-                line.substr(
-                    2
-                );
-
-
                 current.choices.push_back(
-                    option
+                    line.substr(2)
                 );
-
 
             }
 
 
 
             continue;
-
 
         }
 
@@ -408,9 +523,13 @@ bool StoryParser::Load(
 
 
 
-        //================================
+
+
+
+
+        //========================
         // 普通文本
-        //================================
+        //========================
 
 
         if(
@@ -438,22 +557,7 @@ bool StoryParser::Load(
 
 
 
-    // 文件结束保存
-
-    if(
-        !current.name.empty() &&
-        (
-            !current.text.empty() ||
-            current.isChoice
-        )
-    )
-    {
-
-        story.Add(
-            current
-        );
-
-    }
+    SaveCurrent();
 
 
 
@@ -471,6 +575,7 @@ bool StoryParser::Load(
     <<endl;
 
 
+
     cout
     <<"数量:"
     <<story.events.size()
@@ -478,7 +583,7 @@ bool StoryParser::Load(
 
 
 
-
     return true;
+
 
 }
