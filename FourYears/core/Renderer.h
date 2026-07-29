@@ -46,6 +46,14 @@ public:
 
 
 
+    void DrawTexture(
+        SDL_Texture* texture,
+        int x,
+        int y
+    );
+
+
+    
     SDL_Renderer* GetSDLRenderer();
 
 

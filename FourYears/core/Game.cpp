@@ -187,7 +187,8 @@ bool Game::Init()
 
     ui.GetDialogueUI()
     .SetText(
-        event.text
+        event.text,
+        event.waitTime
     );
 
 
@@ -346,7 +347,8 @@ void Game::HandleEvents()
 
                     ui.GetDialogueUI()
                     .SetText(
-                        line.text
+                        line.text,
+                        line.waitTime
                     );
 
 
@@ -379,7 +381,8 @@ void Game::HandleEvents()
 void Game::Update()
 {
 
-
+    ui.GetDialogueUI().Update();
+    
 }
 
 
