@@ -2,8 +2,8 @@
 
 #include "Renderer.h"
 
-
 #include <SDL_ttf.h>
+
 
 
 
@@ -18,17 +18,28 @@ Renderer::Renderer()
 
 
 
+
+
+
 Renderer::~Renderer()
 {
 
     if(renderer)
     {
 
-        SDL_DestroyRenderer(renderer);
+        SDL_DestroyRenderer(
+            renderer
+        );
+
+        renderer=nullptr;
 
     }
 
 }
+
+
+
+
 
 
 
@@ -52,16 +63,14 @@ bool Renderer::Init(
     );
 
 
+
     if(!renderer)
     {
 
         std::cout
-        <<
-        "Renderer创建失败:"
-        <<
-        SDL_GetError()
-        <<
-        std::endl;
+        <<"Renderer创建失败:"
+        <<SDL_GetError()
+        <<std::endl;
 
 
         return false;
@@ -69,9 +78,22 @@ bool Renderer::Init(
     }
 
 
+
+    // 高质量缩放
+
+    SDL_SetHint(
+        SDL_HINT_RENDER_SCALE_QUALITY,
+        "best"
+    );
+
+
+
     return true;
 
+
 }
+
+
 
 
 
@@ -100,7 +122,10 @@ void Renderer::Clear()
         renderer
     );
 
+
 }
+
+
 
 
 
@@ -115,6 +140,9 @@ void Renderer::Present()
     );
 
 }
+
+
+
 
 
 
@@ -136,6 +164,8 @@ void Renderer::SetFont(
 
 
 
+
+
 void Renderer::DrawText(
 
     const std::string& text,
@@ -148,7 +178,10 @@ void Renderer::DrawText(
 {
 
 
-    if(!font)
+    if(
+        !font ||
+        text.empty()
+    )
     {
 
         return;
@@ -157,12 +190,23 @@ void Renderer::DrawText(
 
 
 
+
+
+
     SDL_Color color;
 
+
     color.r=255;
+
     color.g=255;
+
     color.b=255;
+
     color.a=255;
+
+
+
+
 
 
 
@@ -179,12 +223,29 @@ void Renderer::DrawText(
 
 
 
+
+
     if(!surface)
     {
+
+
+        std::cout
+        <<"文字渲染失败:"
+        <<text
+        <<"\n"
+        <<TTF_GetError()
+        <<std::endl;
+
+
 
         return;
 
     }
+
+
+
+
+
 
 
 
@@ -199,16 +260,42 @@ void Renderer::DrawText(
 
 
 
+
+
+    if(!texture)
+    {
+
+        SDL_FreeSurface(
+            surface
+        );
+
+
+        return;
+
+    }
+
+
+
+
+
+
     SDL_Rect rect;
 
 
     rect.x=x;
 
+
     rect.y=y;
+
 
     rect.w=surface->w;
 
+
     rect.h=surface->h;
+
+
+
+
 
 
 
@@ -226,13 +313,23 @@ void Renderer::DrawText(
 
 
 
-    SDL_FreeSurface(surface);
 
 
-    SDL_DestroyTexture(texture);
+
+    SDL_DestroyTexture(
+        texture
+    );
+
+
+    SDL_FreeSurface(
+        surface
+    );
 
 
 }
+
+
+
 
 
 
@@ -240,33 +337,77 @@ void Renderer::DrawText(
 
 
 void Renderer::DrawTexture(
+
     SDL_Texture* texture,
+
     int x,
+
     int y
+
 )
 {
-    if(!texture)
+
+
+    if(
+        !texture
+    )
+    {
+
         return;
+
+    }
+
+
+
+
+
 
     SDL_Rect dst;
 
-    dst.x = x;
-    dst.y = y;
+
+
+    dst.x=x;
+
+    dst.y=y;
+
+
+
+
+
+
 
     SDL_QueryTexture(
+
         texture,
+
         nullptr,
+
         nullptr,
+
         &dst.w,
+
         &dst.h
+
     );
 
+
+
+
+
+
     SDL_RenderCopy(
+
         renderer,
+
         texture,
+
         nullptr,
+
         &dst
+
     );
+
+
 }
 
 
@@ -274,7 +415,11 @@ void Renderer::DrawTexture(
 
 
 
-SDL_Renderer* Renderer::GetSDLRenderer()
+
+
+
+SDL_Renderer*
+Renderer::GetSDLRenderer()
 {
 
     return renderer;

@@ -1,11 +1,39 @@
 #include "SaveMenu.h"
 
+#include <iostream>
+
 
 
 SaveMenu::SaveMenu()
 {
 
-    slot = 1;
+    choice=0;
+
+    page=SavePage::LOAD;
+
+    back=false;
+
+}
+
+
+
+
+
+
+
+void SaveMenu::Refresh(
+    SaveSystem& saveSystem
+)
+{
+
+    saves =
+        saveSystem.GetSaveList();
+
+
+    if(choice >= (int)saves.size())
+    {
+        choice=0;
+    }
 
 }
 
@@ -17,55 +45,147 @@ SaveMenu::SaveMenu()
 
 
 void SaveMenu::Render(
-
     Renderer& renderer
-
 )
 {
 
 
     renderer.DrawText(
-        "存档",
-        500,
-        120
+        "存档管理",
+        80,
+        60
     );
 
 
 
-    for(int i=1;i<=3;i++)
+    if(page==SavePage::LOAD)
+    {
+
+        renderer.DrawText(
+            "读取存档",
+            80,
+            120
+        );
+
+    }
+    else
+    {
+
+        renderer.DrawText(
+            "管理存档",
+            80,
+            120
+        );
+
+    }
+
+
+
+
+
+
+    if(saves.empty())
+    {
+
+        renderer.DrawText(
+            "暂无存档",
+            100,
+            250
+        );
+
+
+        renderer.DrawText(
+            "ESC 返回",
+            100,
+            700
+        );
+
+
+        return;
+
+    }
+
+
+
+
+
+
+    int startX=80;
+
+    int startY=200;
+
+
+
+    for(
+        int i=0;
+        i<(int)saves.size();
+        i++
+    )
     {
 
 
-        std::string text;
+        int x =
+        startX
+        +
+        (i%3)*480;
+
+
+        int y =
+        startY
+        +
+        (i/3)*180;
 
 
 
-        if(i==slot)
+        std::string box;
+
+
+
+        if(i==choice)
         {
 
-            text =
-            "> 存档 "
-            +
-            std::to_string(i);
+            box =
+            "> ";
 
         }
-
         else
         {
 
-            text =
-            "存档 "
-            +
-            std::to_string(i);
+            box="  ";
 
         }
+
+
+
+        box +=
+        saves[i].displayName;
 
 
 
         renderer.DrawText(
-            text,
-            500,
-            250+(i-1)*60
+            box,
+            x,
+            y
+        );
+
+
+
+        renderer.DrawText(
+            "章节:"
+            +
+            std::to_string(
+                saves[i].chapter
+            ),
+            x,
+            y+40
+        );
+
+
+
+        renderer.DrawText(
+            saves[i].time,
+            x,
+            y+80
         );
 
 
@@ -73,7 +193,26 @@ void SaveMenu::Render(
 
 
 
+
+
+
+    renderer.DrawText(
+        "Enter 选择",
+        80,
+        650
+    );
+
+
+    renderer.DrawText(
+        "ESC 返回",
+        80,
+        700
+    );
+
+
+
 }
+
 
 
 
@@ -83,35 +222,26 @@ void SaveMenu::Render(
 
 
 void SaveMenu::HandleInput(
-
     int key
-
 )
 {
-
-
-    /*
-    
-    1 上
-    2 下
-
-    */
 
 
     if(key==1)
     {
 
+        choice--;
 
-        slot--;
 
-
-        if(slot<1)
+        if(choice<0)
         {
-
-            slot=3;
-
+            choice =
+            saves.empty()
+            ?
+            0
+            :
+            saves.size()-1;
         }
-
 
     }
 
@@ -120,34 +250,20 @@ void SaveMenu::HandleInput(
     else if(key==2)
     {
 
+        choice++;
 
-        slot++;
 
-
-        if(slot>3)
+        if(
+            choice >=
+            (int)saves.size()
+        )
         {
-
-            slot=1;
-
+            choice=0;
         }
-
 
     }
 
 
-}
-
-
-
-
-
-
-
-
-int SaveMenu::GetSlot() const
-{
-
-    return slot;
 
 }
 
@@ -158,23 +274,75 @@ int SaveMenu::GetSlot() const
 
 
 
-bool SaveMenu::Save(
 
-    SaveSystem& system,
-
-    SaveData& data
-
+void SaveMenu::Confirm(
+    SaveSystem& saveSystem
 )
 {
 
 
-    return system.Save(
+    if(
+        saves.empty()
+    )
+    {
 
-        slot,
+        return;
 
-        data
+    }
 
-    );
+
+
+
+    SaveData data =
+        saves[choice];
+
+
+
+    if(page==SavePage::LOAD)
+    {
+
+        int chapter;
+
+        int index;
+
+
+
+        if(
+            saveSystem.LoadSave(
+                data.filename,
+                chapter,
+                index
+            )
+        )
+        {
+
+            std::cout
+            <<"读取存档:"
+            <<data.filename
+            <<std::endl;
+
+        }
+
+    }
+
+
+
+    else
+    {
+
+        // 管理模式默认复制
+
+        saveSystem.CopySave(
+            data.filename
+        );
+
+
+        Refresh(
+            saveSystem
+        );
+
+    }
+
 
 
 }
@@ -186,23 +354,37 @@ bool SaveMenu::Save(
 
 
 
-bool SaveMenu::Load(
-
-    SaveSystem& system,
-
-    SaveData& data
-
-)
+bool SaveMenu::Back()
 {
 
+    return back;
 
-    return system.Load(
+}
 
-        slot,
 
-        data
 
-    );
 
+
+
+
+
+int SaveMenu::GetChoice() const
+{
+
+    return choice;
+
+}
+
+
+
+
+
+
+
+
+SavePage SaveMenu::GetPage() const
+{
+
+    return page;
 
 }
