@@ -27,31 +27,19 @@ void Story::Add(
 
 bool Story::Next()
 {
-
-
-    if(currentIndex>=events.size())
+    if(currentIndex + 1 >= events.size())
     {
-
         return false;
-
     }
-
-
-
-    history.Add(
-
-        events[currentIndex].name,
-
-        events[currentIndex].text
-
-    );
-
 
     currentIndex++;
 
+    history.Add(
+        events[currentIndex].name,
+        events[currentIndex].text
+    );
 
     return true;
-
 }
 
 

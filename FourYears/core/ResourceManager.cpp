@@ -100,6 +100,10 @@ SDL_Texture* ResourceManager::LoadTexture(
         << path
         << std::endl;
 
+        std::cout
+        << "IMG Error: "
+        << IMG_GetError()
+        << std::endl;
 
         return nullptr;
 
