@@ -295,7 +295,6 @@ void Game::Run()
 void Game::HandleEvents()
 {
 
-
     while(
         SDL_PollEvent(
             &event
@@ -305,7 +304,7 @@ void Game::HandleEvents()
 
 
         if(
-            event.type==
+            event.type ==
             SDL_QUIT
         )
         {
@@ -319,7 +318,7 @@ void Game::HandleEvents()
 
 
         if(
-            event.type==
+            event.type ==
             SDL_KEYDOWN
         )
         {
@@ -331,40 +330,185 @@ void Game::HandleEvents()
             {
 
 
-
-
+            // ======================
+            // 上
+            // ======================
 
             case SDLK_UP:
+            {
 
-                if(ui.GetState()==UIState::SAVE)
+                if(
+                    ui.GetState()
+                    ==
+                    UIState::SAVE
+                )
                 {
+
                     ui.GetSaveMenu()
                     .HandleInput(1);
+
                 }
                 else
                 {
+
                     ui.HandleInput(1);
+
                 }
 
-                break;
+            }
+            break;
 
 
 
 
+
+            // ======================
+            // 下
+            // ======================
 
             case SDLK_DOWN:
+            {
 
-                if(ui.GetState()==UIState::SAVE)
+                if(
+                    ui.GetState()
+                    ==
+                    UIState::SAVE
+                )
                 {
+
                     ui.GetSaveMenu()
                     .HandleInput(2);
+
                 }
                 else
                 {
+
                     ui.HandleInput(2);
+
                 }
 
-                break;
+            }
+            break;
+
+
+
+
+
+
+            // ======================
+            // 新建存档
+            // N
+            // ======================
+
+            case SDLK_n:
+            {
+
+                if(
+                    ui.GetState()
+                    ==
+                    UIState::SAVE
+                )
+                {
+
+                    if(
+                        ui.GetSaveMenu()
+                        .GetPage()
+                        ==
+                        SavePage::MANAGE
+                    )
+                    {
+
+                        ui.GetSaveMenu()
+                        .Create(
+                            saveSystem
+                        );
+
+                    }
+
+                }
+
+            }
+            break;
+
+
+
+
+
+
+            // ======================
+            // 复制存档
+            // C
+            // ======================
+
+            case SDLK_c:
+            {
+
+                if(
+                    ui.GetState()
+                    ==
+                    UIState::SAVE
+                )
+                {
+
+                    if(
+                        ui.GetSaveMenu()
+                        .GetPage()
+                        ==
+                        SavePage::MANAGE
+                    )
+                    {
+
+                        ui.GetSaveMenu()
+                        .Copy(
+                            saveSystem
+                        );
+
+                    }
+
+                }
+
+            }
+            break;
+
+
+
+
+
+
+            // ======================
+            // 删除存档
+            // Delete
+            // ======================
+
+            case SDLK_DELETE:
+            {
+
+                if(
+                    ui.GetState()
+                    ==
+                    UIState::SAVE
+                )
+                {
+
+                    if(
+                        ui.GetSaveMenu()
+                        .GetPage()
+                        ==
+                        SavePage::MANAGE
+                    )
+                    {
+
+                        ui.GetSaveMenu()
+                        .Delete(
+                            saveSystem
+                        );
+
+                    }
+
+                }
+
+            }
+            break;
 
 
 
@@ -372,11 +516,21 @@ void Game::HandleEvents()
 
 
 
+            // ======================
+            // Enter
+            // ======================
 
             case SDLK_RETURN:
             {
 
-                if(ui.GetState()==UIState::SAVE)
+
+                // 存档界面
+
+                if(
+                    ui.GetState()
+                    ==
+                    UIState::SAVE
+                )
                 {
 
                     ui.GetSaveMenu()
@@ -384,9 +538,18 @@ void Game::HandleEvents()
                         saveSystem
                     );
 
+
                 }
 
-                if(
+
+
+
+
+
+
+                // 开始菜单
+
+                else if(
                     ui.GetState()
                     ==
                     UIState::START
@@ -394,18 +557,14 @@ void Game::HandleEvents()
                 {
 
 
-                    int choice=
+                    int choice =
                     ui.GetStartMenu()
                     .GetChoice();
 
 
 
-
                     switch(choice)
                     {
-
-
-
 
 
                     case 0:
@@ -415,9 +574,8 @@ void Game::HandleEvents()
 
 
 
-                        StoryEvent e=
+                        StoryEvent e =
                         story.GetCurrentEvent();
-
 
 
 
@@ -444,66 +602,103 @@ void Game::HandleEvents()
                             UIState::DIALOGUE
                         );
 
+
                     }
-
                     break;
-
 
 
 
 
 
                     case 1:
+                    {
+
+                        ui.GetSaveMenu()
+                        .SetPage(
+                            SavePage::MANAGE
+                        );
+
+
+                        ui.GetSaveMenu()
+                        .Refresh(
+                            saveSystem
+                        );
+
 
                         ui.SetState(
                             UIState::SAVE
                         );
 
-                    break;
 
+                    }
+                    break;
 
 
 
 
 
                     case 2:
+                    {
+
+                        ui.GetSaveMenu()
+                        .SetPage(
+                            SavePage::LOAD
+                        );
+
+
+                        ui.GetSaveMenu()
+                        .Refresh(
+                            saveSystem
+                        );
+
 
                         ui.SetState(
                             UIState::SAVE
                         );
 
-                    break;
 
+                    }
+                    break;
 
 
 
 
 
                     case 3:
+                    {
 
                         ui.SetState(
                             UIState::CONFIG
                         );
 
+                    }
                     break;
-
 
 
 
 
 
                     case 4:
+                    {
 
                         running=false;
 
+                    }
                     break;
 
 
                     }
 
+
                 }
 
 
+
+
+
+
+
+                // 暂停菜单
 
                 else if(
                     ui.GetState()
@@ -512,7 +707,8 @@ void Game::HandleEvents()
                 )
                 {
 
-                    int choice=
+
+                    int choice =
                     ui.GetPauseMenu()
                     .GetChoice();
 
@@ -533,6 +729,18 @@ void Game::HandleEvents()
 
 
                     case 1:
+
+                        ui.GetSaveMenu()
+                        .SetPage(
+                            SavePage::LOAD
+                        );
+
+
+                        ui.GetSaveMenu()
+                        .Refresh(
+                            saveSystem
+                        );
+
 
                         ui.SetState(
                             UIState::SAVE
@@ -581,17 +789,26 @@ void Game::HandleEvents()
                     break;
 
 
-
                     }
+
 
                 }
 
 
-
             }
-
             break;
-                        case SDLK_ESCAPE:
+
+
+
+
+
+
+
+            // ======================
+            // ESC
+            // ======================
+
+            case SDLK_ESCAPE:
             {
 
 
@@ -640,7 +857,7 @@ void Game::HandleEvents()
                 else if(
                     ui.GetState()
                     ==
-                    UIState::CONFIG 
+                    UIState::CONFIG
                 )
                 {
 
@@ -649,10 +866,23 @@ void Game::HandleEvents()
                     );
 
                 }
-                
+
+
+                else if(
+                    ui.GetState()
+                    ==
+                    UIState::HISTORY
+                )
+                {
+
+                    ui.SetState(
+                        UIState::START
+                    );
+
+                }
+
 
             }
-
             break;
 
 
@@ -660,6 +890,11 @@ void Game::HandleEvents()
 
 
 
+
+
+            // ======================
+            // 空格推进剧情
+            // ======================
 
             case SDLK_SPACE:
             {
@@ -682,7 +917,6 @@ void Game::HandleEvents()
                         ui.GetDialogueUI()
                         .Skip();
 
-
                     }
 
                     else
@@ -694,8 +928,7 @@ void Game::HandleEvents()
                         )
                         {
 
-
-                            StoryEvent e=
+                            StoryEvent e =
                             story.GetCurrentEvent();
 
 
@@ -727,11 +960,8 @@ void Game::HandleEvents()
                 }
 
 
-                break;
-
             }
-
-
+            break;
 
 
 
@@ -749,40 +979,6 @@ void Game::HandleEvents()
 
 
 
-
-
-
-
-
-void Game::Update()
-{
-
-
-    ui.GetDialogueUI()
-    .Update();
-
-
-
-}
-
-
-
-
-
-
-
-
-
-/*
-    更新当前场景资源
-
-    有新的背景:
-        替换
-
-    没有:
-        保留
-
-*/
 
 void Game::UpdateScene()
 {
@@ -858,9 +1054,12 @@ void Game::Render()
 
 
     /*
-        开始菜单不显示剧情背景
+        开始菜单:
+
+        不显示剧情背景
 
     */
+
 
     if(
         ui.GetState()
@@ -868,7 +1067,6 @@ void Game::Render()
         UIState::START
     )
     {
-
 
 
         if(
@@ -894,6 +1092,7 @@ void Game::Render()
 
 
 
+
         if(
             currentCharacter
         )
@@ -914,18 +1113,31 @@ void Game::Render()
         }
 
 
-
     }
 
 
 
 
 
+    /*
+        UI绘制
+
+        START
+        DIALOGUE
+        PAUSE
+        SAVE
+        CONFIG
+        HISTORY
+
+        都交给UIManager
+
+    */
 
 
     ui.Render(
         renderer
     );
+
 
 
 
@@ -937,7 +1149,14 @@ void Game::Render()
 
 
 
+void Game::Update()
+{
 
+    ui.GetDialogueUI()
+    .Update();
+
+
+}
 
 
 
@@ -952,8 +1171,11 @@ void Game::Quit()
 
 
 
-    if(window)
+    if(
+        window
+    )
     {
+
 
         SDL_DestroyWindow(
             window
@@ -962,7 +1184,9 @@ void Game::Quit()
 
         window=nullptr;
 
+
     }
+
 
 
 

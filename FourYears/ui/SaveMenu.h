@@ -2,15 +2,13 @@
 #define SAVE_MENU_H
 
 
-#include <vector>
-#include <string>
-
-
 #include "../core/Renderer.h"
 #include "../core/SaveSystem.h"
 
 #include "../SavePage.h"
 
+#include <vector>
+#include <string>
 
 
 class SaveMenu
@@ -23,23 +21,11 @@ public:
 
 
 
-    // 刷新存档列表
-
-    void Refresh(
-        SaveSystem& saveSystem
-    );
-
-
-
-    // 绘制
-
     void Render(
         Renderer& renderer
     );
 
 
-
-    // 输入
 
     void HandleInput(
         int key
@@ -47,27 +33,60 @@ public:
 
 
 
-    // 确认
+    void SetPage(
+        SavePage page
+    );
+
+
+
+    void Refresh(
+        SaveSystem& saveSystem
+    );
+
+
+
+    int GetChoice() const;
+
+
+
+    void Reset();
+
 
     void Confirm(
         SaveSystem& saveSystem
     );
 
 
-
-    // 返回
-
-    bool Back();
+    // 新增
 
 
-
-    // 获取选择
-
-    int GetChoice() const;
+    void Create(
+        SaveSystem& saveSystem
+    );
 
 
 
-    // 当前页面
+    void Delete(
+        SaveSystem& saveSystem
+    );
+
+
+
+    void Copy(
+        SaveSystem& saveSystem
+    );
+
+
+
+    void Rename(
+        SaveSystem& saveSystem,
+        const std::string& name
+    );
+
+
+
+    SaveData GetCurrentSave();
+
 
     SavePage GetPage() const;
 
@@ -76,7 +95,7 @@ public:
 private:
 
 
-    std::vector<SaveData> saves;
+    SavePage page;
 
 
 
@@ -84,14 +103,16 @@ private:
 
 
 
-    SavePage page;
+    std::vector<std::string> saves;
 
 
 
-    bool back;
+    // 保存真实数据
 
+    std::vector<SaveData> saveDataList;
 
 
 };
+
 
 #endif

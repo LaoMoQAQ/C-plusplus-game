@@ -11,7 +11,20 @@ SaveMenu::SaveMenu()
 
     page=SavePage::LOAD;
 
-    back=false;
+}
+
+
+
+
+
+void SaveMenu::SetPage(
+    SavePage value
+)
+{
+
+    page=value;
+
+    choice=0;
 
 }
 
@@ -26,17 +39,44 @@ void SaveMenu::Refresh(
 )
 {
 
-    saves =
+    saves.clear();
+
+    saveDataList.clear();
+
+
+
+    saveDataList =
         saveSystem.GetSaveList();
 
 
-    if(choice >= (int)saves.size())
+
+    for(auto& data : saveDataList)
     {
-        choice=0;
+
+        saves.push_back(
+            data.displayName
+        );
+
     }
 
-}
 
+
+    if(
+        saves.empty()
+    )
+    {
+
+        saves.push_back(
+            "没有存档"
+        );
+
+    }
+
+
+
+    choice=0;
+
+}
 
 
 
@@ -50,69 +90,31 @@ void SaveMenu::Render(
 {
 
 
-    renderer.DrawText(
-        "存档管理",
-        80,
-        60
-    );
-
-
-
-    if(page==SavePage::LOAD)
+    if(
+        page==SavePage::LOAD
+    )
     {
 
         renderer.DrawText(
             "读取存档",
-            80,
-            120
+            600,
+            100
         );
 
     }
+
     else
     {
 
         renderer.DrawText(
-            "管理存档",
-            80,
-            120
+            "存档管理",
+            600,
+            100
         );
 
     }
 
 
-
-
-
-
-    if(saves.empty())
-    {
-
-        renderer.DrawText(
-            "暂无存档",
-            100,
-            250
-        );
-
-
-        renderer.DrawText(
-            "ESC 返回",
-            100,
-            700
-        );
-
-
-        return;
-
-    }
-
-
-
-
-
-
-    int startX=80;
-
-    int startY=200;
 
 
 
@@ -123,97 +125,55 @@ void SaveMenu::Render(
     )
     {
 
-
-        int x =
-        startX
-        +
-        (i%3)*480;
+        std::string text;
 
 
-        int y =
-        startY
-        +
-        (i/3)*180;
-
-
-
-        std::string box;
-
-
-
-        if(i==choice)
+        if(
+            i==choice
+        )
         {
 
-            box =
-            "> ";
+            text=
+            "> "
+            +
+            saves[i];
 
         }
         else
         {
 
-            box="  ";
+            text=
+            saves[i];
 
         }
 
 
 
-        box +=
-        saves[i].displayName;
-
-
-
         renderer.DrawText(
-            box,
-            x,
-            y
+            text,
+            500,
+            200+i*50
         );
-
-
-
-        renderer.DrawText(
-            "章节:"
-            +
-            std::to_string(
-                saves[i].chapter
-            ),
-            x,
-            y+40
-        );
-
-
-
-        renderer.DrawText(
-            saves[i].time,
-            x,
-            y+80
-        );
-
 
     }
 
 
 
 
+    if(
+        page==SavePage::MANAGE
+    )
+    {
 
+        renderer.DrawText(
+            "N 新建  C复制  Delete删除  R重命名",
+            350,
+            750
+        );
 
-    renderer.DrawText(
-        "Enter 选择",
-        80,
-        650
-    );
-
-
-    renderer.DrawText(
-        "ESC 返回",
-        80,
-        700
-    );
-
-
+    }
 
 }
-
-
 
 
 
@@ -227,140 +187,65 @@ void SaveMenu::HandleInput(
 {
 
 
-    if(key==1)
+    if(
+        saves.empty()
+    )
+    {
+        return;
+    }
+
+
+
+
+    // 上
+
+    if(
+        key==1
+    )
     {
 
         choice--;
 
 
-        if(choice<0)
+        if(
+            choice<0
+        )
         {
-            choice =
-            saves.empty()
-            ?
-            0
-            :
+
+            choice=
             saves.size()-1;
+
         }
 
     }
 
 
 
-    else if(key==2)
+
+    // 下
+
+    else if(
+        key==2
+    )
     {
 
         choice++;
 
 
         if(
-            choice >=
+            choice>=
             (int)saves.size()
         )
         {
+
             choice=0;
-        }
-
-    }
-
-
-
-}
-
-
-
-
-
-
-
-
-
-void SaveMenu::Confirm(
-    SaveSystem& saveSystem
-)
-{
-
-
-    if(
-        saves.empty()
-    )
-    {
-
-        return;
-
-    }
-
-
-
-
-    SaveData data =
-        saves[choice];
-
-
-
-    if(page==SavePage::LOAD)
-    {
-
-        int chapter;
-
-        int index;
-
-
-
-        if(
-            saveSystem.LoadSave(
-                data.filename,
-                chapter,
-                index
-            )
-        )
-        {
-
-            std::cout
-            <<"读取存档:"
-            <<data.filename
-            <<std::endl;
 
         }
 
     }
 
 
-
-    else
-    {
-
-        // 管理模式默认复制
-
-        saveSystem.CopySave(
-            data.filename
-        );
-
-
-        Refresh(
-            saveSystem
-        );
-
-    }
-
-
-
 }
-
-
-
-
-
-
-
-
-bool SaveMenu::Back()
-{
-
-    return back;
-
-}
-
 
 
 
@@ -381,10 +266,265 @@ int SaveMenu::GetChoice() const
 
 
 
+void SaveMenu::Reset()
+{
+
+    choice=0;
+
+}
+
+
+
+
+
+
+
+
+SaveData SaveMenu::GetCurrentSave()
+{
+
+    if(
+        choice>=0
+        &&
+        choice<(int)saveDataList.size()
+    )
+    {
+
+        return saveDataList[choice];
+
+    }
+
+
+
+    return SaveData();
+
+}
+
+
+
+
+
+
+
+
+
+void SaveMenu::Create(
+    SaveSystem& saveSystem
+)
+{
+
+
+    saveSystem.CreateSave(
+        "新的存档",
+        1,
+        0
+    );
+
+
+
+    Refresh(
+        saveSystem
+    );
+
+
+}
+
+
+
+
+
+
+
+
+void SaveMenu::Delete(
+    SaveSystem& saveSystem
+)
+{
+
+
+    SaveData data=
+        GetCurrentSave();
+
+
+
+    if(
+        data.filename.empty()
+    )
+    {
+        return;
+    }
+
+
+
+    saveSystem.DeleteSave(
+        data.filename
+    );
+
+
+
+    Refresh(
+        saveSystem
+    );
+
+
+}
+
+
+
+
+
+
+
+
+
+void SaveMenu::Copy(
+    SaveSystem& saveSystem
+)
+{
+
+
+    SaveData data=
+        GetCurrentSave();
+
+
+
+    if(
+        data.filename.empty()
+    )
+    {
+        return;
+    }
+
+
+
+    saveSystem.CopySave(
+        data.filename
+    );
+
+
+
+    Refresh(
+        saveSystem
+    );
+
+
+}
+
+
+
+
+
+
+
+
+
+void SaveMenu::Rename(
+    SaveSystem& saveSystem,
+    const std::string& name
+)
+{
+
+
+    SaveData data=
+        GetCurrentSave();
+
+
+
+    if(
+        data.filename.empty()
+    )
+    {
+        return;
+    }
+
+
+
+
+    saveSystem.RenameSave(
+        data.filename,
+        name
+    );
+
+
+
+    Refresh(
+        saveSystem
+    );
+
+
+}
+
+
+
+
+
 
 SavePage SaveMenu::GetPage() const
 {
 
     return page;
+
+}
+
+
+
+
+void SaveMenu::Confirm(
+    SaveSystem& saveSystem
+)
+{
+
+    if(
+        saves.empty()
+    )
+    {
+        return;
+    }
+
+
+
+    if(
+        page==SavePage::LOAD
+    )
+    {
+
+        SaveData data =
+            GetCurrentSave();
+
+
+
+        if(
+            data.filename.empty()
+        )
+        {
+            return;
+        }
+
+
+
+        int chapter=0;
+
+        int index=0;
+
+
+
+        if(
+            saveSystem.LoadSave(
+                data.filename,
+                chapter,
+                index
+            )
+        )
+        {
+
+            std::cout
+            <<"读取存档:"
+            <<data.filename
+            <<std::endl;
+
+        }
+
+
+    }
 
 }
