@@ -17,6 +17,10 @@ Game::Game()
 
     currentCharacter=nullptr;
 
+
+    lastState=
+    UIState::START;
+
 }
 
 
@@ -729,6 +733,41 @@ void Game::HandleEvents()
 
 
                     case 1:
+                    {
+
+                        // 从暂停菜单进入存档管理
+                        lastState =
+                            UIState::PAUSE;
+
+
+                        ui.GetSaveMenu()
+                        .SetPage(
+                            SavePage::MANAGE
+                        );
+
+
+                        ui.GetSaveMenu()
+                        .Refresh(
+                            saveSystem
+                        );
+
+
+                        ui.SetState(
+                            UIState::SAVE
+                        );
+
+                    }
+                    break;
+
+
+
+                    case 2:
+                    {
+
+                        // 从暂停菜单进入读取存档
+                        lastState =
+                            UIState::PAUSE;
+
 
                         ui.GetSaveMenu()
                         .SetPage(
@@ -746,36 +785,41 @@ void Game::HandleEvents()
                             UIState::SAVE
                         );
 
-                    break;
-
-
-
-                    case 2:
-
-                        ui.SetState(
-                            UIState::SAVE
-                        );
-
+                    }
                     break;
 
 
 
                     case 3:
+                    {
+
+                        // 从暂停菜单进入历史记录
+                        lastState =
+                            UIState::PAUSE;
+
 
                         ui.SetState(
                             UIState::HISTORY
                         );
 
+                    }
                     break;
 
 
 
                     case 4:
+                    {
+
+                        // 从暂停菜单进入设置
+                        lastState =
+                            UIState::PAUSE;
+
 
                         ui.SetState(
                             UIState::CONFIG
                         );
 
+                    }
                     break;
 
 
@@ -848,7 +892,7 @@ void Game::HandleEvents()
                 {
 
                     ui.SetState(
-                        UIState::START
+                        lastState
                     );
 
                 }
@@ -862,7 +906,7 @@ void Game::HandleEvents()
                 {
 
                     ui.SetState(
-                        UIState::START
+                        lastState
                     );
 
                 }
@@ -876,7 +920,7 @@ void Game::HandleEvents()
                 {
 
                     ui.SetState(
-                        UIState::START
+                        lastState
                     );
 
                 }

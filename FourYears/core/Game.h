@@ -21,6 +21,9 @@
 #include "../ui/UIManager.h"
 
 
+#include "../GameState.h"
+
+
 
 class Game
 {
@@ -130,6 +133,9 @@ private:
     UIManager ui;
 
 
+
+    // 进入存档界面之前保存的状态
+    UIState lastState;
 
 
 };
