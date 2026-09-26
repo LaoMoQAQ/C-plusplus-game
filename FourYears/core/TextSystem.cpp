@@ -73,7 +73,6 @@ void TextSystem::Init()
 
 
 
-
 // UTF-8字符切割
 
 void TextSystem::SplitUTF8()
@@ -340,6 +339,14 @@ void TextSystem::SetText(
 
         }
 
+        // [修改] 保留 '\n' 原样。
+        // 之前把它丢弃，导致脚本里
+        // 的空行分段信息全部丢失，
+        // 所有句子被挤成一整句。
+        // 现在 '\n' 会进入 fullText 与 characters，
+        // 由 DialogueUI::SplitTextLine 负责
+        // 把它识别为“强制换行”，
+        // 不会传到 SDL_ttf，因此不会出现方框。
         else
         {
 
@@ -350,13 +357,13 @@ void TextSystem::SetText(
 
         i+=len;
 
-
     }
 
 
 
     fullText=
     replaceText;
+
 
 
 
@@ -373,7 +380,6 @@ void TextSystem::SetText(
 
 
     waitTimer=0;
-
 
     waitTarget=wait;
 
@@ -455,7 +461,6 @@ void TextSystem::Update()
 
 
     timer+=delta;
-
 
 
 
@@ -548,14 +553,12 @@ void TextSystem::Skip()
 
     displayText=fullText;
 
-
     currentIndex=
     characters.size();
 
 
 
     finished=true;
-
 
 }
 
@@ -597,8 +600,6 @@ std::string TextSystem::GetCurrentText()
     return displayText;
 
 }
-
-
 
 std::string TextSystem::GetText()
 {

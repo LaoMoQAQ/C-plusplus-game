@@ -40,19 +40,15 @@ public:
 
 
 
-    // 初始化
     bool Init();
 
 
 
-    // 游戏循环
     void Run();
 
 
 
-    // 退出
     void Quit();
-
 
 
 
@@ -61,15 +57,29 @@ private:
 
     void HandleEvents();
 
-
     void Update();
-
 
     void Render();
 
-
-    // 更新当前剧情场景
     void UpdateScene();
+
+
+
+    // 激活当前状态的菜单项。
+    // 键盘 Enter 和鼠标点击菜单项都走这里。
+    void OnActivateCurrentState();
+
+
+
+    // 推进对话。
+    // 键盘 Space 和鼠标左键（DIALOGUE 状态）都走这里。
+    void OnAdvanceDialogue();
+
+
+
+    // [新增] 返回上一级。
+    // 键盘 ESC 和鼠标点击"返回"按钮都走这里。
+    void OnBack();
 
 
 
@@ -92,12 +102,9 @@ private:
 
     Renderer renderer;
 
-
     ResourceManager resourceManager;
 
-
     TextSystem textSystem;
-
 
     ScriptPlayer scriptPlayer;
 
@@ -134,9 +141,7 @@ private:
 
 
 
-    // 进入存档界面之前保存的状态
     UIState lastState;
-
 
 };
 

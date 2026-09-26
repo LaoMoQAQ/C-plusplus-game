@@ -9,6 +9,8 @@
 #include "ConfigMenu.h"
 #include "HistoryMenu.h"
 
+#include "MenuCommon.h"
+
 
 
 enum class UIState
@@ -43,28 +45,38 @@ public:
 
 
 
-    // 切换界面
     void SetState(
         UIState state
     );
 
 
-
-    // 获取当前界面
     UIState GetState() const;
 
 
-
-    // 绘制
     void Render(
         Renderer& renderer
     );
 
 
-
-    // 输入
     void HandleInput(
         int key
+    );
+
+
+
+    // 鼠标移动分发到当前状态的菜单
+    void HandleMouseMove(
+        int x,
+        int y
+    );
+
+
+
+    // 鼠标点击分发。
+    // 返回值告诉 Game 该做什么。
+    MenuMouseResult HandleMouseClick(
+        int x,
+        int y
     );
 
 
@@ -75,15 +87,11 @@ public:
 
     StartMenu& GetStartMenu();
 
-
     PauseMenu& GetPauseMenu();
-
 
     SaveMenu& GetSaveMenu();
 
-
     ConfigMenu& GetConfigMenu();
-
 
     HistoryMenu& GetHistoryMenu();
 
@@ -99,21 +107,15 @@ private:
 
     DialogueUI dialogueUI;
 
-
     StartMenu startMenu;
-
 
     PauseMenu pauseMenu;
 
-
     SaveMenu saveMenu;
-
 
     ConfigMenu configMenu;
 
-
     HistoryMenu historyMenu;
-
 
 };
 

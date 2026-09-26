@@ -72,16 +72,23 @@ void DialogueUI::Update()
 
 
 
-
-// UTF8简单分行
-
-std::vector<std::string>
-SplitTextLine(
+// [重写] 自动换行 + 强制换行
+//
+// 规则：
+//   1. 遇到 '\n'  -> 立即结束当前行，
+//                    开始新行（强制换行）。
+//   2. 已累计到 maxChar 个字 -> 软换行。
+//
+// 这个函数是 DialogueUI 的成员函数，
+// 渲染时由 DialogueUI::Render 调用。
+//
+// 注意：'\\n' 永远不会传到 Renderer::DrawText，
+// 所以不会出现“方框”问题。
+std::vector<std::string> DialogueUI::SplitTextLine(
     const std::string& text,
-    int maxChar
+    int maxLength
 )
 {
-
 
     std::vector<std::string> lines;
 
@@ -89,50 +96,62 @@ SplitTextLine(
     std::string line;
 
 
-
     int count=0;
-
 
 
     for(size_t i=0;i<text.size();)
     {
+
+        // [新增] 强制换行：
+        // 直接看原始字节，'\n' 是单字节，
+        // 不需要走 UTF-8 解码逻辑。
+        if(
+            text[i]=='\n'
+        )
+        {
+
+            lines.push_back(
+                line
+            );
+
+
+            line.clear();
+
+
+            count=0;
+
+
+            i++;
+
+
+            continue;
+
+        }
+
 
 
         unsigned char c=
         (unsigned char)text[i];
 
 
-
         size_t len=1;
-
 
 
         if((c&0x80)==0)
         {
-
             len=1;
-
         }
-
         else if((c&0xE0)==0xC0)
         {
-
             len=2;
-
         }
-
         else if((c&0xF0)==0xE0)
         {
-
             len=3;
-
         }
-
         else if((c&0xF8)==0xF0)
         {
-
             len=4;
-
         }
 
 
@@ -144,17 +163,12 @@ SplitTextLine(
         );
 
 
-
         line+=ch;
-
 
         count++;
 
 
-
-        if(
-            count>=maxChar
-        )
+        if(count>=maxLength)
         {
 
             lines.push_back(
@@ -173,17 +187,11 @@ SplitTextLine(
 
         i+=len;
 
-
     }
 
 
 
-
-
-
-    if(
-        !line.empty()
-    )
+    if(!line.empty())
     {
 
         lines.push_back(
@@ -195,7 +203,6 @@ SplitTextLine(
 
 
     return lines;
-
 
 }
 
@@ -228,7 +235,6 @@ void DialogueUI::Render(
 
 
 
-
     //
     // 正文
     //
@@ -244,7 +250,6 @@ void DialogueUI::Render(
         text,
         34
     );
-
 
 
 
@@ -265,9 +270,7 @@ void DialogueUI::Render(
             y
         );
 
-
         y+=45;
-
 
     }
 
@@ -321,102 +324,5 @@ void DialogueUI::Draw(
     Render(
         renderer
     );
-
-}
-
-
-
-std::vector<std::string> DialogueUI::SplitTextLine(
-    const std::string& text,
-    int maxLength
-)
-{
-
-    std::vector<std::string> lines;
-
-
-    std::string line;
-
-
-    int count=0;
-
-
-    for(size_t i=0;i<text.size();)
-    {
-
-        unsigned char c=
-        (unsigned char)text[i];
-
-
-        size_t len=1;
-
-
-        if((c&0x80)==0)
-        {
-            len=1;
-        }
-        else if((c&0xE0)==0xC0)
-        {
-            len=2;
-        }
-        else if((c&0xF0)==0xE0)
-        {
-            len=3;
-        }
-        else if((c&0xF8)==0xF0)
-        {
-            len=4;
-        }
-
-
-
-        std::string ch=
-        text.substr(
-            i,
-            len
-        );
-
-
-        line+=ch;
-
-
-        count++;
-
-
-        if(count>=maxLength)
-        {
-
-            lines.push_back(
-                line
-            );
-
-
-            line.clear();
-
-
-            count=0;
-
-        }
-
-
-
-        i+=len;
-
-    }
-
-
-
-    if(!line.empty())
-    {
-
-        lines.push_back(
-            line
-        );
-
-    }
-
-
-
-    return lines;
 
 }

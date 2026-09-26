@@ -7,13 +7,9 @@ HistoryMenu::HistoryMenu()
 
     history = nullptr;
 
-
     offset = 0;
 
 }
-
-
-
 
 
 
@@ -30,9 +26,6 @@ void HistoryMenu::SetHistory(
 
 
 }
-
-
-
 
 
 
@@ -63,6 +56,11 @@ void HistoryMenu::Render(
             200
         );
 
+        renderer.DrawText(
+            "返回 [ESC]",
+            UILayout::BACK_X,
+            UILayout::BACK_Y
+        );
 
         return;
 
@@ -84,7 +82,7 @@ void HistoryMenu::Render(
 
     for(
         int i=offset;
-        i<list.size()
+        i<(int)list.size()
         &&
         i<offset+8;
         i++
@@ -114,18 +112,21 @@ void HistoryMenu::Render(
 
         );
 
-
         y += 50;
-
 
     }
 
 
 
+
+    // 返回按钮
+    renderer.DrawText(
+        "返回 [ESC]",
+        UILayout::BACK_X,
+        UILayout::BACK_Y
+    );
+
 }
-
-
-
 
 
 
@@ -159,7 +160,6 @@ void HistoryMenu::HandleInput(
 
         offset--;
 
-
         if(offset<0)
         {
 
@@ -178,7 +178,6 @@ void HistoryMenu::HandleInput(
 
         offset++;
 
-
         if(offset>=size)
         {
 
@@ -189,11 +188,7 @@ void HistoryMenu::HandleInput(
 
     }
 
-
 }
-
-
-
 
 
 
@@ -203,5 +198,31 @@ void HistoryMenu::Reset()
 {
 
     offset=0;
+
+}
+
+
+
+
+
+MenuMouseResult HistoryMenu::HandleMouseClick(
+    int x,
+    int y
+)
+{
+
+    // 历史菜单只有返回按钮
+    if(
+        x >= UILayout::BACK_X &&
+        x <  UILayout::BACK_X + UILayout::BACK_W &&
+        y >= UILayout::BACK_Y &&
+        y <  UILayout::BACK_Y + UILayout::BACK_H
+    )
+    {
+        return MenuMouseResult::BACK;
+    }
+
+
+    return MenuMouseResult::NONE;
 
 }

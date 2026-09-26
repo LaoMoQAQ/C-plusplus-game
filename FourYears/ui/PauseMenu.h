@@ -7,54 +7,65 @@
 
 #include "../core/Renderer.h"
 
+#include "MenuCommon.h"
+
 
 
 class PauseMenu
 {
 
-
 public:
-
 
     PauseMenu();
 
 
-
-    // 绘制暂停菜单
     void Render(
         Renderer& renderer
     );
 
 
-
-    // 输入处理
     void HandleInput(
         int key
     );
 
 
+    void HandleMouseMove(
+        int x,
+        int y
+    );
 
-    // 获取选择
+
+    MenuMouseResult HandleMouseClick(
+        int x,
+        int y
+    );
+
+
     int GetChoice() const;
 
 
-
-    // 重置
     void Reset();
 
 
 
 private:
 
+    static constexpr int ITEM_COUNT = 6;
 
     int choice;
 
+    std::string items[ITEM_COUNT];
 
-    std::string items[6];
 
+    // 暂停菜单项的 x/y/w/h。
+    // Render 和鼠标命中都用这几个常量。
+    static constexpr int MENU_X   = 500;
+    static constexpr int MENU_Y   = 230;
+    static constexpr int MENU_GAP = 55;
+    static constexpr int ITEM_W   = 400;
+    static constexpr int ITEM_H   = 50;
 
 };
-
 
 
 #endif

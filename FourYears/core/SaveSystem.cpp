@@ -6,6 +6,8 @@
 #include <chrono>
 #include <iomanip>
 #include <sstream>
+#include <algorithm>
+#include <vector>
 
 
 namespace fs = std::filesystem;
@@ -93,7 +95,6 @@ std::string SaveSystem::GetCurrentTime()
 
 
 
-
 std::vector<SaveData>
 SaveSystem::GetSaveList()
 {
@@ -110,10 +111,24 @@ SaveSystem::GetSaveList()
 
 
 
+    struct Entry
+    {
+        SaveData data;
+        fs::file_time_type writeTime;
+    };
+
+
+    std::vector<Entry> entries;
+
+
+
+
     for(
         auto& file :
         fs::directory_iterator(savePath)
     )
+
+
     {
 
 
@@ -128,12 +143,55 @@ SaveSystem::GetSaveList()
 
 
 
-        SaveData data;
+
+
+        {
+            std::error_code ec;
+
+            auto size =
+                fs::file_size(
+                    file.path(),
+                    ec
+                );
+
+
+            if(ec || size == 0)
+            {
+                continue;
+            }
+        }
 
 
 
-        data.filename =
+
+
+        Entry entry;
+
+
+
+        entry.data.filename =
             file.path().filename().string();
+
+
+
+
+        {
+            std::error_code ec;
+
+            entry.writeTime =
+                fs::last_write_time(
+                    file.path(),
+                    ec
+                );
+
+
+            if(ec)
+            {
+                entry.writeTime =
+                    fs::file_time_type::min();
+            }
+        }
+
 
 
 
@@ -148,18 +206,18 @@ SaveSystem::GetSaveList()
 
             std::getline(
                 in,
-                data.displayName
+                entry.data.displayName
             );
 
 
             in
             >>
-            data.chapter;
+            entry.data.chapter;
 
 
             in
             >>
-            data.index;
+            entry.data.index;
 
 
             in.ignore();
@@ -167,7 +225,7 @@ SaveSystem::GetSaveList()
 
             std::getline(
                 in,
-                data.time
+                entry.data.time
             );
 
         }
@@ -176,23 +234,44 @@ SaveSystem::GetSaveList()
         else
         {
 
-            data.displayName="未知存档";
+            entry.data.displayName="未知存档";
 
-            data.chapter=0;
+            entry.data.chapter=0;
 
-            data.index=0;
+            entry.data.index=0;
 
-            data.time="";
+            entry.data.time="";
 
         }
 
 
 
-        list.push_back(
-            data
+        entries.push_back(
+            entry
         );
 
+    }
 
+
+
+
+    std::sort(
+        entries.begin(),
+        entries.end(),
+        [](const Entry& a, const Entry& b)
+        {
+            return a.writeTime > b.writeTime;
+        }
+    );
+
+
+
+
+    list.reserve(entries.size());
+
+    for(auto& e : entries)
+    {
+        list.push_back(e.data);
     }
 
 
@@ -209,36 +288,33 @@ SaveSystem::GetSaveList()
 
 
 
-
 bool SaveSystem::CreateSave(
     const std::string& name,
     int chapter,
     int index
 )
 {
+    // 用毫秒级时间戳，避免同一秒内
+    // 多次按 N 时文件名冲突互相覆盖。
+    auto now =
+        std::chrono::system_clock::now();
+
+    auto ms =
+        std::chrono::duration_cast<
+            std::chrono::milliseconds
+        >(
+            now.time_since_epoch()
+        ).count();
 
 
-    std::string filename;
+    std::string filename =
+        savePath
+        + "save_"
+        + std::to_string(ms)
+        + ".dat";
 
 
-    filename =
-    savePath
-    +
-    "save_"
-    +
-    std::to_string(
-        std::time(nullptr)
-    )
-    +
-    ".dat";
-
-
-
-
-    std::ofstream out(
-        filename
-    );
-
+    std::ofstream out(filename);
 
     if(!out)
     {
@@ -246,33 +322,12 @@ bool SaveSystem::CreateSave(
     }
 
 
-
-    out
-    << name
-    << "\n";
-
-
-
-    out
-    << chapter
-    << "\n";
-
-
-
-    out
-    << index
-    << "\n";
-
-
-
-    out
-    << GetCurrentTime()
-    << "\n";
-
-
+    out << name     << "\n";
+    out << chapter  << "\n";
+    out << index    << "\n";
+    out << GetCurrentTime() << "\n";
 
     out.close();
-
 
 
     return true;
@@ -298,7 +353,6 @@ bool SaveSystem::LoadSave(
     std::ifstream in(
         savePath+filename
     );
-
 
     if(!in)
     {
@@ -409,7 +463,6 @@ bool SaveSystem::RenameSave(
         newPath
     );
 
-
     return true;
 
 }
@@ -441,17 +494,25 @@ bool SaveSystem::CopySave(
 
 
 
+    // 用毫秒级时间戳，避免同一秒内
+    // 多次按 C 时文件名冲突。
+    auto now =
+        std::chrono::system_clock::now();
+
+    auto ms =
+        std::chrono::duration_cast<
+            std::chrono::milliseconds
+        >(
+            now.time_since_epoch()
+        ).count();
+
+
 
     std::string newFile =
-    savePath
-    +
-    "copy_"
-    +
-    std::to_string(
-        std::time(nullptr)
-    )
-    +
-    ".dat";
+        savePath
+        + "copy_"
+        + std::to_string(ms)
+        + ".dat";
 
 
 

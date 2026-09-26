@@ -5,6 +5,8 @@
 #include "../core/Renderer.h"
 #include "../core/Config.h"
 
+#include "MenuCommon.h"
+
 
 
 class ConfigMenu
@@ -18,34 +20,42 @@ public:
 
 
 
-    // 设置配置对象
     void SetConfig(
         Config* config
     );
 
 
 
-    // 绘制
     void Render(
         Renderer& renderer
     );
 
 
 
-    // 输入
     void HandleInput(
         int key
     );
 
 
 
-    // 保存设置
     void Save();
 
 
 
-    // 获取当前选项
     int GetChoice() const;
+
+
+
+    void HandleMouseMove(
+        int x,
+        int y
+    );
+
+
+    MenuMouseResult HandleMouseClick(
+        int x,
+        int y
+    );
 
 
 
@@ -54,12 +64,18 @@ private:
 
     Config* config;
 
-
     int choice;
 
+    static constexpr int ITEM_COUNT = 6;
 
-    std::string items[6];
+    std::string items[ITEM_COUNT];
 
+
+    static constexpr int MENU_X   = 420;
+    static constexpr int MENU_Y   = 180;
+    static constexpr int MENU_GAP = 55;
+    static constexpr int ITEM_W   = 700;
+    static constexpr int ITEM_H   = 50;
 
 };
 

@@ -16,7 +16,6 @@ SaveMenu::SaveMenu()
 
 
 
-
 void SaveMenu::SetPage(
     SavePage value
 )
@@ -26,9 +25,10 @@ void SaveMenu::SetPage(
 
     choice=0;
 
+    // 切页时顺便取消删除确认
+    confirmingDelete=false;
+
 }
-
-
 
 
 
@@ -50,12 +50,21 @@ void SaveMenu::Refresh(
 
 
 
+    // [修改] 每行拼成：
+    //   displayName  [第N章]  时间
+    // 之前只显示 displayName，
+    // 看不出章节和保存时间。
     for(auto& data : saveDataList)
     {
 
-        saves.push_back(
-            data.displayName
-        );
+        std::string line = data.displayName;
+
+        line += "  [第";
+        line += std::to_string(data.chapter);
+        line += "章]  ";
+        line += data.time;
+
+        saves.push_back(line);
 
     }
 
@@ -76,9 +85,9 @@ void SaveMenu::Refresh(
 
     choice=0;
 
+    confirmingDelete=false;
+
 }
-
-
 
 
 
@@ -117,7 +126,6 @@ void SaveMenu::Render(
 
 
 
-
     for(
         int i=0;
         i<(int)saves.size();
@@ -151,8 +159,8 @@ void SaveMenu::Render(
 
         renderer.DrawText(
             text,
-            500,
-            200+i*50
+            LIST_X,
+            LIST_Y+i*LIST_GAP
         );
 
     }
@@ -160,22 +168,68 @@ void SaveMenu::Render(
 
 
 
-    if(
-        page==SavePage::MANAGE
-    )
+    // [修改] 底部提示区域：
+    // 处于删除确认时，显示确认提示；
+    // 否则显示常规操作提示。
+    if(confirmingDelete && !saveDataList.empty())
     {
 
-        renderer.DrawText(
-            "N 新建  C复制  Delete删除  R重命名",
-            350,
-            750
-        );
+        SaveData data = GetCurrentSave();
+
+        if(!data.filename.empty())
+        {
+
+            std::string msg =
+                "确认删除 \""
+                + data.displayName
+                + "\" ？   Enter 确认 / ESC 取消";
+
+            renderer.DrawText(
+                msg,
+                380,
+                800
+            );
+
+        }
+
+    }
+    else
+    {
+
+        if(
+            page==SavePage::LOAD
+        )
+        {
+
+            renderer.DrawText(
+                "Enter 读取存档  N 新建  C 复制  Delete 删除  R 重命名",
+                300,
+                750
+            );
+
+        }
+        else
+        {
+
+            renderer.DrawText(
+                "N 新建  C 复制  Delete 删除  R 重命名",
+                350,
+                750
+            );
+
+        }
 
     }
 
+
+    // 返回按钮
+    renderer.DrawText(
+        "返回 [ESC]",
+        UILayout::BACK_X,
+        UILayout::BACK_Y
+    );
+
 }
-
-
 
 
 
@@ -244,10 +298,7 @@ void SaveMenu::HandleInput(
 
     }
 
-
 }
-
-
 
 
 
@@ -264,17 +315,14 @@ int SaveMenu::GetChoice() const
 
 
 
-
-
 void SaveMenu::Reset()
 {
 
     choice=0;
 
+    confirmingDelete=false;
+
 }
-
-
-
 
 
 
@@ -304,20 +352,18 @@ SaveData SaveMenu::GetCurrentSave()
 
 
 
-
-
-
-
 void SaveMenu::Create(
-    SaveSystem& saveSystem
+    SaveSystem& saveSystem,
+    const std::string& name,
+    int chapter,
+    int index
 )
 {
 
-
     saveSystem.CreateSave(
-        "新的存档",
-        1,
-        0
+        name,
+        chapter,
+        index
     );
 
 
@@ -326,11 +372,7 @@ void SaveMenu::Create(
         saveSystem
     );
 
-
 }
-
-
-
 
 
 
@@ -341,6 +383,9 @@ void SaveMenu::Delete(
 )
 {
 
+    // [说明] 直接删除的逻辑保留在 ConfirmDelete()，
+    // Delete() 保留只是为了避免破坏其他调用点。
+    // 现在 Game 走的是 BeginDelete / ConfirmDelete 流程。
 
     SaveData data=
         GetCurrentSave();
@@ -366,12 +411,7 @@ void SaveMenu::Delete(
         saveSystem
     );
 
-
 }
-
-
-
-
 
 
 
@@ -407,12 +447,7 @@ void SaveMenu::Copy(
         saveSystem
     );
 
-
 }
-
-
-
-
 
 
 
@@ -451,9 +486,7 @@ void SaveMenu::Rename(
         saveSystem
     );
 
-
 }
-
 
 
 
@@ -469,8 +502,11 @@ SavePage SaveMenu::GetPage() const
 
 
 
-void SaveMenu::Confirm(
-    SaveSystem& saveSystem
+
+bool SaveMenu::Confirm(
+    SaveSystem& saveSystem,
+    int& outChapter,
+    int& outIndex
 )
 {
 
@@ -478,7 +514,7 @@ void SaveMenu::Confirm(
         saves.empty()
     )
     {
-        return;
+        return false;
     }
 
 
@@ -497,34 +533,192 @@ void SaveMenu::Confirm(
             data.filename.empty()
         )
         {
+            return false;
+        }
+
+
+
+        return saveSystem.LoadSave(
+            data.filename,
+            outChapter,
+            outIndex
+        );
+
+    }
+
+
+
+    return false;
+
+}
+
+
+
+
+
+void SaveMenu::HandleMouseMove(
+    int x,
+    int y
+)
+{
+
+    for(int i=0;i<(int)saves.size();i++)
+    {
+
+        int ix = LIST_X;
+        int iy = LIST_Y + i * LIST_GAP;
+
+        if(
+            x >= ix &&
+            x <  ix + LIST_W &&
+            y >= iy &&
+            y <  iy + LIST_H
+        )
+        {
+            choice = i;
             return;
         }
 
+    }
+
+}
 
 
-        int chapter=0;
-
-        int index=0;
 
 
 
-        if(
-            saveSystem.LoadSave(
-                data.filename,
-                chapter,
-                index
-            )
-        )
+MenuMouseResult SaveMenu::HandleMouseClick(
+    int x,
+    int y
+)
+{
+
+    // 返回按钮
+    if(
+        x >= UILayout::BACK_X &&
+        x <  UILayout::BACK_X + UILayout::BACK_W &&
+        y >= UILayout::BACK_Y &&
+        y <  UILayout::BACK_Y + UILayout::BACK_H
+    )
+    {
+        // [新增] 处于删除确认时，
+        // 点"返回"等同取消确认，不离开页面。
+        if(confirmingDelete)
         {
-
-            std::cout
-            <<"读取存档:"
-            <<data.filename
-            <<std::endl;
-
+            confirmingDelete = false;
+            return MenuMouseResult::NONE;
         }
 
+        return MenuMouseResult::BACK;
+    }
+
+
+    // [新增] 处于删除确认时，
+    // 点击任意存档项等同"确认删除"
+    if(confirmingDelete)
+    {
+        // 具体确认动作由 Game 处理，
+        // 这里只返回 ACTIVATE 信号。
+        return MenuMouseResult::ACTIVATE;
+    }
+
+
+    // 存档项：点击 = 激活（走 Confirm 读档）
+    for(int i=0;i<(int)saves.size();i++)
+    {
+
+        int ix = LIST_X;
+        int iy = LIST_Y + i * LIST_GAP;
+
+        if(
+            x >= ix &&
+            x <  ix + LIST_W &&
+            y >= iy &&
+            y <  iy + LIST_H
+        )
+        {
+            choice = i;
+            return MenuMouseResult::ACTIVATE;
+        }
 
     }
+
+
+    return MenuMouseResult::NONE;
+
+}
+
+
+
+
+
+// ==========================================================
+// [新增] 删除确认
+// ==========================================================
+
+void SaveMenu::BeginDelete()
+{
+
+    // 没有可删除的目标时不进入确认状态
+    if(GetCurrentSave().filename.empty())
+    {
+        return;
+    }
+
+
+    confirmingDelete = true;
+
+}
+
+
+
+
+
+void SaveMenu::CancelDelete()
+{
+
+    confirmingDelete = false;
+
+}
+
+
+
+
+
+void SaveMenu::ConfirmDelete(
+    SaveSystem& saveSystem
+)
+{
+
+    SaveData data = GetCurrentSave();
+
+
+    if(!data.filename.empty())
+    {
+
+        saveSystem.DeleteSave(
+            data.filename
+        );
+
+
+        Refresh(
+            saveSystem
+        );
+
+    }
+
+
+    confirmingDelete = false;
+
+}
+
+
+
+
+
+bool SaveMenu::IsConfirmingDelete() const
+{
+
+    return confirmingDelete;
 
 }

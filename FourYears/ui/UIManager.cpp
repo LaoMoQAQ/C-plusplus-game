@@ -15,7 +15,6 @@ UIManager::UIManager()
 
 
 
-
 void UIManager::SetState(
 
     UIState state
@@ -31,14 +30,12 @@ void UIManager::SetState(
 
 
 
-
 UIState UIManager::GetState() const
 {
 
     return currentState;
 
 }
-
 
 
 
@@ -129,7 +126,6 @@ void UIManager::Render(
 
 
 
-
 void UIManager::HandleInput(
 
     int key
@@ -208,6 +204,127 @@ void UIManager::HandleInput(
 
 
 
+void UIManager::HandleMouseMove(
+    int x,
+    int y
+)
+{
+
+    switch(currentState)
+    {
+
+    case UIState::START:
+
+        startMenu.HandleMouseMove(
+            x,
+            y
+        );
+
+        break;
+
+
+    case UIState::PAUSE:
+
+        pauseMenu.HandleMouseMove(
+            x,
+            y
+        );
+
+        break;
+
+
+    case UIState::SAVE:
+
+        saveMenu.HandleMouseMove(
+            x,
+            y
+        );
+
+        break;
+
+
+    case UIState::CONFIG:
+
+        configMenu.HandleMouseMove(
+            x,
+            y
+        );
+
+        break;
+
+
+    default:
+
+        // HISTORY / DIALOGUE 没有 hover 处理
+
+        break;
+
+    }
+
+}
+
+
+
+
+
+MenuMouseResult UIManager::HandleMouseClick(
+    int x,
+    int y
+)
+{
+
+    switch(currentState)
+    {
+
+    case UIState::START:
+
+        return startMenu.HandleMouseClick(
+            x,
+            y
+        );
+
+
+    case UIState::PAUSE:
+
+        return pauseMenu.HandleMouseClick(
+            x,
+            y
+        );
+
+
+    case UIState::SAVE:
+
+        return saveMenu.HandleMouseClick(
+            x,
+            y
+        );
+
+
+    case UIState::CONFIG:
+
+        return configMenu.HandleMouseClick(
+            x,
+            y
+        );
+
+
+    case UIState::HISTORY:
+
+        return historyMenu.HandleMouseClick(
+            x,
+            y
+        );
+
+
+    default:
+
+        return MenuMouseResult::NONE;
+
+    }
+
+}
+
+
 
 
 
@@ -217,8 +334,6 @@ DialogueUI& UIManager::GetDialogueUI()
     return dialogueUI;
 
 }
-
-
 
 
 
@@ -235,16 +350,12 @@ StartMenu& UIManager::GetStartMenu()
 
 
 
-
-
 PauseMenu& UIManager::GetPauseMenu()
 {
 
     return pauseMenu;
 
 }
-
-
 
 
 
@@ -261,16 +372,12 @@ SaveMenu& UIManager::GetSaveMenu()
 
 
 
-
-
 ConfigMenu& UIManager::GetConfigMenu()
 {
 
     return configMenu;
 
 }
-
-
 
 
 

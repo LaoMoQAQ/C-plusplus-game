@@ -37,7 +37,6 @@ ConfigMenu::ConfigMenu()
 
 
 
-
 void ConfigMenu::SetConfig(
 
     Config* config
@@ -48,7 +47,6 @@ void ConfigMenu::SetConfig(
     this->config = config;
 
 }
-
 
 
 
@@ -75,13 +73,19 @@ void ConfigMenu::Render(
     if(config==nullptr)
     {
 
+        renderer.DrawText(
+            "返回 [ESC]",
+            UILayout::BACK_X,
+            UILayout::BACK_Y
+        );
+
         return;
 
     }
 
 
 
-    for(int i=0;i<6;i++)
+    for(int i=0;i<ITEM_COUNT;i++)
     {
 
 
@@ -99,7 +103,6 @@ void ConfigMenu::Render(
 
         }
 
-
         else if(i==1)
         {
 
@@ -110,7 +113,6 @@ void ConfigMenu::Render(
 
         }
 
-
         else if(i==2)
         {
 
@@ -120,7 +122,6 @@ void ConfigMenu::Render(
             );
 
         }
-
 
         else if(i==3)
         {
@@ -146,7 +147,6 @@ void ConfigMenu::Render(
             "关闭";
 
         }
-
 
         else
         {
@@ -192,19 +192,32 @@ void ConfigMenu::Render(
 
             text,
 
-            420,
+            MENU_X,
 
-            180+i*55
+            MENU_Y+i*MENU_GAP
 
         );
-
 
     }
 
 
 
-}
 
+    renderer.DrawText(
+        "← → 调整   Enter 保存",
+        420,
+        750
+    );
+
+
+    // 返回按钮
+    renderer.DrawText(
+        "返回 [ESC]",
+        UILayout::BACK_X,
+        UILayout::BACK_Y
+    );
+
+}
 
 
 
@@ -230,7 +243,7 @@ void ConfigMenu::HandleInput(
 
 
     /*
-    
+
     1 上
     2 下
     3 左
@@ -250,7 +263,7 @@ void ConfigMenu::HandleInput(
         if(choice<0)
         {
 
-            choice=5;
+            choice=ITEM_COUNT-1;
 
         }
 
@@ -266,7 +279,7 @@ void ConfigMenu::HandleInput(
         choice++;
 
 
-        if(choice>5)
+        if(choice>=ITEM_COUNT)
         {
 
             choice=0;
@@ -340,9 +353,7 @@ void ConfigMenu::HandleInput(
 
             break;
 
-
         }
-
 
     }
 
@@ -410,16 +421,13 @@ void ConfigMenu::HandleInput(
 
             break;
 
-
         }
-
 
     }
 
 
 
 }
-
 
 
 
@@ -447,10 +455,94 @@ void ConfigMenu::Save()
 
 
 
-
 int ConfigMenu::GetChoice() const
 {
 
     return choice;
+
+}
+
+
+
+
+
+void ConfigMenu::HandleMouseMove(
+    int x,
+    int y
+)
+{
+
+    for(int i=0;i<ITEM_COUNT;i++)
+    {
+
+        int ix = MENU_X;
+        int iy = MENU_Y + i * MENU_GAP;
+
+        if(
+            x >= ix &&
+            x <  ix + ITEM_W &&
+            y >= iy &&
+            y <  iy + ITEM_H
+        )
+        {
+            choice = i;
+            return;
+        }
+
+    }
+
+}
+
+
+
+
+
+MenuMouseResult ConfigMenu::HandleMouseClick(
+    int x,
+    int y
+)
+{
+
+    // 返回按钮
+    if(
+        x >= UILayout::BACK_X &&
+        x <  UILayout::BACK_X + UILayout::BACK_W &&
+        y >= UILayout::BACK_Y &&
+        y <  UILayout::BACK_Y + UILayout::BACK_H
+    )
+    {
+        return MenuMouseResult::BACK;
+    }
+
+
+    // 菜单项
+    for(int i=0;i<ITEM_COUNT;i++)
+    {
+
+        int ix = MENU_X;
+        int iy = MENU_Y + i * MENU_GAP;
+
+        if(
+            x >= ix &&
+            x <  ix + ITEM_W &&
+            y >= iy &&
+            y <  iy + ITEM_H
+        )
+        {
+            choice = i;
+
+            // 点"保存设置"直接保存
+            if(i == 5)
+            {
+                Save();
+            }
+
+            return MenuMouseResult::ACTIVATE;
+        }
+
+    }
+
+
+    return MenuMouseResult::NONE;
 
 }
