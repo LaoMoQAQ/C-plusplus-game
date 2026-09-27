@@ -170,6 +170,75 @@ MSYS2 UCRT64
 
 ---
 
+# 发布打包
+
+发布一个免安装可玩版本分 3 步。
+
+## 1. 编译发布版
+
+在 MSYS2 UCRT64 里 `cd` 到 `FourYears/`，执行（比日常编译多了 `-O2 -s`，用于优化 + 剥离符号）：
+
+    C:/msys64/ucrt64/bin/g++.exe \
+      -std=c++17 -O2 -s \
+      -finput-charset=UTF-8 -fexec-charset=UTF-8 \
+      main.cpp \
+      core/Game.cpp core/Renderer.cpp core/ResourceManager.cpp \
+      core/TextSystem.cpp core/ScriptPlayer.cpp core/SaveSystem.cpp \
+      core/AudioManager.cpp core/FontManager.cpp core/Config.cpp core/Utils.cpp \
+      story/Character.cpp story/History.cpp story/RouteManager.cpp \
+      story/Story.cpp story/StoryParser.cpp \
+      ui/UIManager.cpp ui/DialogueUI.cpp ui/StartMenu.cpp \
+      ui/PauseMenu.cpp ui/SaveMenu.cpp ui/HistoryMenu.cpp ui/ConfigMenu.cpp \
+      -o game.exe \
+      -IC:/msys64/ucrt64/include/SDL2 \
+      -I. -Icore -Istory -Iui \
+      -LC:/msys64/ucrt64/lib \
+      -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer
+
+## 2. 收集文件
+
+创建发布目录并复制游戏本体和资源：
+
+    cd /f/gal
+    mkdir -p release/FourYears/save
+    cp FourYears/game.exe     release/FourYears/
+    cp FourYears/config.ini   release/FourYears/
+    cp -r FourYears/resource  release/FourYears/
+    cp -r FourYears/script    release/FourYears/
+    touch release/FourYears/save/.gitkeep
+
+复制所有依赖 DLL：
+
+    cd release/FourYears
+    ntldd -R game.exe | grep "msys64" | awk '{print $3}' | while read -r dll; do
+        cp "$dll" .
+    done
+
+> `read` 必须加 `-r`，否则 bash 会吃掉路径中的反斜杠，导致 `cp` 报 `No such file or directory`。
+
+`ntldd` 没装的话：
+
+    pacman -S mingw-w64-ucrt-x86_64-ntldd
+
+## 3. 打包
+
+    cd /f/gal/release
+    tar -a -c -f FourYears-v0.1.0.zip FourYears
+
+## 发布前自检
+
+**把 zip 解压到一个干净目录，双击 `game.exe` 试运行**。
+能进主菜单、能开游戏、能存档读档，才算通过。
+
+如果闪退，在 `cmd` 里 `cd` 到解压目录执行 `game.exe`，就能看到缺哪个 DLL。
+
+## 上传
+
+发布产物**不要提交进 Git 仓库**，用 GitHub Release 上传。
+`.gitignore` 已排除 `release/`。
+
+---
+
 # 运行
 
 ## Windows
@@ -413,7 +482,7 @@ script/chapter01.txt
     SDL2_mixer.dll
     SDL2_ttf.dll
 
-已随项目放在 `FourYears/` 下。
+以及 `ntldd` 输出的 MinGW 运行时和第三方依赖（见「发布打包」一节）。
 
 ---
 
