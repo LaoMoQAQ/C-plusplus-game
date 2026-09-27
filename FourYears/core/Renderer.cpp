@@ -23,7 +23,6 @@ Renderer::Renderer()
 Renderer::~Renderer()
 {
 
-    // [新增] 释放模糊缓存纹理
     if(blurTarget)
     {
 
@@ -71,8 +70,6 @@ bool Renderer::Init(
 
         SDL_RENDERER_ACCELERATED |
         SDL_RENDERER_PRESENTVSYNC |
-        // [新增] 允许把渲染目标切到纹理上，
-        // 这是 DrawBlurTexture 的前置条件。
         SDL_RENDERER_TARGETTEXTURE
 
     );
@@ -94,8 +91,6 @@ bool Renderer::Init(
 
 
 
-    // 高质量缩放
-    // 这个 hint 对模糊缩放的插值质量也生效。
     SDL_SetHint(
         SDL_HINT_RENDER_SCALE_QUALITY,
         "best"
@@ -182,7 +177,6 @@ void Renderer::SetFont(
 
 
 
-// 原接口：白色 + 默认字体
 void Renderer::DrawText(
 
     const std::string& text,
@@ -219,7 +213,6 @@ void Renderer::DrawText(
 
 
 
-// 指定字体和颜色
 void Renderer::DrawText(
 
     const std::string& text,
@@ -452,23 +445,145 @@ void Renderer::DrawTexture(
 
 
 
-// [新增] 模糊绘制
-//
-// 步骤：
-//   1. 查原纹理尺寸。
-//   2. 计算缩小后尺寸（原尺寸 / BLUR_DIVISOR）。
-//   3. 如果缓存纹理尺寸不匹配，重建。
-//   4. 把渲染目标切到 blurTarget。
-//   5. 把原纹理缩放到 blurTarget 上。
-//   6. 把渲染目标切回主屏。
-//   7. 把 blurTarget 放大画到 (x, y)。
-//
-// 关键点：
-//   - SDL_SetRenderTarget 必须成对使用：
-//     画完 blurTarget 后一定要切回 nullptr，
-//     否则后续所有绘制都会跑到小纹理里。
-//   - blurTarget 是缓存，不每帧新建，
-//     避免频繁分配 / 释放。
+void Renderer::DrawTexture(
+
+    SDL_Texture* texture,
+
+    int x,
+
+    int y,
+
+    int w,
+
+    int h
+
+)
+{
+
+
+    if(
+        !texture ||
+        w <= 0 ||
+        h <= 0
+    )
+    {
+
+        return;
+
+    }
+
+
+
+
+    SDL_Rect dst;
+
+    dst.x = x;
+
+    dst.y = y;
+
+    dst.w = w;
+
+    dst.h = h;
+
+
+
+    SDL_RenderCopy(
+
+        renderer,
+
+        texture,
+
+        nullptr,
+
+        &dst
+
+    );
+
+}
+
+
+
+
+
+
+
+
+// [新增] 填充半透明矩形
+void Renderer::DrawFilledRect(
+
+    int x,
+
+    int y,
+
+    int w,
+
+    int h,
+
+    Uint8 r,
+
+    Uint8 g,
+
+    Uint8 b,
+
+    Uint8 a
+
+)
+{
+
+    if(
+        !renderer ||
+        w <= 0 ||
+        h <= 0
+    )
+    {
+        return;
+    }
+
+
+
+    // 必须先打开 alpha 混合，
+    // 否则 a < 255 时不会透明，
+    // 会直接盖成纯色块。
+    SDL_SetRenderDrawBlendMode(
+        renderer,
+        SDL_BLENDMODE_BLEND
+    );
+
+
+
+    SDL_SetRenderDrawColor(
+        renderer,
+        r,
+        g,
+        b,
+        a
+    );
+
+
+
+    SDL_Rect rect;
+
+    rect.x = x;
+    rect.y = y;
+    rect.w = w;
+    rect.h = h;
+
+
+
+    SDL_RenderFillRect(
+        renderer,
+        &rect
+    );
+
+}
+
+
+
+
+
+
+
+
 void Renderer::DrawBlurTexture(
     SDL_Texture* texture,
     int x,
@@ -507,7 +622,6 @@ void Renderer::DrawBlurTexture(
 
 
 
-    // 缩小后尺寸
     int sw = w / BLUR_DIVISOR;
     int sh = h / BLUR_DIVISOR;
 
@@ -517,7 +631,6 @@ void Renderer::DrawBlurTexture(
 
 
 
-    // 缓存纹理尺寸不匹配时重建
     if(
         !blurTarget ||
         blurW != sw ||
@@ -578,7 +691,6 @@ void Renderer::DrawBlurTexture(
 
 
 
-    // 切到小纹理
     SDL_SetRenderTarget(
         renderer,
         blurTarget
@@ -586,7 +698,6 @@ void Renderer::DrawBlurTexture(
 
 
 
-    // 清空（避免上一帧残影）
     SDL_SetRenderDrawColor(
         renderer,
         0, 0, 0, 255
@@ -598,7 +709,6 @@ void Renderer::DrawBlurTexture(
 
 
 
-    // 缩小画进去
     SDL_Rect smallDst;
     smallDst.x = 0;
     smallDst.y = 0;
@@ -615,7 +725,6 @@ void Renderer::DrawBlurTexture(
 
 
 
-    // 切回主屏幕
     SDL_SetRenderTarget(
         renderer,
         nullptr
@@ -624,7 +733,6 @@ void Renderer::DrawBlurTexture(
 
 
 
-    // 放大画回原尺寸
     SDL_Rect backDst;
     backDst.x = x;
     backDst.y = y;

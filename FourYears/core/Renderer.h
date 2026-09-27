@@ -53,6 +53,7 @@ public:
 
 
 
+    // 按纹理原始尺寸绘制
     void DrawTexture(
         SDL_Texture* texture,
         int x,
@@ -61,7 +62,33 @@ public:
 
 
 
-    // 模糊绘制（缩小 -> 放大近似）
+    // 按指定矩形绘制
+    void DrawTexture(
+        SDL_Texture* texture,
+        int x,
+        int y,
+        int w,
+        int h
+    );
+
+
+
+    // [新增] 填充半透明矩形。
+    // 用于对话框背景这类色块。
+    // 需要 SDL_BLENDMODE_BLEND 支持 alpha。
+    void DrawFilledRect(
+        int x,
+        int y,
+        int w,
+        int h,
+        Uint8 r,
+        Uint8 g,
+        Uint8 b,
+        Uint8 a
+    );
+
+
+
     void DrawBlurTexture(
         SDL_Texture* texture,
         int x,
@@ -83,13 +110,6 @@ public:
 private:
 
 
-    // [修改] 从 6 降到 4。
-    //
-    // 数值越大越糊、像素感越重。
-    // 4 是一个比较平衡的值：
-    //   - 3：轻微失焦
-    //   - 4：明显失焦但保留形状（当前）
-    //   - 6：非常糊，容易出方块
     static constexpr int BLUR_DIVISOR = 4;
 
 

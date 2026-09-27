@@ -1,6 +1,96 @@
 #include "HistoryMenu.h"
 
 
+#include <string>
+
+
+
+
+// ==========================================================
+// 历史记录文本清理
+// ==========================================================
+//
+// 历史记录保存的是 StoryEvent.text 原文，
+// 包含 '…' 和 '\n'。
+// SDL_ttf 找不到这两个字形时会画方框，
+// 所以显示前先替换：
+//   '…'  -> '.'
+//   '\n' -> ' '
+
+namespace
+{
+
+    std::string CleanHistoryText(
+        const std::string& text
+    )
+    {
+
+        std::string result;
+
+
+        for(size_t i=0;i<text.size();)
+        {
+
+            if(text[i]=='\n')
+            {
+                result += ' ';
+                i++;
+                continue;
+            }
+
+
+            unsigned char c =
+                (unsigned char)text[i];
+
+            size_t len = 1;
+
+            if((c & 0x80) == 0)
+            {
+                len = 1;
+            }
+            else if((c & 0xE0) == 0xC0)
+            {
+                len = 2;
+            }
+            else if((c & 0xF0) == 0xE0)
+            {
+                len = 3;
+            }
+            else if((c & 0xF8) == 0xF0)
+            {
+                len = 4;
+            }
+
+
+            std::string ch =
+                text.substr(i, len);
+
+
+            if(ch == "…")
+            {
+                result += '.';
+            }
+            else
+            {
+                result += ch;
+            }
+
+
+            i += len;
+
+        }
+
+
+        return result;
+
+    }
+
+}
+
+// ==========================================================
+
+
+
 
 HistoryMenu::HistoryMenu()
 {
@@ -16,14 +106,11 @@ HistoryMenu::HistoryMenu()
 
 
 void HistoryMenu::SetHistory(
-
     History* history
-
 )
 {
 
     this->history = history;
-
 
 }
 
@@ -32,9 +119,7 @@ void HistoryMenu::SetHistory(
 
 
 void HistoryMenu::Render(
-
     Renderer& renderer
-
 )
 {
 
@@ -98,7 +183,10 @@ void HistoryMenu::Render(
         +
         "："
         +
-        list[i].text;
+        // [修改] 清理方框字符
+        CleanHistoryText(
+            list[i].text
+        );
 
 
 
@@ -119,7 +207,6 @@ void HistoryMenu::Render(
 
 
 
-    // 返回按钮
     renderer.DrawText(
         "返回 [ESC]",
         UILayout::BACK_X,
@@ -133,18 +220,14 @@ void HistoryMenu::Render(
 
 
 void HistoryMenu::HandleInput(
-
     int key
-
 )
 {
 
 
     if(history==nullptr)
     {
-
         return;
-
     }
 
 
@@ -211,7 +294,6 @@ MenuMouseResult HistoryMenu::HandleMouseClick(
 )
 {
 
-    // 历史菜单只有返回按钮
     if(
         x >= UILayout::BACK_X &&
         x <  UILayout::BACK_X + UILayout::BACK_W &&

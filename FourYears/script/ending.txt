@@ -8,28 +8,24 @@
 
 看着熟悉的校园。
 
-
 [背景]
 ending_sunset.png
 
-
+[立绘]
+wuhongtao/normal.png
 
 [吴鸿涛]
 
 原来四年真的这么快。
 
-
-
 [系统]
 
 请选择你的未来。
 
-
-
 [选择]
 
-1. 陪伴四年
+1. 陪伴四年 -> script/li_junhao_route.txt
 
-2. 未来同行
+2. 未来同行 -> script/zhang_hanyu_route.txt
 
-3. 一个人的成长
+3. 一个人的成长 -> script/alone_ending.txt

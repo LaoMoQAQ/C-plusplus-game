@@ -204,15 +204,26 @@ SaveSystem::GetSaveList()
         if(in)
         {
 
+            // 存档格式（5 行）：
+            //   1. displayName
+            //   2. scriptFile
+            //   3. chapterName
+            //   4. index
+            //   5. time
             std::getline(
                 in,
                 entry.data.displayName
             );
 
+            std::getline(
+                in,
+                entry.data.scriptFile
+            );
 
-            in
-            >>
-            entry.data.chapter;
+            std::getline(
+                in,
+                entry.data.chapterName
+            );
 
 
             in
@@ -236,7 +247,9 @@ SaveSystem::GetSaveList()
 
             entry.data.displayName="未知存档";
 
-            entry.data.chapter=0;
+            entry.data.scriptFile="";
+
+            entry.data.chapterName="";
 
             entry.data.index=0;
 
@@ -290,12 +303,12 @@ SaveSystem::GetSaveList()
 
 bool SaveSystem::CreateSave(
     const std::string& name,
-    int chapter,
+    const std::string& scriptFile,
+    const std::string& chapterName,
     int index
 )
 {
-    // 用毫秒级时间戳，避免同一秒内
-    // 多次按 N 时文件名冲突互相覆盖。
+
     auto now =
         std::chrono::system_clock::now();
 
@@ -322,9 +335,10 @@ bool SaveSystem::CreateSave(
     }
 
 
-    out << name     << "\n";
-    out << chapter  << "\n";
-    out << index    << "\n";
+    out << name        << "\n";
+    out << scriptFile  << "\n";
+    out << chapterName << "\n";
+    out << index       << "\n";
     out << GetCurrentTime() << "\n";
 
     out.close();
@@ -344,7 +358,8 @@ bool SaveSystem::CreateSave(
 
 bool SaveSystem::LoadSave(
     const std::string& filename,
-    int& chapter,
+    std::string& outScriptFile,
+    std::string& outChapterName,
     int& index
 )
 {
@@ -362,27 +377,27 @@ bool SaveSystem::LoadSave(
 
 
 
-    std::string name;
+    std::string displayName;
+
+    std::string scriptFile;
+
+    std::string chapterName;
 
     std::string time;
 
 
 
-    std::getline(
-        in,
-        name
-    );
+    std::getline(in, displayName);
+    std::getline(in, scriptFile);
+    std::getline(in, chapterName);
 
 
-    in
-    >>
-    chapter;
+    in >> index;
 
 
-    in
-    >>
-    index;
 
+    outScriptFile = scriptFile;
+    outChapterName = chapterName;
 
 
     return true;
@@ -427,41 +442,70 @@ bool SaveSystem::DeleteSave(
 
 
 
+// [修改] 现在改的是"显示名"（文件第一行），
+// 不再改文件名。
 bool SaveSystem::RenameSave(
     const std::string& filename,
-    const std::string& newName
+    const std::string& newDisplayName
 )
 {
 
-
-    fs::path oldPath =
+    fs::path path =
         savePath+filename;
 
 
 
-    if(!fs::exists(oldPath))
+    if(!fs::exists(path))
     {
         return false;
     }
 
 
 
-    fs::path newPath =
-        savePath+newName;
+    // 读出原有内容
+    std::ifstream in(path);
 
-
-
-    if(newPath.extension()!=".dat")
+    if(!in)
     {
-        newPath += ".dat";
+        return false;
     }
 
 
+    std::string displayName;
+    std::string scriptFile;
+    std::string chapterName;
+    int index = 0;
+    std::string time;
 
-    fs::rename(
-        oldPath,
-        newPath
-    );
+
+    std::getline(in, displayName);
+    std::getline(in, scriptFile);
+    std::getline(in, chapterName);
+    in >> index;
+    in.ignore();
+    std::getline(in, time);
+
+    in.close();
+
+
+
+    // 覆盖写回，只改第一行
+    std::ofstream out(path);
+
+    if(!out)
+    {
+        return false;
+    }
+
+
+    out << newDisplayName << "\n";
+    out << scriptFile     << "\n";
+    out << chapterName    << "\n";
+    out << index          << "\n";
+    out << time           << "\n";
+
+    out.close();
+
 
     return true;
 
@@ -494,8 +538,6 @@ bool SaveSystem::CopySave(
 
 
 
-    // 用毫秒级时间戳，避免同一秒内
-    // 多次按 C 时文件名冲突。
     auto now =
         std::chrono::system_clock::now();
 

@@ -56,7 +56,6 @@ string StoryParser::Clean(
 
 
 
-
 bool StoryParser::Load(
     string file,
     Story& story
@@ -93,9 +92,7 @@ bool StoryParser::Load(
 
 
 
-
     string currentBackground;
-
 
     string currentCharacter;
 
@@ -115,7 +112,6 @@ bool StoryParser::Load(
         )
         {
             return;
-
         }
 
 
@@ -126,7 +122,6 @@ bool StoryParser::Load(
         )
         {
             return;
-
         }
 
 
@@ -207,6 +202,7 @@ bool StoryParser::Load(
         {
             continue;
         }
+
 
 
 
@@ -306,6 +302,32 @@ bool StoryParser::Load(
 
 
 
+                // [新增] 即时应用：
+                //
+                // 如果当前事件已经开始（name 非空），
+                // 但背景还是空的，
+                // 就把刚读到的背景直接补到当前事件上。
+                //
+                // 处理这种脚本顺序：
+                //   [结局]
+                //   《标题》
+                //   [背景] xxx.png     ← 此时 current 是"结局"事件
+                //
+                // 不这么做的话，[背景] 只会更新
+                // currentBackground 变量，
+                // 而 current 事件的 background 依然是空，
+                // 导致 UpdateScene 无法更新屏幕背景。
+                if(
+                    !current.name.empty()
+                    &&
+                    current.background.empty()
+                )
+                {
+                    current.background = bg;
+                }
+
+
+
                 continue;
 
             }
@@ -340,6 +362,19 @@ bool StoryParser::Load(
 
                 currentCharacter=
                 c;
+
+
+
+                // [新增] 同理：
+                // 给已经开始的"结局"事件补上立绘。
+                if(
+                    !current.name.empty()
+                    &&
+                    current.character.empty()
+                )
+                {
+                    current.character = c;
+                }
 
 
 
@@ -432,8 +467,45 @@ bool StoryParser::Load(
                 current.name=
                 "选择";
 
-
                 current.isChoice=true;
+
+
+
+                continue;
+
+            }
+
+
+
+
+
+
+
+
+            // 下一章标记
+
+            if(
+                tag=="下一章"
+            )
+            {
+
+                string next;
+
+
+                getline(
+                    in,
+                    next
+                );
+
+
+                next=
+                Clean(next);
+
+
+
+                story.SetNextFile(
+                    next
+                );
 
 
 
@@ -483,11 +555,9 @@ bool StoryParser::Load(
 
 
 
-
         //========================
         // 选择内容
         //========================
-
 
         if(
             current.isChoice
@@ -504,9 +574,95 @@ bool StoryParser::Load(
             )
             {
 
-                current.choices.push_back(
-                    line.substr(2)
-                );
+                std::string item =
+                    line.substr(2);
+
+
+
+                while(
+                    !item.empty()
+                    &&
+                    item.front()==' '
+                )
+                {
+                    item.erase(0,1);
+                }
+
+                while(
+                    !item.empty()
+                    &&
+                    item.back()==' '
+                )
+                {
+                    item.pop_back();
+                }
+
+
+
+                size_t arrow =
+                    item.find("->");
+
+
+
+                if(
+                    arrow != std::string::npos
+                )
+                {
+
+                    std::string text =
+                        item.substr(
+                            0,
+                            arrow
+                        );
+
+                    std::string target =
+                        item.substr(
+                            arrow + 2
+                        );
+
+
+
+                    while(
+                        !text.empty()
+                        &&
+                        text.back()==' '
+                    )
+                    {
+                        text.pop_back();
+                    }
+
+
+                    while(
+                        !target.empty()
+                        &&
+                        target.front()==' '
+                    )
+                    {
+                        target.erase(0,1);
+                    }
+
+
+                    current.choices.push_back(
+                        text
+                    );
+
+                    current.choiceTargets.push_back(
+                        target
+                    );
+
+                }
+                else
+                {
+
+                    current.choices.push_back(
+                        item
+                    );
+
+                    current.choiceTargets.push_back(
+                        ""
+                    );
+
+                }
 
             }
 
@@ -584,6 +740,5 @@ bool StoryParser::Load(
 
 
     return true;
-
 
 }

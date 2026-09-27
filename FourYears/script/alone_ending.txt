@@ -2,18 +2,16 @@
 
 《一个人的成长》
 
-
 [背景]
 ending_sunset.png
 
-
+[立绘]
+wuhongtao/sad.png
 
 [旁白]
 
 吴鸿涛选择独自前进。
 
-
 四年的经历，让他成为更好的自己。
-
 
 [END]

@@ -12,7 +12,13 @@ struct SaveData
 
     std::string displayName;
 
-    int chapter;
+    // 章节脚本路径，如 "script/chapter01.txt"
+    std::string scriptFile;
+
+    // [修改] 从 int 改成 string。
+    // 直接存显示名："第1章" / "结局" / "李君浩线" 等，
+    // 不再靠数字硬编码。
+    std::string chapterName;
 
     int index;
 
@@ -31,40 +37,34 @@ public:
 
 
 
-    // 初始化存档目录
-
     void Init();
 
 
-
-    // 获取所有存档
 
     std::vector<SaveData>
     GetSaveList();
 
 
 
-    // 创建存档
-
+    // [修改] chapter -> chapterName
     bool CreateSave(
         const std::string& name,
-        int chapter,
+        const std::string& scriptFile,
+        const std::string& chapterName,
         int index
     );
 
 
 
-    // 读取存档
-
+    // [修改] 通过引用带出 chapterName
     bool LoadSave(
         const std::string& filename,
-        int& chapter,
+        std::string& outScriptFile,
+        std::string& outChapterName,
         int& index
     );
 
 
-
-    // 删除存档
 
     bool DeleteSave(
         const std::string& filename
@@ -72,24 +72,20 @@ public:
 
 
 
-    // 重命名
-
+    // [修改] 现在改的是"显示名"（文件第一行），
+    // 不再改文件名。
     bool RenameSave(
         const std::string& filename,
-        const std::string& newName
+        const std::string& newDisplayName
     );
 
 
-
-    // 复制存档
 
     bool CopySave(
         const std::string& filename
     );
 
 
-
-    // 判断是否为空
 
     bool Empty();
 
@@ -103,7 +99,6 @@ private:
 
 
     std::string GetCurrentTime();
-
 
 };
 

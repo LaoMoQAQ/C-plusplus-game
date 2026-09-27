@@ -6,6 +6,54 @@
 
 
 
+// ==========================================================
+// 对话框与选项的布局、配色
+// ==========================================================
+//
+// 全部按 1600x900 屏幕估算。
+//
+// 对话框矩形 BOX_X/Y/W/H
+// 选项都放在对话框内部，
+// 位置从 BOX 派生，不单独写死，
+// 这样调整对话框时选项会跟着走。
+
+namespace
+{
+
+    // 对话框
+    constexpr int BOX_X = 40;
+    constexpr int BOX_Y = 520;
+    constexpr int BOX_W = 1520;
+    constexpr int BOX_H = 340;
+
+    constexpr Uint8 BOX_R = 20;
+    constexpr Uint8 BOX_G = 20;
+    constexpr Uint8 BOX_B = 20;
+    constexpr Uint8 BOX_A = 190;
+
+    constexpr int SPEAKER_X = 80;
+    constexpr int SPEAKER_Y = 545;
+
+    constexpr int TEXT_X = 80;
+    constexpr int TEXT_Y = 615;
+
+    constexpr int LINE_GAP = 45;
+
+
+    // 选项
+    // 位置基于对话框内部，
+    // 不再浮在屏幕中央。
+    constexpr int CHOICE_X = 120;
+    constexpr int CHOICE_Y = 570;
+    constexpr int CHOICE_GAP = 70;
+
+}
+
+// ==========================================================
+
+
+
+
 DialogueUI::DialogueUI()
 {
 
@@ -72,18 +120,6 @@ void DialogueUI::Update()
 
 
 
-// [重写] 自动换行 + 强制换行
-//
-// 规则：
-//   1. 遇到 '\n'  -> 立即结束当前行，
-//                    开始新行（强制换行）。
-//   2. 已累计到 maxChar 个字 -> 软换行。
-//
-// 这个函数是 DialogueUI 的成员函数，
-// 渲染时由 DialogueUI::Render 调用。
-//
-// 注意：'\\n' 永远不会传到 Renderer::DrawText，
-// 所以不会出现“方框”问题。
 std::vector<std::string> DialogueUI::SplitTextLine(
     const std::string& text,
     int maxLength
@@ -102,9 +138,6 @@ std::vector<std::string> DialogueUI::SplitTextLine(
     for(size_t i=0;i<text.size();)
     {
 
-        // [新增] 强制换行：
-        // 直接看原始字节，'\n' 是单字节，
-        // 不需要走 UTF-8 解码逻辑。
         if(
             text[i]=='\n'
         )
@@ -219,25 +252,57 @@ void DialogueUI::Render(
 )
 {
 
+    // ------------------------------------------------
+    // 对话框背景
+    // ------------------------------------------------
 
-    //
-    // 人名
-    //
-
-    renderer.DrawText(
-        speaker,
-        80,
-        520
+    renderer.DrawFilledRect(
+        BOX_X,
+        BOX_Y,
+        BOX_W,
+        BOX_H,
+        BOX_R,
+        BOX_G,
+        BOX_B,
+        BOX_A
     );
 
 
 
-
-
-
+    // ------------------------------------------------
+    // 人名
+    // ------------------------------------------------
     //
+    // [修改] 显示选项时，不画人名。
+    //
+    // 选择事件的 speaker 是解析器写死的 "选择"，
+    // 那不是一个真正的角色名。
+    // 判断 HasChoice() 就能区分：
+    //   - 有选项   -> 是选择事件，跳过人名
+    //   - 没有选项 -> 正常对话，照常画人名
+
+    if(!HasChoice())
+    {
+
+        renderer.DrawText(
+            speaker,
+            SPEAKER_X,
+            SPEAKER_Y
+        );
+
+    }
+
+
+
+
+    // ------------------------------------------------
     // 正文
+    // ------------------------------------------------
     //
+    // 选择事件没有正文，
+    // textSystem.GetCurrentText() 返回空字符串，
+    // SplitTextLine 返回空 vector，
+    // 下面的循环一次都不执行。
 
     std::string text =
     textSystem.GetCurrentText();
@@ -254,7 +319,7 @@ void DialogueUI::Render(
 
 
 
-    int y=580;
+    int y=TEXT_Y;
 
 
 
@@ -266,15 +331,66 @@ void DialogueUI::Render(
 
         renderer.DrawText(
             line,
-            80,
+            TEXT_X,
             y
         );
 
-        y+=45;
+        y+=LINE_GAP;
 
     }
 
 
+
+
+    // ------------------------------------------------
+    // 选项
+    // ------------------------------------------------
+    //
+    // [修改] 选项现在画在对话框内部，
+    // 位置由 CHOICE_X / CHOICE_Y 决定。
+    // 选中项带 "> " 前缀，
+    // 未选中项用两个空格缩进，保持左对齐。
+
+    if(!choiceOptions.empty())
+    {
+
+        int oy = CHOICE_Y;
+
+        for(
+            int i=0;
+            i<(int)choiceOptions.size();
+            i++
+        )
+        {
+
+            std::string line;
+
+
+            if(i == choiceIndex)
+            {
+                line = "> ";
+            }
+            else
+            {
+                line = "  ";
+            }
+
+
+            line += choiceOptions[i];
+
+
+            renderer.DrawText(
+                line,
+                CHOICE_X,
+                oy
+            );
+
+
+            oy += CHOICE_GAP;
+
+        }
+
+    }
 
 }
 
@@ -324,5 +440,91 @@ void DialogueUI::Draw(
     Render(
         renderer
     );
+
+}
+
+
+
+
+
+// ==========================================================
+// 选项显示
+// ==========================================================
+
+void DialogueUI::ShowChoice(
+    const std::vector<std::string>& options
+)
+{
+
+    choiceOptions = options;
+
+    choiceIndex = 0;
+
+}
+
+
+
+
+
+void DialogueUI::ClearChoice()
+{
+
+    choiceOptions.clear();
+
+    choiceIndex = 0;
+
+}
+
+
+
+
+
+bool DialogueUI::HasChoice() const
+{
+
+    return !choiceOptions.empty();
+
+}
+
+
+
+
+
+void DialogueUI::MoveChoice(
+    int delta
+)
+{
+
+    if(choiceOptions.empty())
+    {
+        return;
+    }
+
+
+    choiceIndex += delta;
+
+
+    if(choiceIndex < 0)
+    {
+        choiceIndex =
+            (int)choiceOptions.size() - 1;
+    }
+
+
+    if(choiceIndex >= (int)choiceOptions.size())
+    {
+        choiceIndex = 0;
+    }
+
+}
+
+
+
+
+
+int DialogueUI::GetChoiceIndex() const
+{
+
+    return choiceIndex;
 
 }

@@ -6,17 +6,53 @@
 
 #include <SDL_ttf.h>
 
-// [新增] 用于禁用输入法。
-// SDL_syswm.h 提供 SDL_GetWindowWMInfo，
-// 拿到底层 Win32 HWND。
 #include <SDL_syswm.h>
 
-// [新增] Win32 API：
-//   HWND, HMODULE, LoadLibraryA, GetProcAddress
-//   HIMC, ImmAssociateContext
-// main.cpp 里已 include <windows.h>，
-// 这里再 include 一次是安全的（有 include guard）。
 #include <windows.h>
+
+
+
+static constexpr int CHARACTER_HEIGHT   = 700;
+
+static constexpr int CHARACTER_CENTER_X = 1220;
+
+
+
+// ==========================================================
+// [新增] 从脚本路径推算章节显示名
+// ==========================================================
+//
+// 存档列表里显示的 [第X章]，
+// 不再用固定数字，而是根据脚本路径判断。
+//
+// 需要新增章节时，在这里加一条。
+
+static std::string ChapterNameFromScript(
+    const std::string& script
+)
+{
+    if(script.find("chapter01") != std::string::npos)
+        return "第1章";
+
+    if(script.find("chapter02") != std::string::npos)
+        return "第2章";
+
+    if(script.find("alone_ending") != std::string::npos)
+        return "个人结局";
+
+    if(script.find("li_junhao_route") != std::string::npos)
+        return "李君浩线";
+
+    if(script.find("zhang_hanyu_route") != std::string::npos)
+        return "张瀚宇线";
+
+    if(script.find("ending") != std::string::npos)
+        return "结局";
+
+    return "未知";
+}
+
+// ==========================================================
 
 
 
@@ -136,32 +172,6 @@ bool Game::Init()
 
 
 
-    // ============================================================
-    // [新增] 禁用中文输入法拦截键盘事件
-    // ============================================================
-    //
-    // 问题背景：
-    //   中文输入法激活时，字母键会先被 IME 拦截，
-    //   SDL 收不到 SDLK_n / SDLK_c / SDLK_r 的 KEYDOWN，
-    //   导致游戏内这些快捷键全部失效。
-    //   Enter / ESC / 方向键不受影响，因为它们不走 IME。
-    //
-    // 为什么不能只靠 SDL 层：
-    //   SDL_StopTextInput() / SDL_EventState(SDL_TEXTINPUT, ...)
-    //   只是告诉 SDL 不要发 TEXTINPUT 事件，
-    //   但系统 IME 依然会拦截按键。
-    //   必须用 Win32 的 ImmAssociateContext(hwnd, NULL)
-    //   把窗口和 IME 彻底切断。
-    //
-    // 未来做"重命名输入框"时：
-    //   需要临时恢复 IME 才能输入中文。
-    //   恢复方法：
-    //     1. 保留 ImmAssociateContext 返回的旧 HIMC
-    //     2. 输入框打开时 ImmAssociateContext(hwnd, 旧HIMC)
-    //     3. 输入框关闭时再 ImmAssociateContext(hwnd, NULL)
-
-    // 第 1 层：SDL 层
-    // 隐藏 IME 候选窗口，关闭 SDL 的文本输入事件
     SDL_SetHint(
         SDL_HINT_IME_SHOW_UI,
         "0"
@@ -180,8 +190,6 @@ bool Game::Init()
     );
 
 
-    // 第 2 层：Win32 层
-    // 切断窗口与 IME 的关联，这是彻底解决的关键
 #ifdef _WIN32
 
     {
@@ -204,7 +212,6 @@ bool Game::Init()
                 wmInfo.info.win.window;
 
 
-            // 动态加载 imm32.dll，避免改 tasks.json
             HMODULE hImm =
                 LoadLibraryA(
                     "imm32.dll"
@@ -214,11 +221,6 @@ bool Game::Init()
             if(hImm)
             {
 
-                // ImmAssociateContext 函数签名：
-                //   HIMC ImmAssociateContext(HWND, HIMC)
-                //
-                // 传 NULL 作为第二个参数，
-                // 就是把 IME 上下文从窗口上解除。
                 typedef HIMC (WINAPI *PFN_ImmAssociateContext)(
                     HWND,
                     HIMC
@@ -244,10 +246,6 @@ bool Game::Init()
 
                 }
 
-                // 不 FreeLibrary，
-                // 保持 imm32 常驻进程，
-                // 方便将来做输入框时再调用。
-
             }
 
         }
@@ -255,9 +253,6 @@ bool Game::Init()
     }
 
 #endif
-
-    // ============================================================
-
 
 
 
@@ -317,11 +312,6 @@ bool Game::Init()
 
 
 
-    /*
-        预加载资源
-    */
-
-
     for(auto& e:story.events)
     {
 
@@ -371,7 +361,6 @@ bool Game::Init()
 
 
 
-    // 预加载主菜单背景
     resourceManager.LoadTexture(
 
         renderer.GetSDLRenderer(),
@@ -382,21 +371,18 @@ bool Game::Init()
 
 
 
-    // 把 FontManager 绑定给 StartMenu
     ui.GetStartMenu().SetFontManager(
         &fontManager
     );
 
 
 
-    // 绑定 Config 给 ConfigMenu
     ui.GetConfigMenu().SetConfig(
         &config
     );
 
 
 
-    // 绑定 History 给 HistoryMenu
     ui.GetHistoryMenu().SetHistory(
         &story.GetHistory()
     );
@@ -503,6 +489,37 @@ void Game::HandleEvents()
         )
         {
 
+            // ==========================================================
+            // [新增] 重命名输入模式优先拦截
+            // ==========================================================
+            //
+            // 处于重命名模式时，所有按键都交给 SaveMenu 处理，
+            // 不进入下面的正常分支。
+            // 这样上下方向键不会切换存档选项，
+            // 字母键也能作为文本输入。
+
+            if(
+                ui.GetState()
+                ==
+                UIState::SAVE
+                &&
+                ui.GetSaveMenu()
+                .IsRenaming()
+            )
+            {
+
+                ui.GetSaveMenu()
+                .HandleRenameKey(
+                    event.key.keysym.sym,
+                    saveSystem
+                );
+
+                continue;
+
+            }
+
+            // ==========================================================
+
 
             switch(
                 event.key.keysym.sym
@@ -510,7 +527,6 @@ void Game::HandleEvents()
             {
 
 
-            // 上
             case SDLK_UP:
             {
 
@@ -523,6 +539,20 @@ void Game::HandleEvents()
 
                     ui.GetSaveMenu()
                     .HandleInput(1);
+
+                }
+                else if(
+                    ui.GetState()
+                    ==
+                    UIState::DIALOGUE
+                    &&
+                    ui.GetDialogueUI()
+                    .HasChoice()
+                )
+                {
+
+                    ui.GetDialogueUI()
+                    .MoveChoice(-1);
 
                 }
                 else
@@ -539,7 +569,6 @@ void Game::HandleEvents()
 
 
 
-            // 下
             case SDLK_DOWN:
             {
 
@@ -552,6 +581,20 @@ void Game::HandleEvents()
 
                     ui.GetSaveMenu()
                     .HandleInput(2);
+
+                }
+                else if(
+                    ui.GetState()
+                    ==
+                    UIState::DIALOGUE
+                    &&
+                    ui.GetDialogueUI()
+                    .HasChoice()
+                )
+                {
+
+                    ui.GetDialogueUI()
+                    .MoveChoice(1);
 
                 }
                 else
@@ -579,11 +622,15 @@ void Game::HandleEvents()
                 )
                 {
 
+                    // [修改] 加上章节显示名
                     ui.GetSaveMenu()
                     .Create(
                         saveSystem,
                         "新的存档",
-                        1,
+                        story.GetCurrentFile(),
+                        ChapterNameFromScript(
+                            story.GetCurrentFile()
+                        ),
                         story.GetIndex()
                     );
 
@@ -596,7 +643,6 @@ void Game::HandleEvents()
 
 
 
-            // 复制存档
             case SDLK_c:
             {
 
@@ -621,7 +667,6 @@ void Game::HandleEvents()
 
 
 
-            // 删除存档
             case SDLK_DELETE:
             {
 
@@ -672,31 +717,10 @@ void Game::HandleEvents()
                 )
                 {
 
-                    SaveData data =
-                        ui.GetSaveMenu()
-                        .GetCurrentSave();
-
-
-                    if(
-                        !data.filename.empty()
-                    )
-                    {
-
-                        std::string newName =
-                            "存档_"
-                            +
-                            std::to_string(
-                                std::time(nullptr)
-                            );
-
-
-                        ui.GetSaveMenu()
-                        .Rename(
-                            saveSystem,
-                            newName
-                        );
-
-                    }
+                    // [修改] 不再自动生成名字，
+                    // 进入输入模式让用户自己敲。
+                    ui.GetSaveMenu()
+                    .BeginRename();
 
                 }
 
@@ -707,11 +731,23 @@ void Game::HandleEvents()
 
 
 
-            // Enter
             case SDLK_RETURN:
             {
 
                 if(
+                    ui.GetState()
+                    ==
+                    UIState::DIALOGUE
+                    &&
+                    ui.GetDialogueUI()
+                    .HasChoice()
+                )
+                {
+
+                    ConfirmChoice();
+
+                }
+                else if(
                     ui.GetState()
                     ==
                     UIState::SAVE
@@ -741,7 +777,6 @@ void Game::HandleEvents()
 
 
 
-            // ESC
             case SDLK_ESCAPE:
             {
 
@@ -773,7 +808,6 @@ void Game::HandleEvents()
 
 
 
-            // 空格推进剧情
             case SDLK_SPACE:
             {
 
@@ -801,7 +835,6 @@ void Game::HandleEvents()
 
 
 
-        // 鼠标移动
         if(
             event.type ==
             SDL_MOUSEMOTION
@@ -822,7 +855,6 @@ void Game::HandleEvents()
 
 
 
-        // 鼠标左键
         if(
             event.type ==
             SDL_MOUSEBUTTONDOWN
@@ -845,7 +877,13 @@ void Game::HandleEvents()
             )
             {
 
-                OnAdvanceDialogue();
+                if(
+                    !ui.GetDialogueUI()
+                    .HasChoice()
+                )
+                {
+                    OnAdvanceDialogue();
+                }
 
             }
             else
@@ -915,57 +953,53 @@ void Game::HandleEvents()
 
 void Game::UpdateScene()
 {
+    StoryEvent e = story.GetCurrentEvent();
 
 
-    StoryEvent e=
-    story.GetCurrentEvent();
-
-
-
-
-    if(
-        !e.background.empty()
-    )
+    if(!e.background.empty())
     {
+        std::string path =
+            "resource/bg/" + e.background;
 
+        SDL_Texture* tex =
+            resourceManager.GetTexture(path);
 
-        currentBackground=
-        resourceManager.GetTexture(
+        if(!tex)
+        {
+            tex = resourceManager.LoadTexture(
+                renderer.GetSDLRenderer(),
+                path
+            );
+        }
 
-            "resource/bg/"
-            +
-            e.background
-
-        );
-
-
+        if(tex)
+        {
+            currentBackground = tex;
+        }
     }
 
 
-
-
-
-
-    if(
-        !e.character.empty()
-    )
+    if(!e.character.empty())
     {
+        std::string path =
+            "resource/character/" + e.character;
 
+        SDL_Texture* tex =
+            resourceManager.GetTexture(path);
 
-        currentCharacter=
-        resourceManager.GetTexture(
+        if(!tex)
+        {
+            tex = resourceManager.LoadTexture(
+                renderer.GetSDLRenderer(),
+                path
+            );
+        }
 
-            "resource/character/"
-            +
-            e.character
-
-        );
-
-
+        if(tex)
+        {
+            currentCharacter = tex;
+        }
     }
-
-
-
 }
 
 
@@ -1069,11 +1103,47 @@ void Game::Render()
         currentCharacter
     )
     {
-        renderer.DrawTexture(
+
+        int texW = 0;
+        int texH = 0;
+
+        SDL_QueryTexture(
             currentCharacter,
-            520,
-            80
+            nullptr,
+            nullptr,
+            &texW,
+            &texH
         );
+
+
+        if(texW > 0 && texH > 0)
+        {
+
+            int drawH = CHARACTER_HEIGHT;
+
+            int drawW =
+                texW * drawH / texH;
+
+
+            int drawX =
+                CHARACTER_CENTER_X
+                - drawW / 2;
+
+
+            int drawY =
+                (config.GetHeight() - drawH) / 2;
+
+
+            renderer.DrawTexture(
+                currentCharacter,
+                drawX,
+                drawY,
+                drawW,
+                drawH
+            );
+
+        }
+
     }
 
 
@@ -1152,7 +1222,9 @@ void Game::OnActivateCurrentState()
     )
     {
 
-        int ch = 0;
+        std::string scriptFile;
+        std::string chapterName;
+
         int idx = 0;
 
 
@@ -1160,49 +1232,79 @@ void Game::OnActivateCurrentState()
             ui.GetSaveMenu()
             .Confirm(
                 saveSystem,
-                ch,
+                scriptFile,
+                chapterName,
                 idx
             )
         )
         {
 
             if(
-                idx >= 0
+                !scriptFile.empty()
                 &&
-                idx <
-                (int)story.events.size()
+                story.Load(scriptFile)
             )
             {
 
-                story.SetIndex(
-                    idx
-                );
+                if(
+                    idx >= 0
+                    &&
+                    idx <
+                    (int)story.events.size()
+                )
+                {
+
+                    story.SetIndex(
+                        idx
+                    );
 
 
-                UpdateScene();
+                    UpdateScene();
 
 
-                StoryEvent e =
-                    story
-                    .GetCurrentEvent();
+                    StoryEvent e =
+                        story
+                        .GetCurrentEvent();
 
 
-                ui.GetDialogueUI()
-                .SetSpeaker(
-                    e.name
-                );
+                    ui.GetDialogueUI()
+                    .SetSpeaker(
+                        e.name
+                    );
 
 
-                ui.GetDialogueUI()
-                .SetText(
-                    e.text,
-                    e.waitTime
-                );
+                    ui.GetDialogueUI()
+                    .SetText(
+                        e.text,
+                        e.waitTime
+                    );
 
 
-                ui.SetState(
-                    UIState::DIALOGUE
-                );
+
+                    if(e.isChoice)
+                    {
+                        ui.GetDialogueUI()
+                        .ShowChoice(
+                            e.choices
+                        );
+
+                        currentChoiceTargets =
+                            e.choiceTargets;
+                    }
+                    else
+                    {
+                        ui.GetDialogueUI()
+                        .ClearChoice();
+
+                        currentChoiceTargets.clear();
+                    }
+
+
+                    ui.SetState(
+                        UIState::DIALOGUE
+                    );
+
+                }
 
             }
 
@@ -1234,11 +1336,19 @@ void Game::OnActivateCurrentState()
         {
 
 
-        // 0 开始游戏
         case 0:
         {
 
-            story.SetIndex(0);
+            story.Load(
+                "script/chapter01.txt"
+            );
+
+
+
+            ui.GetDialogueUI()
+            .ClearChoice();
+
+            currentChoiceTargets.clear();
 
 
 
@@ -1277,7 +1387,6 @@ void Game::OnActivateCurrentState()
 
 
 
-        // 1 存档
         case 1:
         {
 
@@ -1308,7 +1417,6 @@ void Game::OnActivateCurrentState()
 
 
 
-        // 2 设置
         case 2:
         {
 
@@ -1327,7 +1435,6 @@ void Game::OnActivateCurrentState()
 
 
 
-        // 3 退出游戏
         case 3:
         {
 
@@ -1479,8 +1586,6 @@ void Game::OnActivateCurrentState()
 
 
 
-    // 设置菜单：
-    // 只有选中"保存设置"时，Enter 才真正保存
     else if(
         ui.GetState()
         ==
@@ -1515,6 +1620,16 @@ void Game::OnActivateCurrentState()
 
 void Game::OnAdvanceDialogue()
 {
+
+    if(
+        ui.GetDialogueUI()
+        .HasChoice()
+    )
+    {
+        return;
+    }
+
+
 
     if(
         !ui.GetDialogueUI()
@@ -1557,6 +1672,22 @@ void Game::OnAdvanceDialogue()
                 e.text,
                 e.waitTime
             );
+
+
+
+            if(e.isChoice)
+            {
+
+                ui.GetDialogueUI()
+                .ShowChoice(
+                    e.choices
+                );
+
+
+                currentChoiceTargets =
+                    e.choiceTargets;
+
+            }
 
         }
 
@@ -1642,6 +1773,95 @@ void Game::OnBack()
         ui.SetState(
             lastState
         );
+
+    }
+
+}
+
+
+
+
+
+// ==========================================================
+// 确认选择
+// ==========================================================
+
+void Game::ConfirmChoice()
+{
+
+    int idx =
+        ui.GetDialogueUI()
+        .GetChoiceIndex();
+
+
+
+    if(
+        idx < 0
+        ||
+        idx >=
+        (int)currentChoiceTargets.size()
+    )
+    {
+        return;
+    }
+
+
+
+    std::string target =
+        currentChoiceTargets[idx];
+
+
+
+    ui.GetDialogueUI()
+    .ClearChoice();
+
+    currentChoiceTargets.clear();
+
+
+
+    if(target.empty())
+    {
+        return;
+    }
+
+
+
+    if(story.Load(target))
+    {
+
+        StoryEvent e =
+            story.GetCurrentEvent();
+
+
+        UpdateScene();
+
+
+        ui.GetDialogueUI()
+        .SetSpeaker(
+            e.name
+        );
+
+
+        ui.GetDialogueUI()
+        .SetText(
+            e.text,
+            e.waitTime
+        );
+
+
+        if(e.isChoice)
+        {
+
+            ui.GetDialogueUI()
+            .ShowChoice(
+                e.choices
+            );
+
+
+            currentChoiceTargets =
+                e.choiceTargets;
+
+        }
 
     }
 

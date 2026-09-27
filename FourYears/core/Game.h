@@ -4,6 +4,9 @@
 
 #include <SDL.h>
 
+#include <string>
+#include <vector>
+
 
 #include "Renderer.h"
 #include "ResourceManager.h"
@@ -65,21 +68,27 @@ private:
 
 
 
-    // 激活当前状态的菜单项。
-    // 键盘 Enter 和鼠标点击菜单项都走这里。
     void OnActivateCurrentState();
 
 
-
-    // 推进对话。
-    // 键盘 Space 和鼠标左键（DIALOGUE 状态）都走这里。
     void OnAdvanceDialogue();
 
 
-
-    // [新增] 返回上一级。
-    // 键盘 ESC 和鼠标点击"返回"按钮都走这里。
     void OnBack();
+
+
+
+    // ==========================================================
+    // [新增] 确认选择
+    // ==========================================================
+    //
+    // 从 ui.GetDialogueUI() 取出选中的 index，
+    // 查 currentChoiceTargets 得到目标脚本，
+    // 加载并切到新章节。
+
+    void ConfirmChoice();
+
+    // ==========================================================
 
 
 
@@ -142,6 +151,20 @@ private:
 
 
     UIState lastState;
+
+
+
+    // ==========================================================
+    // [新增] 当前选择事件的跳转目标列表
+    // ==========================================================
+    //
+    // 与 DialogueUI 里的选项列表一一对应。
+    // 在 OnAdvanceDialogue 进入选择事件时同步。
+    // 确认选择后清空。
+
+    std::vector<std::string> currentChoiceTargets;
+
+    // ==========================================================
 
 };
 

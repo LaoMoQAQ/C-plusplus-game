@@ -6,11 +6,11 @@
 
 但是两个人的出现，让他的生活发生变化。
 
-
 [背景]
 classroom_day.png
 
-
+[立绘]
+li_junhao/normal.png
 
 [李君浩]
 
@@ -20,51 +20,29 @@ classroom_day.png
 library.png
 
 [立绘]
-li_junhao/normal.png
-
-
+wuhongtao/normal.png
 
 [吴鸿涛]
 
 课程和比赛有点多。
 
-[背景]
-library.png
-
 [立绘]
-wuhongtao/normal.png
-
-
+li_junhao/normal.png
 
 [李君浩]
 
 不要总想着一个人解决所有事情。
 
-[背景]
-library.png
-
 [立绘]
-li_junhao/normal.png
-
-
+wuhongtao/happy.png
 
 [吴鸿涛]
 
 谢谢你。
 
-[背景]
-library.png
-
-[立绘]
-wuhongtao/happy.png
-
-
-
 [系统]
 
 李君浩好感度+10
-
-
 
 [旁白]
 
@@ -72,92 +50,58 @@ wuhongtao/happy.png
 
 吴鸿涛参加学校项目。
 
-
 [背景]
 classroom_evening.png
 
-
+[立绘]
+zhang_hanyu/normal.png
 
 [张瀚宇]
 
 你的方案有问题。
 
-[背景]
-classroom_evening.png
-
 [立绘]
-zhang_hanyu/normal.png
-
-
+wuhongtao/normal.png
 
 [吴鸿涛]
 
 哪里？
 
-[背景]
-classroom_evening.png
-
 [立绘]
-wuhongtao/normal.png
-
-
+zhang_hanyu/normal.png
 
 [张瀚宇]
 
 这里。
 
-[背景]
-classroom_evening.png
-
-[立绘]
-zhang_hanyu/normal.png
-
-
-
 [旁白]
 
 张瀚宇指出了几个关键问题。
 
-
-[背景]
-classroom_evening.png
-
-
+[立绘]
+wuhongtao/happy.png
 
 [吴鸿涛]
 
 你其实挺厉害。
 
-[背景]
-classroom_evening.png
-
 [立绘]
-wuhongtao/happy.png
-
-
+zhang_hanyu/normal.png
 
 [张瀚宇]
 
 现在才发现？
 
-[背景]
-classroom_evening.png
-
-[立绘]
-zhang_hanyu/normal.png
-
-
-
 [系统]
 
 张瀚宇好感度+10
-
-
 
 [旁白]
 
 一次选择，可能改变未来。
 
-
 [背景]
 rooftop.png
+
+[下一章]
+script/ending.txt

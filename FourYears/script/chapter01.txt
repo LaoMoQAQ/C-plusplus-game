@@ -9,6 +9,8 @@
 [背景]
 school_gate.png
 
+[立绘]
+wuhongtao/normal.png
 
 [吴鸿涛]
 
@@ -17,14 +19,6 @@ school_gate.png
 新的学校。
 
 不知道未来会变成什么样。
-
-[背景]
-school_gate.png
-
-[立绘]
-wuhongtao/normal.png
-
-
 
 [旁白]
 
@@ -35,19 +29,12 @@ wuhongtao/normal.png
 [背景]
 classroom_day.png
 
-
+[立绘]
+wuhongtao/sad.png
 
 [吴鸿涛]
 
 希望这四年，不会留下遗憾。
-
-[背景]
-classroom_day.png
-
-[立绘]
-wuhongtao/sad.png
-
-
 
 [旁白]
 
@@ -56,79 +43,45 @@ wuhongtao/sad.png
 [背景]
 corridor.png
 
-
-
 [???]
 
 你也是新生？
 
-[背景]
-corridor.png
-
-
+[立绘]
+wuhongtao/normal.png
 
 [吴鸿涛]
 
 嗯，你也是？
 
-[背景]
-corridor.png
-
-[立绘]
-wuhongtao/normal.png
-
-
-
 [???]
 
 我是李君浩。
 
-[背景]
-corridor.png
-
-
+[立绘]
+li_junhao/normal.png
 
 [李君浩]
 
 看你的样子，好像找不到教学楼。
 
-[背景]
-corridor.png
-
 [立绘]
-li_junhao/normal.png
-
-
+wuhongtao/happy.png
 
 [吴鸿涛]
 
 被你看出来了。
 
-[背景]
-corridor.png
-
 [立绘]
-wuhongtao/happy.png
-
-
+li_junhao/normal.png
 
 [李君浩]
 
 走吧，我带你过去。
 
-[背景]
-corridor.png
-
-[立绘]
-li_junhao/normal.png
-
-
-
 [系统]
 
 李君浩好感度+5
-
-
 
 [旁白]
 
@@ -141,49 +94,30 @@ li_junhao/normal.png
 [背景]
 playground.png
 
-
+[立绘]
+zhang_hanyu/normal.png
 
 [张瀚宇]
 
 你也是计算机学院的？
 
-[背景]
-playground.png
-
 [立绘]
-zhang_hanyu/normal.png
-
-
+wuhongtao/normal.png
 
 [吴鸿涛]
 
 对。
 
-[背景]
-playground.png
-
 [立绘]
-wuhongtao/normal.png
-
-
+zhang_hanyu/normal.png
 
 [张瀚宇]
 
 以后可能会经常见面。
 
-[背景]
-playground.png
-
-[立绘]
-zhang_hanyu/normal.png
-
-
-
 [系统]
 
 张瀚宇路线开启
-
-
 
 [旁白]
 
@@ -191,3 +125,6 @@ zhang_hanyu/normal.png
 
 [背景]
 ending_sunset.png
+
+[下一章]
+script/chapter02.txt

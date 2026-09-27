@@ -25,8 +25,13 @@ void SaveMenu::SetPage(
 
     choice=0;
 
-    // 切页时顺便取消删除确认
     confirmingDelete=false;
+
+    renaming=false;
+
+    renameBuffer.clear();
+
+    renameTargetFile.clear();
 
 }
 
@@ -50,18 +55,14 @@ void SaveMenu::Refresh(
 
 
 
-    // [修改] 每行拼成：
-    //   displayName  [第N章]  时间
-    // 之前只显示 displayName，
-    // 看不出章节和保存时间。
     for(auto& data : saveDataList)
     {
 
         std::string line = data.displayName;
 
-        line += "  [第";
-        line += std::to_string(data.chapter);
-        line += "章]  ";
+        line += "  [";
+        line += data.chapterName;
+        line += "]  ";
         line += data.time;
 
         saves.push_back(line);
@@ -168,10 +169,31 @@ void SaveMenu::Render(
 
 
 
-    // [修改] 底部提示区域：
-    // 处于删除确认时，显示确认提示；
-    // 否则显示常规操作提示。
-    if(confirmingDelete && !saveDataList.empty())
+    // ==========================================================
+    // 底部提示区域
+    // ==========================================================
+
+    if(renaming)
+    {
+
+        // 输入模式：显示输入框
+        std::string line =
+            "重命名: " + renameBuffer + "_";
+
+        renderer.DrawText(
+            line,
+            400,
+            780
+        );
+
+        renderer.DrawText(
+            "Enter 确认 / ESC 取消",
+            400,
+            830
+        );
+
+    }
+    else if(confirmingDelete && !saveDataList.empty())
     {
 
         SaveData data = GetCurrentSave();
@@ -222,7 +244,6 @@ void SaveMenu::Render(
     }
 
 
-    // 返回按钮
     renderer.DrawText(
         "返回 [ESC]",
         UILayout::BACK_X,
@@ -240,6 +261,12 @@ void SaveMenu::HandleInput(
 )
 {
 
+    // 重命名模式或删除确认时不响应上下
+    if(renaming)
+    {
+        return;
+    }
+
 
     if(
         saves.empty()
@@ -250,8 +277,6 @@ void SaveMenu::HandleInput(
 
 
 
-
-    // 上
 
     if(
         key==1
@@ -275,8 +300,6 @@ void SaveMenu::HandleInput(
 
 
 
-
-    // 下
 
     else if(
         key==2
@@ -322,6 +345,12 @@ void SaveMenu::Reset()
 
     confirmingDelete=false;
 
+    renaming=false;
+
+    renameBuffer.clear();
+
+    renameTargetFile.clear();
+
 }
 
 
@@ -355,14 +384,16 @@ SaveData SaveMenu::GetCurrentSave()
 void SaveMenu::Create(
     SaveSystem& saveSystem,
     const std::string& name,
-    int chapter,
+    const std::string& scriptFile,
+    const std::string& chapterName,
     int index
 )
 {
 
     saveSystem.CreateSave(
         name,
-        chapter,
+        scriptFile,
+        chapterName,
         index
     );
 
@@ -382,10 +413,6 @@ void SaveMenu::Delete(
     SaveSystem& saveSystem
 )
 {
-
-    // [说明] 直接删除的逻辑保留在 ConfirmDelete()，
-    // Delete() 保留只是为了避免破坏其他调用点。
-    // 现在 Game 走的是 BeginDelete / ConfirmDelete 流程。
 
     SaveData data=
         GetCurrentSave();
@@ -453,45 +480,6 @@ void SaveMenu::Copy(
 
 
 
-void SaveMenu::Rename(
-    SaveSystem& saveSystem,
-    const std::string& name
-)
-{
-
-
-    SaveData data=
-        GetCurrentSave();
-
-
-
-    if(
-        data.filename.empty()
-    )
-    {
-        return;
-    }
-
-
-
-
-    saveSystem.RenameSave(
-        data.filename,
-        name
-    );
-
-
-
-    Refresh(
-        saveSystem
-    );
-
-}
-
-
-
-
-
 SavePage SaveMenu::GetPage() const
 {
 
@@ -505,7 +493,8 @@ SavePage SaveMenu::GetPage() const
 
 bool SaveMenu::Confirm(
     SaveSystem& saveSystem,
-    int& outChapter,
+    std::string& outScriptFile,
+    std::string& outChapterName,
     int& outIndex
 )
 {
@@ -540,7 +529,8 @@ bool SaveMenu::Confirm(
 
         return saveSystem.LoadSave(
             data.filename,
-            outChapter,
+            outScriptFile,
+            outChapterName,
             outIndex
         );
 
@@ -561,6 +551,12 @@ void SaveMenu::HandleMouseMove(
     int y
 )
 {
+
+    if(renaming)
+    {
+        return;
+    }
+
 
     for(int i=0;i<(int)saves.size();i++)
     {
@@ -593,7 +589,12 @@ MenuMouseResult SaveMenu::HandleMouseClick(
 )
 {
 
-    // 返回按钮
+    if(renaming)
+    {
+        return MenuMouseResult::NONE;
+    }
+
+
     if(
         x >= UILayout::BACK_X &&
         x <  UILayout::BACK_X + UILayout::BACK_W &&
@@ -601,8 +602,6 @@ MenuMouseResult SaveMenu::HandleMouseClick(
         y <  UILayout::BACK_Y + UILayout::BACK_H
     )
     {
-        // [新增] 处于删除确认时，
-        // 点"返回"等同取消确认，不离开页面。
         if(confirmingDelete)
         {
             confirmingDelete = false;
@@ -613,17 +612,12 @@ MenuMouseResult SaveMenu::HandleMouseClick(
     }
 
 
-    // [新增] 处于删除确认时，
-    // 点击任意存档项等同"确认删除"
     if(confirmingDelete)
     {
-        // 具体确认动作由 Game 处理，
-        // 这里只返回 ACTIVATE 信号。
         return MenuMouseResult::ACTIVATE;
     }
 
 
-    // 存档项：点击 = 激活（走 Confirm 读档）
     for(int i=0;i<(int)saves.size();i++)
     {
 
@@ -652,14 +646,9 @@ MenuMouseResult SaveMenu::HandleMouseClick(
 
 
 
-// ==========================================================
-// [新增] 删除确认
-// ==========================================================
-
 void SaveMenu::BeginDelete()
 {
 
-    // 没有可删除的目标时不进入确认状态
     if(GetCurrentSave().filename.empty())
     {
         return;
@@ -720,5 +709,220 @@ bool SaveMenu::IsConfirmingDelete() const
 {
 
     return confirmingDelete;
+
+}
+
+
+
+
+
+// ==========================================================
+// [新增] 重命名输入模式
+// ==========================================================
+
+void SaveMenu::BeginRename()
+{
+
+    SaveData data = GetCurrentSave();
+
+
+    if(data.filename.empty())
+    {
+        return;
+    }
+
+
+    renaming = true;
+
+    renameTargetFile = data.filename;
+
+    // 用当前名字做初始内容，方便用户改
+    renameBuffer = data.displayName;
+
+}
+
+
+
+
+
+void SaveMenu::HandleRenameKey(
+    SDL_Keycode sym,
+    SaveSystem& saveSystem
+)
+{
+
+    if(!renaming)
+    {
+        return;
+    }
+
+
+    // Enter 确认
+    if(sym == SDLK_RETURN)
+    {
+
+        ConfirmRename(saveSystem);
+
+        return;
+
+    }
+
+
+    // ESC 取消
+    if(sym == SDLK_ESCAPE)
+    {
+
+        CancelRename();
+
+        return;
+
+    }
+
+
+    // [修改] 退格：按 UTF-8 字符边界删除。
+    //
+    // renameBuffer 里存的是 UTF-8 字符串，
+    // 一个中文字符占 3 字节。
+    // 之前的 pop_back() 只删 1 字节，
+    // 剩下半个字符渲染成方框。
+    //
+    // 正确做法：
+    //   从末尾往前扫，
+    //   跳过所有 continuation 字节（10xxxxxx），
+    //   删到第一个非 continuation 字节为止。
+    if(sym == SDLK_BACKSPACE)
+    {
+
+        if(!renameBuffer.empty())
+        {
+
+            int i =
+                (int)renameBuffer.size() - 1;
+
+
+            while(
+                i > 0
+                &&
+                (
+                    (unsigned char)renameBuffer[i]
+                    & 0xC0
+                )
+                ==
+                0x80
+            )
+            {
+                i--;
+            }
+
+
+            renameBuffer.erase(
+                i
+            );
+
+        }
+
+        return;
+
+    }
+
+
+    // 空格
+    if(sym == SDLK_SPACE)
+    {
+
+        renameBuffer += ' ';
+
+        return;
+
+    }
+
+
+    // 字母 a-z
+    if(sym >= SDLK_a && sym <= SDLK_z)
+    {
+
+        renameBuffer +=
+            (char)('a' + (sym - SDLK_a));
+
+        return;
+
+    }
+
+
+    // 数字 0-9
+    if(sym >= SDLK_0 && sym <= SDLK_9)
+    {
+
+        renameBuffer +=
+            (char)('0' + (sym - SDLK_0));
+
+        return;
+
+    }
+
+}
+
+
+
+
+
+void SaveMenu::CancelRename()
+{
+
+    renaming = false;
+
+    renameBuffer.clear();
+
+    renameTargetFile.clear();
+
+}
+
+
+
+
+
+void SaveMenu::ConfirmRename(
+    SaveSystem& saveSystem
+)
+{
+
+    if(
+        renaming
+        &&
+        !renameTargetFile.empty()
+        &&
+        !renameBuffer.empty()
+    )
+    {
+
+        saveSystem.RenameSave(
+            renameTargetFile,
+            renameBuffer
+        );
+
+
+        Refresh(
+            saveSystem
+        );
+
+    }
+
+
+    renaming = false;
+
+    renameBuffer.clear();
+
+    renameTargetFile.clear();
+
+}
+
+
+
+
+
+bool SaveMenu::IsRenaming() const
+{
+
+    return renaming;
 
 }

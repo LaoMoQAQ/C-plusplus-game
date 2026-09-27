@@ -35,6 +35,9 @@ struct StoryEvent
     std::vector<std::string> choices;
 
 
+    std::vector<std::string> choiceTargets;
+
+
     float waitTime=0.0f;
 
 };
@@ -102,6 +105,28 @@ public:
 
 
 
+    void SetNextFile(
+        const std::string& file
+    );
+
+    const std::string& GetNextFile() const;
+
+
+
+    // ==========================================================
+    // [新增] 当前脚本文件路径
+    // ==========================================================
+    //
+    // 存档时需要记录"玩家在哪个脚本里"，
+    // 读档时需要按这个路径重新加载，
+    // 否则 index 对不上另一个章节的事件列表。
+
+    const std::string& GetCurrentFile() const;
+
+    // ==========================================================
+
+
+
 public:
 
 
@@ -123,6 +148,14 @@ private:
 
 
     RouteManager routeManager;
+
+
+
+    std::string nextFile;
+
+
+    // [新增] 当前脚本路径
+    std::string currentFile;
 
 
 

@@ -9,6 +9,8 @@
 
 #include "MenuCommon.h"
 
+#include <SDL.h>
+
 #include <vector>
 #include <string>
 
@@ -55,18 +57,22 @@ public:
 
 
 
+    // [修改] 带出 chapterName
     bool Confirm(
         SaveSystem& saveSystem,
-        int& outChapter,
+        std::string& outScriptFile,
+        std::string& outChapterName,
         int& outIndex
     );
 
 
 
+    // [修改] chapter -> chapterName
     void Create(
         SaveSystem& saveSystem,
         const std::string& name,
-        int chapter,
+        const std::string& scriptFile,
+        const std::string& chapterName,
         int index
     );
 
@@ -84,13 +90,6 @@ public:
 
 
 
-    void Rename(
-        SaveSystem& saveSystem,
-        const std::string& name
-    );
-
-
-
     SaveData GetCurrentSave();
 
 
@@ -98,7 +97,6 @@ public:
 
 
 
-    // 鼠标
     void HandleMouseMove(
         int x,
         int y
@@ -111,14 +109,10 @@ public:
 
 
 
-    // [新增] 删除确认
-    //
-    // 流程：
-    //   按 Delete -> BeginDelete() 进入确认状态
-    //   再按 Enter 或 Delete -> ConfirmDelete() 真删
-    //   按 ESC -> CancelDelete() 取消
-    //
-    // 目的：避免误按 Delete 直接把存档删掉。
+    // ==========================================================
+    // 删除确认
+    // ==========================================================
+
     void BeginDelete();
 
     void CancelDelete();
@@ -128,6 +122,38 @@ public:
     );
 
     bool IsConfirmingDelete() const;
+
+
+
+    // ==========================================================
+    // [新增] 重命名输入模式
+    // ==========================================================
+    //
+    // 按 R 进入输入模式：
+    //   - 字母/数字/空格追加
+    //   - 退格删除
+    //   - Enter 确认
+    //   - ESC 取消
+    //
+    // 不依赖 SDL_TEXTINPUT，所以不需要恢复 IME。
+    // 输入内容只支持英文和数字。
+
+    void BeginRename();
+
+    void HandleRenameKey(
+        SDL_Keycode sym,
+        SaveSystem& saveSystem
+    );
+
+    void CancelRename();
+
+    void ConfirmRename(
+        SaveSystem& saveSystem
+    );
+
+    bool IsRenaming() const;
+
+    // ==========================================================
 
 
 
@@ -150,17 +176,25 @@ private:
 
 
 
-    // [新增] 是否处于"确认删除"状态
     bool confirmingDelete = false;
 
 
 
-    // 存档列表坐标。
-    // Render 和鼠标命中都用这几个常量。
+    // 重命名状态
+    bool renaming = false;
+
+    // 正在编辑的名字
+    std::string renameBuffer;
+
+    // 正在被重命名的存档文件名
+    std::string renameTargetFile;
+
+
+
     static constexpr int LIST_X = 500;
     static constexpr int LIST_Y = 200;
     static constexpr int LIST_GAP = 50;
-    static constexpr int LIST_W = 900;    // [修改] 加宽，容纳章节+时间
+    static constexpr int LIST_W = 900;
     static constexpr int LIST_H = 45;
 
 };
