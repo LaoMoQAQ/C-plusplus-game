@@ -4,6 +4,7 @@
 
 #include <string>
 #include <map>
+#include <vector>
 
 
 
@@ -39,7 +40,6 @@ public:
 
 
 
-    // 增加好感度
     void AddAffection(
         const std::string& character,
         int value
@@ -47,32 +47,44 @@ public:
 
 
 
-    // 获取好感度
     int GetAffection(
         const std::string& character
     );
 
 
 
-    // 开启路线
     void OpenRoute(
         RouteType route
     );
 
 
 
-    // 当前路线
     RouteType GetCurrentRoute() const;
 
 
 
-    // 根据条件判断路线
     RouteType CheckRoute();
 
 
 
-    // 名称转换
     std::string RouteName();
+
+
+
+    std::map<std::string, int> GetAllAffection() const;
+
+
+    // ==========================================================
+    // [新增] 整体替换好感度
+    // ==========================================================
+    //
+    // 读档时使用：先用存档里的数据覆盖当前所有好感度。
+
+    void SetAllAffection(
+        const std::map<std::string, int>& data
+    );
+
+    // ==========================================================
 
 
 

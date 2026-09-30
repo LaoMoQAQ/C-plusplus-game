@@ -4,6 +4,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 
 struct SaveData
@@ -12,17 +13,25 @@ struct SaveData
 
     std::string displayName;
 
-    // 章节脚本路径，如 "script/chapter01.txt"
     std::string scriptFile;
 
-    // [修改] 从 int 改成 string。
-    // 直接存显示名："第1章" / "结局" / "李君浩线" 等，
-    // 不再靠数字硬编码。
     std::string chapterName;
 
     int index;
 
     std::string time;
+
+
+    // ==========================================================
+    // [新增] 好感度快照
+    // ==========================================================
+    //
+    // 角色名 -> 好感度数值。
+    // 读档时用它恢复 RouteManager。
+
+    std::map<std::string, int> affection;
+
+    // ==========================================================
 };
 
 
@@ -46,22 +55,24 @@ public:
 
 
 
-    // [修改] chapter -> chapterName
+    // [修改] 加 affection
     bool CreateSave(
         const std::string& name,
         const std::string& scriptFile,
         const std::string& chapterName,
-        int index
+        int index,
+        const std::map<std::string, int>& affection
     );
 
 
 
-    // [修改] 通过引用带出 chapterName
+    // [修改] 带出 affection
     bool LoadSave(
         const std::string& filename,
         std::string& outScriptFile,
         std::string& outChapterName,
-        int& index
+        int& index,
+        std::map<std::string, int>& outAffection
     );
 
 
@@ -72,8 +83,6 @@ public:
 
 
 
-    // [修改] 现在改的是"显示名"（文件第一行），
-    // 不再改文件名。
     bool RenameSave(
         const std::string& filename,
         const std::string& newDisplayName

@@ -26,9 +26,6 @@ ConfigMenu::ConfigMenu()
 
     items[4]="自动播放";
 
-
-    items[5]="保存设置";
-
 }
 
 
@@ -45,6 +42,10 @@ void ConfigMenu::SetConfig(
 {
 
     this->config = config;
+
+    dirty = false;
+
+    confirmSave = false;
 
 }
 
@@ -119,7 +120,8 @@ void ConfigMenu::Render(
             value =
             std::to_string(
                 config->GetTextSpeed()
-            );
+            )
+            + " 字/秒";
 
         }
 
@@ -145,13 +147,6 @@ void ConfigMenu::Render(
             "开启"
             :
             "关闭";
-
-        }
-
-        else
-        {
-
-            value="";
 
         }
 
@@ -203,14 +198,40 @@ void ConfigMenu::Render(
 
 
 
-    renderer.DrawText(
-        "← → 调整   Enter 保存",
-        420,
-        750
-    );
+    // ==========================================================
+    // 底部提示
+    // ==========================================================
+    //
+    // [修改] 去掉 ESC 部分，避免和右下角"返回 [ESC]"重复。
+
+    if(confirmSave)
+    {
+
+        renderer.DrawText(
+            "设置已修改，是否保存？",
+            420,
+            730
+        );
+
+        renderer.DrawText(
+            "Y 保存并返回  /  N 不保存返回  /  ESC 取消",
+            420,
+            780
+        );
+
+    }
+    else
+    {
+
+        renderer.DrawText(
+            "← → 调整   S 保存",
+            540,
+            750
+        );
+
+    }
 
 
-    // 返回按钮
     renderer.DrawText(
         "返回 [ESC]",
         UILayout::BACK_X,
@@ -241,15 +262,10 @@ void ConfigMenu::HandleInput(
     }
 
 
-
-    /*
-
-    1 上
-    2 下
-    3 左
-    4 右
-
-    */
+    if(confirmSave)
+    {
+        return;
+    }
 
 
 
@@ -300,58 +316,84 @@ void ConfigMenu::HandleInput(
 
 
         case 0:
+        {
 
-            config->SetBGMVolume(
+            int old = config->GetBGMVolume();
+            int v = old - 5;
+            if(v < 0) v = 0;
 
-                config->GetBGMVolume()-5
+            if(v != old)
+            {
+                config->SetBGMVolume(v);
+                dirty = true;
+            }
 
-            );
-
-            break;
+        }
+        break;
 
 
 
         case 1:
+        {
 
-            config->SetSEVolume(
+            int old = config->GetSEVolume();
+            int v = old - 5;
+            if(v < 0) v = 0;
 
-                config->GetSEVolume()-5
+            if(v != old)
+            {
+                config->SetSEVolume(v);
+                dirty = true;
+            }
 
-            );
-
-            break;
+        }
+        break;
 
 
 
         case 2:
+        {
 
-            config->SetTextSpeed(
+            int old = config->GetTextSpeed();
+            int v = old - 5;
+            if(v < 5) v = 5;
 
-                config->GetTextSpeed()-5
+            if(v != old)
+            {
+                config->SetTextSpeed(v);
+                dirty = true;
+            }
 
-            );
-
-            break;
+        }
+        break;
 
 
 
         case 3:
+        {
 
-            config->SetFullscreen(
-                false
-            );
+            if(config->IsFullscreen())
+            {
+                config->SetFullscreen(false);
+                dirty = true;
+            }
 
-            break;
+        }
+        break;
 
 
 
         case 4:
+        {
 
-            config->SetAutoPlay(
-                false
-            );
+            if(config->IsAutoPlay())
+            {
+                config->SetAutoPlay(false);
+                dirty = true;
+            }
 
-            break;
+        }
+        break;
 
         }
 
@@ -368,58 +410,84 @@ void ConfigMenu::HandleInput(
 
 
         case 0:
+        {
 
-            config->SetBGMVolume(
+            int old = config->GetBGMVolume();
+            int v = old + 5;
+            if(v > 100) v = 100;
 
-                config->GetBGMVolume()+5
+            if(v != old)
+            {
+                config->SetBGMVolume(v);
+                dirty = true;
+            }
 
-            );
-
-            break;
+        }
+        break;
 
 
 
         case 1:
+        {
 
-            config->SetSEVolume(
+            int old = config->GetSEVolume();
+            int v = old + 5;
+            if(v > 100) v = 100;
 
-                config->GetSEVolume()+5
+            if(v != old)
+            {
+                config->SetSEVolume(v);
+                dirty = true;
+            }
 
-            );
-
-            break;
+        }
+        break;
 
 
 
         case 2:
+        {
 
-            config->SetTextSpeed(
+            int old = config->GetTextSpeed();
+            int v = old + 5;
+            if(v > 100) v = 100;
 
-                config->GetTextSpeed()+5
+            if(v != old)
+            {
+                config->SetTextSpeed(v);
+                dirty = true;
+            }
 
-            );
-
-            break;
+        }
+        break;
 
 
 
         case 3:
+        {
 
-            config->SetFullscreen(
-                true
-            );
+            if(!config->IsFullscreen())
+            {
+                config->SetFullscreen(true);
+                dirty = true;
+            }
 
-            break;
+        }
+        break;
 
 
 
         case 4:
+        {
 
-            config->SetAutoPlay(
-                true
-            );
+            if(!config->IsAutoPlay())
+            {
+                config->SetAutoPlay(true);
+                dirty = true;
+            }
 
-            break;
+        }
+        break;
 
         }
 
@@ -444,6 +512,8 @@ void ConfigMenu::Save()
         config->Save(
             "config.ini"
         );
+
+        dirty = false;
 
     }
 
@@ -471,6 +541,12 @@ void ConfigMenu::HandleMouseMove(
     int y
 )
 {
+
+    if(confirmSave)
+    {
+        return;
+    }
+
 
     for(int i=0;i<ITEM_COUNT;i++)
     {
@@ -503,7 +579,6 @@ MenuMouseResult ConfigMenu::HandleMouseClick(
 )
 {
 
-    // 返回按钮
     if(
         x >= UILayout::BACK_X &&
         x <  UILayout::BACK_X + UILayout::BACK_W &&
@@ -515,7 +590,12 @@ MenuMouseResult ConfigMenu::HandleMouseClick(
     }
 
 
-    // 菜单项
+    if(confirmSave)
+    {
+        return MenuMouseResult::NONE;
+    }
+
+
     for(int i=0;i<ITEM_COUNT;i++)
     {
 
@@ -530,13 +610,6 @@ MenuMouseResult ConfigMenu::HandleMouseClick(
         )
         {
             choice = i;
-
-            // 点"保存设置"直接保存
-            if(i == 5)
-            {
-                Save();
-            }
-
             return MenuMouseResult::ACTIVATE;
         }
 
@@ -544,5 +617,104 @@ MenuMouseResult ConfigMenu::HandleMouseClick(
 
 
     return MenuMouseResult::NONE;
+
+}
+
+
+
+
+
+bool ConfigMenu::TryExit()
+{
+
+    if(!dirty)
+    {
+        return true;
+    }
+
+
+    confirmSave = true;
+
+    return false;
+
+}
+
+
+
+
+
+void ConfigMenu::CancelConfirm()
+{
+
+    confirmSave = false;
+
+}
+
+
+
+
+
+bool ConfigMenu::IsConfirming() const
+{
+
+    return confirmSave;
+
+}
+
+
+
+
+
+// ==========================================================
+// [修改] 返回值改为 int
+// ==========================================================
+
+int ConfigMenu::HandleConfirmKey(
+    int sym
+)
+{
+
+    if(!confirmSave)
+    {
+        return -1;
+    }
+
+
+    // Y 保存并返回
+    if(sym == SDLK_y)
+    {
+
+        Save();
+
+        confirmSave = false;
+
+        return 1;
+
+    }
+
+
+    // N 不保存返回
+    if(sym == SDLK_n)
+    {
+
+        confirmSave = false;
+
+        return 0;
+
+    }
+
+
+    // ESC 取消
+    if(sym == SDLK_ESCAPE)
+    {
+
+        confirmSave = false;
+
+        return -1;
+
+    }
+
+
+    return -1;
 
 }

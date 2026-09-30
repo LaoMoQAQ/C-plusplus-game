@@ -92,6 +92,95 @@ std::string SaveSystem::GetCurrentTime()
 
 
 
+// ==========================================================
+// 好感度序列化 / 反序列化
+// ==========================================================
+//
+// 格式：李君浩:10,张瀚宇:15
+// 空 map -> 空字符串
+// 遇到解析失败的单条时跳过。
+
+static std::string SerializeAffection(
+    const std::map<std::string, int>& affection
+)
+{
+
+    std::string result;
+
+    for(auto& pair : affection)
+    {
+        if(!result.empty())
+        {
+            result += ',';
+        }
+
+        result += pair.first;
+        result += ':';
+        result += std::to_string(pair.second);
+    }
+
+    return result;
+
+}
+
+
+
+
+
+static void DeserializeAffection(
+    const std::string& line,
+    std::map<std::string, int>& out
+)
+{
+
+    out.clear();
+
+    if(line.empty())
+    {
+        return;
+    }
+
+
+    std::stringstream ss(line);
+    std::string item;
+
+    while(std::getline(ss, item, ','))
+    {
+
+        size_t colon = item.find(':');
+
+        if(colon == std::string::npos)
+        {
+            continue;
+        }
+
+        std::string name = item.substr(0, colon);
+        std::string val  = item.substr(colon + 1);
+
+        if(name.empty() || val.empty())
+        {
+            continue;
+        }
+
+        try
+        {
+            out[name] = std::stoi(val);
+        }
+        catch(...)
+        {
+            // 数字无效，跳过
+        }
+
+    }
+
+}
+
+// ==========================================================
+
+
+
+
+
 
 
 
@@ -204,12 +293,13 @@ SaveSystem::GetSaveList()
         if(in)
         {
 
-            // 存档格式（5 行）：
+            // 存档格式（6 行）：
             //   1. displayName
             //   2. scriptFile
             //   3. chapterName
             //   4. index
             //   5. time
+            //   6. affection（李君浩:10,张瀚宇:15）
             std::getline(
                 in,
                 entry.data.displayName
@@ -239,6 +329,19 @@ SaveSystem::GetSaveList()
                 entry.data.time
             );
 
+
+            std::string affLine;
+
+            std::getline(
+                in,
+                affLine
+            );
+
+            DeserializeAffection(
+                affLine,
+                entry.data.affection
+            );
+
         }
 
 
@@ -254,6 +357,8 @@ SaveSystem::GetSaveList()
             entry.data.index=0;
 
             entry.data.time="";
+
+            entry.data.affection.clear();
 
         }
 
@@ -305,7 +410,8 @@ bool SaveSystem::CreateSave(
     const std::string& name,
     const std::string& scriptFile,
     const std::string& chapterName,
-    int index
+    int index,
+    const std::map<std::string, int>& affection
 )
 {
 
@@ -340,6 +446,7 @@ bool SaveSystem::CreateSave(
     out << chapterName << "\n";
     out << index       << "\n";
     out << GetCurrentTime() << "\n";
+    out << SerializeAffection(affection) << "\n";
 
     out.close();
 
@@ -360,7 +467,8 @@ bool SaveSystem::LoadSave(
     const std::string& filename,
     std::string& outScriptFile,
     std::string& outChapterName,
-    int& index
+    int& index,
+    std::map<std::string, int>& outAffection
 )
 {
 
@@ -385,6 +493,8 @@ bool SaveSystem::LoadSave(
 
     std::string time;
 
+    std::string affLine;
+
 
 
     std::getline(in, displayName);
@@ -394,10 +504,19 @@ bool SaveSystem::LoadSave(
 
     in >> index;
 
+    in.ignore();
+
+
+    std::getline(in, time);
+
+    std::getline(in, affLine);
+
 
 
     outScriptFile = scriptFile;
     outChapterName = chapterName;
+
+    DeserializeAffection(affLine, outAffection);
 
 
     return true;
@@ -442,8 +561,6 @@ bool SaveSystem::DeleteSave(
 
 
 
-// [修改] 现在改的是"显示名"（文件第一行），
-// 不再改文件名。
 bool SaveSystem::RenameSave(
     const std::string& filename,
     const std::string& newDisplayName
@@ -462,7 +579,6 @@ bool SaveSystem::RenameSave(
 
 
 
-    // 读出原有内容
     std::ifstream in(path);
 
     if(!in)
@@ -476,6 +592,7 @@ bool SaveSystem::RenameSave(
     std::string chapterName;
     int index = 0;
     std::string time;
+    std::string affLine;
 
 
     std::getline(in, displayName);
@@ -484,12 +601,12 @@ bool SaveSystem::RenameSave(
     in >> index;
     in.ignore();
     std::getline(in, time);
+    std::getline(in, affLine);
 
     in.close();
 
 
 
-    // 覆盖写回，只改第一行
     std::ofstream out(path);
 
     if(!out)
@@ -503,6 +620,7 @@ bool SaveSystem::RenameSave(
     out << chapterName    << "\n";
     out << index          << "\n";
     out << time           << "\n";
+    out << affLine        << "\n";
 
     out.close();
 

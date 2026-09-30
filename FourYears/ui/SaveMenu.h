@@ -13,6 +13,7 @@
 
 #include <vector>
 #include <string>
+#include <map>
 
 
 class SaveMenu
@@ -57,23 +58,25 @@ public:
 
 
 
-    // [修改] 带出 chapterName
+    // [修改] 带出 affection
     bool Confirm(
         SaveSystem& saveSystem,
         std::string& outScriptFile,
         std::string& outChapterName,
-        int& outIndex
+        int& outIndex,
+        std::map<std::string, int>& outAffection
     );
 
 
 
-    // [修改] chapter -> chapterName
+    // [修改] 加 affection 参数
     void Create(
         SaveSystem& saveSystem,
         const std::string& name,
         const std::string& scriptFile,
         const std::string& chapterName,
-        int index
+        int index,
+        const std::map<std::string, int>& affection
     );
 
 
@@ -109,10 +112,6 @@ public:
 
 
 
-    // ==========================================================
-    // 删除确认
-    // ==========================================================
-
     void BeginDelete();
 
     void CancelDelete();
@@ -124,19 +123,6 @@ public:
     bool IsConfirmingDelete() const;
 
 
-
-    // ==========================================================
-    // [新增] 重命名输入模式
-    // ==========================================================
-    //
-    // 按 R 进入输入模式：
-    //   - 字母/数字/空格追加
-    //   - 退格删除
-    //   - Enter 确认
-    //   - ESC 取消
-    //
-    // 不依赖 SDL_TEXTINPUT，所以不需要恢复 IME。
-    // 输入内容只支持英文和数字。
 
     void BeginRename();
 
@@ -152,8 +138,6 @@ public:
     );
 
     bool IsRenaming() const;
-
-    // ==========================================================
 
 
 
@@ -180,13 +164,8 @@ private:
 
 
 
-    // 重命名状态
     bool renaming = false;
-
-    // 正在编辑的名字
     std::string renameBuffer;
-
-    // 正在被重命名的存档文件名
     std::string renameTargetFile;
 
 

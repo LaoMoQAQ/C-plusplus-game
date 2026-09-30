@@ -77,18 +77,7 @@ private:
     void OnBack();
 
 
-
-    // ==========================================================
-    // [新增] 确认选择
-    // ==========================================================
-    //
-    // 从 ui.GetDialogueUI() 取出选中的 index，
-    // 查 currentChoiceTargets 得到目标脚本，
-    // 加载并切到新章节。
-
     void ConfirmChoice();
-
-    // ==========================================================
 
 
 
@@ -134,6 +123,19 @@ private:
     Config config;
 
 
+    // ==========================================================
+    // [新增] 配置备份
+    // ==========================================================
+    //
+    // 进入设置页面时保存一份快照。
+    // 如果玩家选择"不保存返回"，就用它还原 Config，
+    // 避免"未保存的改动下次进设置还在"。
+
+    Config configBackup;
+
+    // ==========================================================
+
+
 
     SDL_Texture* currentBackground=nullptr;
 
@@ -154,17 +156,23 @@ private:
 
 
 
-    // ==========================================================
-    // [新增] 当前选择事件的跳转目标列表
-    // ==========================================================
-    //
-    // 与 DialogueUI 里的选项列表一一对应。
-    // 在 OnAdvanceDialogue 进入选择事件时同步。
-    // 确认选择后清空。
-
     std::vector<std::string> currentChoiceTargets;
 
-    // ==========================================================
+
+    std::vector<std::vector<AffectionChange>> currentChoiceAffection;
+
+
+
+    int lastBgmVolume = -1;
+    int lastSeVolume  = -1;
+    int lastTextSpeed = -1;
+    bool lastFullscreen = false;
+
+
+
+    float autoPlayTimer = 0.0f;
+
+    static constexpr float AUTO_PLAY_DELAY = 1.5f;
 
 };
 

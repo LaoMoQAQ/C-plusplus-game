@@ -105,9 +105,10 @@ void UIManager::Render(
 
 
 
-    case UIState::HISTORY:
+    // [修改] HISTORY -> AFFECTION
+    case UIState::AFFECTION:
 
-        historyMenu.Render(
+        affectionMenu.Render(
             renderer
         );
 
@@ -179,15 +180,7 @@ void UIManager::HandleInput(
 
 
 
-    case UIState::HISTORY:
-
-        historyMenu.HandleInput(
-            key
-        );
-
-        break;
-
-
+    // [修改] AFFECTION 页面没有滚动输入
 
     default:
 
@@ -255,8 +248,6 @@ void UIManager::HandleMouseMove(
 
     default:
 
-        // HISTORY / DIALOGUE 没有 hover 处理
-
         break;
 
     }
@@ -308,9 +299,10 @@ MenuMouseResult UIManager::HandleMouseClick(
         );
 
 
-    case UIState::HISTORY:
+    // [修改] HISTORY -> AFFECTION
+    case UIState::AFFECTION:
 
-        return historyMenu.HandleMouseClick(
+        return affectionMenu.HandleMouseClick(
             x,
             y
         );
@@ -383,9 +375,10 @@ ConfigMenu& UIManager::GetConfigMenu()
 
 
 
-HistoryMenu& UIManager::GetHistoryMenu()
+// [修改] GetHistoryMenu -> GetAffectionMenu
+AffectionMenu& UIManager::GetAffectionMenu()
 {
 
-    return historyMenu;
+    return affectionMenu;
 
 }

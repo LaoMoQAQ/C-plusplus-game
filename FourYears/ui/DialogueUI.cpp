@@ -10,12 +10,8 @@
 // 对话框与选项的布局、配色
 // ==========================================================
 //
-// 全部按 1600x900 屏幕估算。
-//
-// 对话框矩形 BOX_X/Y/W/H
-// 选项都放在对话框内部，
-// 位置从 BOX 派生，不单独写死，
-// 这样调整对话框时选项会跟着走。
+// 选项鼠标命中判定和绘制共用同一套常量，
+// 改位置时两边一起生效。
 
 namespace
 {
@@ -41,11 +37,14 @@ namespace
 
 
     // 选项
-    // 位置基于对话框内部，
-    // 不再浮在屏幕中央。
     constexpr int CHOICE_X = 120;
     constexpr int CHOICE_Y = 570;
     constexpr int CHOICE_GAP = 70;
+
+    // 鼠标命中判定用的矩形
+    // 宽 600 足够覆盖长选项文本，高 = 行高
+    constexpr int CHOICE_HIT_W = 600;
+    constexpr int CHOICE_HIT_H = 55;
 
 }
 
@@ -252,10 +251,6 @@ void DialogueUI::Render(
 )
 {
 
-    // ------------------------------------------------
-    // 对话框背景
-    // ------------------------------------------------
-
     renderer.DrawFilledRect(
         BOX_X,
         BOX_Y,
@@ -268,18 +263,6 @@ void DialogueUI::Render(
     );
 
 
-
-    // ------------------------------------------------
-    // 人名
-    // ------------------------------------------------
-    //
-    // [修改] 显示选项时，不画人名。
-    //
-    // 选择事件的 speaker 是解析器写死的 "选择"，
-    // 那不是一个真正的角色名。
-    // 判断 HasChoice() 就能区分：
-    //   - 有选项   -> 是选择事件，跳过人名
-    //   - 没有选项 -> 正常对话，照常画人名
 
     if(!HasChoice())
     {
@@ -294,15 +277,6 @@ void DialogueUI::Render(
 
 
 
-
-    // ------------------------------------------------
-    // 正文
-    // ------------------------------------------------
-    //
-    // 选择事件没有正文，
-    // textSystem.GetCurrentText() 返回空字符串，
-    // SplitTextLine 返回空 vector，
-    // 下面的循环一次都不执行。
 
     std::string text =
     textSystem.GetCurrentText();
@@ -341,15 +315,6 @@ void DialogueUI::Render(
 
 
 
-
-    // ------------------------------------------------
-    // 选项
-    // ------------------------------------------------
-    //
-    // [修改] 选项现在画在对话框内部，
-    // 位置由 CHOICE_X / CHOICE_Y 决定。
-    // 选中项带 "> " 前缀，
-    // 未选中项用两个空格缩进，保持左对齐。
 
     if(!choiceOptions.empty())
     {
@@ -526,5 +491,85 @@ int DialogueUI::GetChoiceIndex() const
 {
 
     return choiceIndex;
+
+}
+
+
+
+
+
+// ==========================================================
+// [新增] 鼠标点击命中判定
+// ==========================================================
+
+int DialogueUI::HitTestChoice(
+    int x,
+    int y
+) const
+{
+
+    if(choiceOptions.empty())
+    {
+        return -1;
+    }
+
+
+    for(
+        int i=0;
+        i<(int)choiceOptions.size();
+        i++
+    )
+    {
+
+        int iy = CHOICE_Y + i * CHOICE_GAP;
+
+
+        if(
+            x >= CHOICE_X &&
+            x <  CHOICE_X + CHOICE_HIT_W &&
+            y >= iy &&
+            y <  iy + CHOICE_HIT_H
+        )
+        {
+            return i;
+        }
+
+    }
+
+
+    return -1;
+
+}
+
+
+
+
+
+void DialogueUI::SetChoiceIndex(
+    int idx
+)
+{
+
+    if(
+        idx >= 0 &&
+        idx < (int)choiceOptions.size()
+    )
+    {
+        choiceIndex = idx;
+    }
+
+}
+
+
+
+
+// ==========================================================
+// [新增] 设置文字速度
+// ==========================================================
+
+void DialogueUI::SetTextSpeed(int cps)
+{
+
+    textSystem.SetCharsPerSecond(cps);
 
 }

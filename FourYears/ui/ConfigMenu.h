@@ -38,10 +38,6 @@ public:
 
 
 
-    void Save();
-
-
-
     int GetChoice() const;
 
 
@@ -59,6 +55,31 @@ public:
 
 
 
+    void Save();
+
+
+
+    bool TryExit();
+
+    void CancelConfirm();
+
+    bool IsConfirming() const;
+
+
+    // ==========================================================
+    // [修改] 返回值改为 int
+    // ==========================================================
+    //
+    // -1 : 取消询问，留在设置页
+    //  0 : 返回，未保存（调用方需还原 Config）
+    //  1 : 返回，已保存
+
+    int HandleConfirmKey(
+        int sym
+    );
+
+
+
 private:
 
 
@@ -66,7 +87,8 @@ private:
 
     int choice;
 
-    static constexpr int ITEM_COUNT = 6;
+
+    static constexpr int ITEM_COUNT = 5;
 
     std::string items[ITEM_COUNT];
 
@@ -76,6 +98,11 @@ private:
     static constexpr int MENU_GAP = 55;
     static constexpr int ITEM_W   = 700;
     static constexpr int ITEM_H   = 50;
+
+
+    bool dirty = false;
+
+    bool confirmSave = false;
 
 };
 

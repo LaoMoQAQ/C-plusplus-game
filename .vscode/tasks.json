@@ -48,7 +48,7 @@
                 "${workspaceFolder}\\FourYears\\ui\\StartMenu.cpp",
                 "${workspaceFolder}\\FourYears\\ui\\PauseMenu.cpp",
                 "${workspaceFolder}\\FourYears\\ui\\SaveMenu.cpp",
-                "${workspaceFolder}\\FourYears\\ui\\HistoryMenu.cpp",
+                "${workspaceFolder}\\FourYears\\ui\\AffectionMenu.cpp",
                 "${workspaceFolder}\\FourYears\\ui\\ConfigMenu.cpp",
 
 

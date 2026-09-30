@@ -127,8 +127,6 @@ void TextSystem::SplitUTF8()
         else
         {
 
-            // 非法UTF8跳过
-
             i++;
 
             continue;
@@ -266,14 +264,6 @@ void TextSystem::SetText(
 
 
 
-    /*
-        修复中文省略号
-
-        防止字体缺失导致方框
-
-    */
-
-
     std::string replaceText;
 
 
@@ -328,8 +318,6 @@ void TextSystem::SetText(
 
 
 
-        // 中文省略号替换
-
         if(
             ch=="…"
         )
@@ -339,14 +327,6 @@ void TextSystem::SetText(
 
         }
 
-        // [修改] 保留 '\n' 原样。
-        // 之前把它丢弃，导致脚本里
-        // 的空行分段信息全部丢失，
-        // 所有句子被挤成一整句。
-        // 现在 '\n' 会进入 fullText 与 characters，
-        // 由 DialogueUI::SplitTextLine 负责
-        // 把它识别为“强制换行”，
-        // 不会传到 SDL_ttf，因此不会出现方框。
         else
         {
 
@@ -561,6 +541,33 @@ void TextSystem::Skip()
     finished=true;
 
 }
+
+
+
+
+
+// ==========================================================
+// [新增] 设置每秒多少字
+// ==========================================================
+
+void TextSystem::SetCharsPerSecond(int cps)
+{
+
+    if(cps < 1)
+    {
+        cps = 1;
+    }
+
+    if(cps > 200)
+    {
+        cps = 200;
+    }
+
+    speed = 1.0f / (float)cps;
+
+}
+
+// ==========================================================
 
 
 

@@ -34,7 +34,7 @@ FourYears/
 │   ├── ResourceManager.cpp / .h
 │   ├── FontManager.cpp / .h
 │   ├── TextSystem.cpp / .h
-│   ├── ScriptPlayer.cpp / .h
+│   ├── ScriptPlayer.cpp / .h        （保留，未使用）
 │   ├── SaveSystem.cpp / .h
 │   ├── AudioManager.cpp / .h
 │   ├── Config.cpp / .h
@@ -44,7 +44,7 @@ FourYears/
 │   ├── Story.cpp / .h
 │   ├── StoryParser.cpp / .h
 │   ├── Character.cpp / .h
-│   ├── History.cpp / .h
+│   ├── History.cpp / .h             （保留，未使用）
 │   └── RouteManager.cpp / .h
 │
 ├── ui/                   界面：各菜单页面与状态切换
@@ -54,7 +54,7 @@ FourYears/
 │   ├── PauseMenu.cpp / .h
 │   ├── DialogueUI.cpp / .h
 │   ├── SaveMenu.cpp / .h
-│   ├── HistoryMenu.cpp / .h
+│   ├── AffectionMenu.cpp / .h
 │   └── ConfigMenu.cpp / .h
 │
 ├── resource/             资源
@@ -154,7 +154,7 @@ MSYS2 UCRT64
 
 在项目根目录执行：
 
-    C:\msys64\ucrt64\bin\g++.exe -std=c++17 -finput-charset=UTF-8 -fexec-charset=UTF-8 main.cpp core\Game.cpp core\Renderer.cpp core\ResourceManager.cpp core\TextSystem.cpp core\ScriptPlayer.cpp core\SaveSystem.cpp core\AudioManager.cpp core\FontManager.cpp core\Config.cpp core\Utils.cpp story\Character.cpp story\History.cpp story\RouteManager.cpp story\Story.cpp story\StoryParser.cpp ui\UIManager.cpp ui\DialogueUI.cpp ui\StartMenu.cpp ui\PauseMenu.cpp ui\SaveMenu.cpp ui\HistoryMenu.cpp ui\ConfigMenu.cpp -o game.exe -IC:\msys64\ucrt64\include\SDL2 -I. -Icore -Istory -Iui -LC:\msys64\ucrt64\lib -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer
+    C:\msys64\ucrt64\bin\g++.exe -std=c++17 -finput-charset=UTF-8 -fexec-charset=UTF-8 main.cpp core\Game.cpp core\Renderer.cpp core\ResourceManager.cpp core\TextSystem.cpp core\ScriptPlayer.cpp core\SaveSystem.cpp core\AudioManager.cpp core\FontManager.cpp core\Config.cpp core\Utils.cpp story\Character.cpp story\History.cpp story\RouteManager.cpp story\Story.cpp story\StoryParser.cpp ui\UIManager.cpp ui\DialogueUI.cpp ui\StartMenu.cpp ui\PauseMenu.cpp ui\SaveMenu.cpp ui\AffectionMenu.cpp ui\ConfigMenu.cpp -o game.exe -IC:\msys64\ucrt64\include\SDL2 -I. -Icore -Istory -Iui -LC:\msys64\ucrt64\lib -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer
 
 也可以使用 VS Code 的编译任务：
 
@@ -164,7 +164,7 @@ MSYS2 UCRT64
 
 ## Linux（Ubuntu / Arch / Fedora）
 
-    g++ -std=c++17 main.cpp core/Game.cpp core/Renderer.cpp core/ResourceManager.cpp core/TextSystem.cpp core/ScriptPlayer.cpp core/SaveSystem.cpp core/AudioManager.cpp core/FontManager.cpp core/Config.cpp core/Utils.cpp story/Character.cpp story/History.cpp story/RouteManager.cpp story/Story.cpp story/StoryParser.cpp ui/UIManager.cpp ui/DialogueUI.cpp ui/StartMenu.cpp ui/PauseMenu.cpp ui/SaveMenu.cpp ui/HistoryMenu.cpp ui/ConfigMenu.cpp -o game -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer
+    g++ -std=c++17 main.cpp core/Game.cpp core/Renderer.cpp core/ResourceManager.cpp core/TextSystem.cpp core/ScriptPlayer.cpp core/SaveSystem.cpp core/AudioManager.cpp core/FontManager.cpp core/Config.cpp core/Utils.cpp story/Character.cpp story/History.cpp story/RouteManager.cpp story/Story.cpp story/StoryParser.cpp ui/UIManager.cpp ui/DialogueUI.cpp ui/StartMenu.cpp ui/PauseMenu.cpp ui/SaveMenu.cpp ui/AffectionMenu.cpp ui/ConfigMenu.cpp -o game -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer
 
 > 注：Windows 专用的输入法禁用逻辑（见「输入法」一节）通过 `#ifdef _WIN32` 包裹，Linux 编译时会自动跳过。
 
@@ -172,11 +172,9 @@ MSYS2 UCRT64
 
 # 发布打包
 
-发布一个免安装可玩版本分 3 步。
-
 ## 1. 编译发布版
 
-在 MSYS2 UCRT64 里 `cd` 到 `FourYears/`，执行（比日常编译多了 `-O2 -s`，用于优化 + 剥离符号）：
+比日常编译多 `-O2 -s`：
 
     C:/msys64/ucrt64/bin/g++.exe \
       -std=c++17 -O2 -s \
@@ -188,7 +186,7 @@ MSYS2 UCRT64
       story/Character.cpp story/History.cpp story/RouteManager.cpp \
       story/Story.cpp story/StoryParser.cpp \
       ui/UIManager.cpp ui/DialogueUI.cpp ui/StartMenu.cpp \
-      ui/PauseMenu.cpp ui/SaveMenu.cpp ui/HistoryMenu.cpp ui/ConfigMenu.cpp \
+      ui/PauseMenu.cpp ui/SaveMenu.cpp ui/AffectionMenu.cpp ui/ConfigMenu.cpp \
       -o game.exe \
       -IC:/msys64/ucrt64/include/SDL2 \
       -I. -Icore -Istory -Iui \
@@ -196,8 +194,6 @@ MSYS2 UCRT64
       -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer
 
 ## 2. 收集文件
-
-创建发布目录并复制游戏本体和资源：
 
     cd /f/gal
     mkdir -p release/FourYears/save
@@ -214,9 +210,9 @@ MSYS2 UCRT64
         cp "$dll" .
     done
 
-> `read` 必须加 `-r`，否则 bash 会吃掉路径中的反斜杠，导致 `cp` 报 `No such file or directory`。
+> `read` 必须加 `-r`，否则 bash 会吃掉路径中的反斜杠。
 
-`ntldd` 没装的话：
+`ntldd` 没装：
 
     pacman -S mingw-w64-ucrt-x86_64-ntldd
 
@@ -225,17 +221,13 @@ MSYS2 UCRT64
     cd /f/gal/release
     tar -a -c -f FourYears-v0.1.0.zip FourYears
 
-## 发布前自检
+## 自检
 
-**把 zip 解压到一个干净目录，双击 `game.exe` 试运行**。
-能进主菜单、能开游戏、能存档读档，才算通过。
-
-如果闪退，在 `cmd` 里 `cd` 到解压目录执行 `game.exe`，就能看到缺哪个 DLL。
+**把 zip 解压到干净目录，双击 `game.exe` 试运行**。能进主菜单、能开游戏、能存档读档，才算通过。
 
 ## 上传
 
-发布产物**不要提交进 Git 仓库**，用 GitHub Release 上传。
-`.gitignore` 已排除 `release/`。
+用 GitHub Release 上传，`.gitignore` 已排除 `release/`。
 
 ---
 
@@ -269,9 +261,9 @@ MSYS2 UCRT64
 | 跳过当前文字 | Space 或鼠标左键 |
 | 推进到下一段 | Space 或鼠标左键（文字已显示完） |
 | 打开暂停菜单 | ESC |
-| 选择分支 | ↑ / ↓ 切换，Enter 确认 |
+| 选择分支 | ↑ / ↓ 或鼠标悬停切换，Enter 或鼠标点击确认 |
 
-出现选项时，Space 和鼠标左键**不会推进剧情**，必须用 ↑ / ↓ + Enter。
+出现选项时，Space 和鼠标左键**不会推进剧情**。
 
 ## 暂停菜单
 
@@ -280,6 +272,8 @@ MSYS2 UCRT64
 | 上下选择 | ↑ / ↓ 或鼠标悬停 |
 | 确认 | Enter 或鼠标点击 |
 | 返回 | ESC 或点击「返回 [ESC]」 |
+
+6 项：继续游戏 / 保存游戏 / 读取存档 / 好感度 / 设置 / 返回标题。
 
 ## 存档页面
 
@@ -293,13 +287,17 @@ MSYS2 UCRT64
 | 重命名存档 | R |
 | 返回 | ESC 或点击「返回 [ESC]」 |
 
-**删除**为两段式：按 Delete 后进入确认状态，再按 Enter 或 Delete 才真正删除，ESC 取消。
+**删除**为两段式：按 Delete 后进入确认，再按 Enter 或 Delete 才真正删除，ESC 取消。
 
 **重命名**进入输入模式：
 - 字母 / 数字 / 空格 追加
-- 退格删除（支持中文边界删除）
+- 退格删除（支持 UTF-8 边界）
 - Enter 确认，ESC 取消
-- **只支持英文和数字**，不支持中文输入
+- **只支持英文和数字**
+
+## 好感度页面
+
+显示当前所有角色的好感度数值。只读，ESC 返回。
 
 ## 设置页面
 
@@ -307,32 +305,58 @@ MSYS2 UCRT64
 |---|---|
 | 上下选择 | ↑ / ↓ 或鼠标悬停 |
 | 调整数值 | ← / → |
-| 保存设置 | Enter（选中「保存设置」时）或点击该项 |
+| 保存 | S |
 | 返回 | ESC 或点击「返回 [ESC]」 |
 
-## 历史记录
+**退出流程**：
 
-| 操作 | 键鼠 |
-|---|---|
-| 上下滚动 | ↑ / ↓ |
-| 返回 | ESC 或点击「返回 [ESC]」 |
+- 没有未保存改动 → ESC 直接返回
+- 有未保存改动 → 弹窗询问
+  - **Y** 保存并返回
+  - **N** 不保存返回（还原进设置时的配置）
+  - **ESC** 取消询问，留在设置页
+
+各选项作用：
+
+| 选项 | 范围 | 效果 |
+|---|---|---|
+| BGM 音量 | 0 ~ 100，步长 5 | 立即设置 SDL_mixer 音乐音量 |
+| SE 音量 | 0 ~ 100，步长 5 | 立即设置 SDL_mixer 音效音量 |
+| 文字速度 | 5 ~ 100 字/秒，步长 5 | 打字机速度立即变化 |
+| 全屏 | 开 / 关 | 立即切换全屏模式 |
+| 自动播放 | 开 / 关 | 文字显示完后等 1.5 秒自动推进 |
 
 ---
 
 # 剧本格式
 
-剧本是 UTF-8 纯文本，放在 `script/` 下。解析器支持以下标签：
+剧本是 UTF-8 纯文本，放在 `script/` 下。
 
-| 标签 | 作用 |
-|---|---|
-| `[背景]` | 下一行写背景图文件名 |
-| `[立绘]` | 下一行写立绘路径 |
-| `[BGM]` | 预留，下一行写 BGM 路径 |
-| `[SE]` | 预留，下一行写音效路径 |
-| `[选择]` | 进入选择事件，后面跟若干条选项 |
-| `[下一章]` | 下一行写下一个脚本路径，播完自动切换 |
-| `[角色名]` | 普通对话，下一段是台词 |
-| `<n>` | 等待 n 秒后再开始逐字显示 |
+## 标签表
+
+| 标签 | 写法 | 作用 |
+|---|---|---|
+| `[背景]` | `[背景] xxx.png` 或两行 | 切换背景 |
+| `[立绘]` | `[立绘] xxx.png` 或两行 | 切换立绘 |
+| `[BGM]` | 同上 | 预留 |
+| `[SE]` | 同上 | 预留 |
+| `[角色名]` | `[李君浩]` | 开始一段对话 |
+| `<n>` | `<1.5>` | 等待 n 秒 |
+| `[选择]` | 见下 | 进入选择事件 |
+| `[标签]` | `[标签] name` | 打书签 |
+| `[跳转]` | `[跳转] #name` | 跳到书签 |
+| `[下一章]` | `[下一章] script/xxx.txt` | 播完自动加载下一章 |
+| `[结局分支]` | 见下 | 根据好感度自动选结局 |
+
+> 带参数的标签**单行和两行写法都支持**：
+> ```
+> [标签] ch01_help
+> ```
+> 等价于
+> ```
+> [标签]
+> ch01_help
+> ```
 
 ## 立绘顺序约定
 
@@ -345,55 +369,120 @@ MSYS2 UCRT64
 li_junhao/normal.png
 
 [李君浩]
-看你的样子，好像找不到教学楼。
+看你的样子……
 ```
 
-错误：
+错误（会导致立绘滞后一句）：
 
 ```
 [李君浩]
-看你的样子，好像找不到教学楼。
+看你的样子……
 
 [立绘]
 li_junhao/normal.png
 ```
 
-错误写法会导致立绘滞后一句。
-
-## 选择格式
+## 选择语法
 
 ```
 [选择]
 
-1. 陪伴四年 -> script/li_junhao_route.txt
+1. 显示文本 | 好感度变化 -> 跳转目标
 
-2. 未来同行 -> script/zhang_hanyu_route.txt
-
-3. 一个人的成长
+2. 显示文本
 ```
 
-`->` 前是显示文本，后是跳转目标。没有 `->` 的选项只显示、不跳转。
+- **显示文本**：选项在屏幕上显示的文字
+- **`|` 好感度变化**：可写多个用 `,` 分隔，如 `李君浩 +10, 张瀚宇 -5`。可省略
+- **`->` 跳转目标**：可省略
+  - `-> #标签名` → 跳到同文件书签
+  - `-> script/xxx.txt` → 加载外部脚本
+  - 省略 → 不做跳转，直接推进下一句
+
+例子：
+
+```
+[选择]
+
+1. 好，麻烦你了 | 李君浩 +10 -> #ch01_help
+
+2. 谢谢，我自己找找看 -> #ch01_alone
+
+3. 沉默（不加好感度，不跳转）
+```
+
+## 标签与跳转
+
+同文件分支写法：
+
+```
+[选择]
+
+1. A 选项 | 李君浩 +10 -> #branch_a
+
+2. B 选项 -> #branch_b
+
+[标签] branch_a
+
+... A 分支剧情 ...
+
+[跳转] #join
+
+[标签] branch_b
+
+... B 分支剧情 ...
+
+[跳转] #join
+
+[标签] join
+
+... 两分支合流后的主线 ...
+```
+
+- `[标签] name` 定义一个书签，不生成对话
+- `[跳转] #name` 跳到书签，不显示到对话框
+- 选项里的 `-> #name` 效果与 `[跳转]` 相同
+
+**标签名不要重名**，重名会覆盖。
+
+## 结局分支
+
+```
+[结局分支]
+
+李君浩 -> script/li_junhao_route.txt
+
+张瀚宇 -> script/zhang_hanyu_route.txt
+
+单人 -> script/alone_ending.txt
+```
+
+到达这个事件时，自动根据当前好感度判断：
+
+- 李君浩好感度 ≥ 20 且高于张瀚宇 → 李君浩线
+- 张瀚宇好感度 ≥ 20 且高于李君浩 → 张瀚宇线
+- 两人都 < 20，或两人相等 → 单人结局
+
+阈值在 `RouteManager::CheckRoute()` 里，当前是 `20`。
 
 ## 章节切换
-
-在脚本末尾加：
 
 ```
 [下一章]
 script/chapter02.txt
 ```
 
-播完当前脚本最后一句后，按 Space 会自动加载下一章。
+播完当前脚本最后一句后，按 Space 自动加载下一章。**路径要相对工作目录 `FourYears/` 写全**（例如 `script/chapter02.txt`，不能只写 `chapter02.txt`）。
 
 ---
 
 # 存档
 
-存档目录：`save/`
+目录：`save/`
 
-文件命名：`save_<毫秒时间戳>.dat`
+命名：`save_<毫秒时间戳>.dat`
 
-## 文件格式
+## 文件格式（6 行）
 
 ```
 显示名
@@ -401,6 +490,7 @@ script/chapter02.txt
 章节显示名
 index
 时间
+好感度（李君浩:10,张瀚宇:15）
 ```
 
 例：
@@ -411,7 +501,12 @@ script/chapter01.txt
 第1章
 7
 2026-09-27 15:30:00
+李君浩:10,张瀚宇:15
 ```
+
+- `脚本路径` 是读档时 `Story::Load()` 用的，用于恢复玩家所处的章节
+- `index` 是脚本 `events` 数组里的下标
+- `好感度` 用 `名字:数值,名字:数值` 序列化
 
 ## 章节显示名
 
@@ -430,30 +525,35 @@ script/chapter01.txt
 - SDL2 初始化、窗口、渲染器
 - 资源管理（纹理缓存、按需加载）
 - 字体管理（多字号缓存）
-- 配置读取与保存（`config.ini`）
-- 音频管理（BGM / SE，暂未接入实际资源）
+- 配置读取与保存，且**修改即时生效**
+- 音频管理（BGM / SE 音量已接入 SDL_mixer）
 - 剧本解析
-  - 支持 `[背景]`、`[立绘]`、`[BGM]`、`[SE]`、`[选择]`、`[下一章]`、`[角色名]`
+  - 支持 `[背景]` `[立绘]` `[BGM]` `[SE]` `[选择]` `[标签]` `[跳转]` `[下一章]` `[结局分支]` `[角色名]`
   - 支持 `<>` 等待标记
   - 自动清理 BOM / `\r`
+  - 单行 / 两行标签参数写法都支持
 - 剧情播放（`Story` + `DialogueUI` + `TextSystem`）
-- **章节切换**：脚本末尾 `[下一章]` 自动加载下一章
-- **选择系统**：选项显示在对话框内，↑ / ↓ 切换，Enter 确认跳转
+- **章节切换**：脚本末尾 `[下一章]` 自动加载
+- **分支剧情**：`[标签]` / `[跳转]` / `-> #标签`
+- **选择系统**
+  - 选项显示在对话框内
+  - ↑ / ↓ 或鼠标悬停切换
+  - Enter 或鼠标点击确认
+  - 每个选项可绑定好感度变化
+- **好感度系统**
+  - `RouteManager` 累积
+  - `[结局分支]` 根据好感度自动选线
+  - 好感度存进存档
+  - 好感度页面显示
 - 打字机效果（标点停顿、中文省略号替换、`\n` 强制换行）
-- 主菜单（标题 + 副标题 + 4 项菜单）
-- 暂停菜单（6 项）
-- 存档系统
-  - 新建 / 复制 / 删除（含二次确认） / 读取 / 重命名
-  - 列表显示 `显示名 [章节名] 时间`，按保存时间倒序
-  - 保存脚本路径 + index，支持跨章节读档
-  - 自动跳过 0 字节空文件
-  - 毫秒级时间戳命名
-- 设置菜单（BGM / SE 音量、文字速度、全屏、自动播放、保存）
-- 历史记录（自动清理方框字符）
+- 主菜单、暂停菜单、存档、设置、好感度
 - 键鼠双输入
 - 立绘固定高度 + 宽高比缩放 + 右中侧居中
 - 对话框：深灰半透明矩形
 - 二级菜单背景模糊（近似高斯）
+- 设置页面：S 保存 + ESC 询问
+- 全屏切换（`SDL_RenderSetLogicalSize` 自动缩放）
+- 自动播放（1.5 秒间隔）
 - Windows 输入法禁用
 
 ---
@@ -511,7 +611,7 @@ C/C++ 配置：`.vscode/c_cpp_properties.json`
 
 # 输入法
 
-Windows 中文输入法激活时，字母键会被 IME 拦截，SDL 收不到 `SDLK_n` / `SDLK_c` / `SDLK_r` 的 KEYDOWN，导致游戏内字母快捷键全部失效。
+Windows 中文输入法激活时，字母键会被 IME 拦截，SDL 收不到 `SDLK_n` / `SDLK_c` / `SDLK_r` / `SDLK_s` 的 KEYDOWN，导致字母快捷键失效。
 
 `Game::Init()` 中做了两层处理：
 
@@ -534,9 +634,7 @@ Windows 中文输入法激活时，字母键会被 IME 拦截，SDL 收不到 `S
 
 # 字体与中文显示
 
-项目使用 `resource/font/simhei.ttf`。
-
-另外有 `title.ttf`（标题）和 `number.ttf`（数字）。
+项目使用 `resource/font/simhei.ttf`。另外有 `title.ttf`（标题）和 `number.ttf`（数字）。
 
 字体缺失字形时会渲染成方框。已知位置和当前处理：
 
@@ -544,9 +642,9 @@ Windows 中文输入法激活时，字母键会被 IME 拦截，SDL 收不到 `S
 |---|---|---|
 | `TextSystem::SetText` | `…` | 替换成 `.` |
 | `DialogueUI::SplitTextLine` | `\n` | 识别为强制换行，不传给 SDL_ttf |
-| `HistoryMenu::Render` | `…` `\n` | 显示前替换 |
+| `AffectionMenu::Render` | — | 只显示中文角色名和数字，安全 |
 
-如果脚本里用到其它字体缺失字符（如 `——`、`「」`、`·`），需要在对应位置继续加替换。
+如果脚本里用到其它字体缺失字符（如 `——`、`「」`、`·`），需要在 `TextSystem::SetText` 的替换表里继续加分支。
 
 **不要仅仅因为出现方框就立即换字体。**
 
@@ -562,13 +660,14 @@ Windows 中文输入法激活时，字母键会被 IME 拦截，SDL 收不到 `S
 
 ## 配置
 
-`Config.cpp` 读取的键名与初始 `config.ini` 的键名不完全一致，首次启动部分配置读不到。`[resource]` 段在 `Save` 后会丢失。
+- `config.ini` 的 `[resource]` 段在游戏内保存设置后会丢失（`Config::Save` 不写这段）。当前资源路径硬编码在 `Game::Init()` 里，不影响运行。
+- 全屏时因为逻辑分辨率 1600×900 → 物理 1920×1080 是 1.2 倍非整数缩放，文字会**轻微模糊**。
 
 ## 代码清理
 
-- `ui/DialogueUI.cpp` 里有两份 `SplitTextLine`：自由函数 + 成员函数。自由函数是死代码。
-- `GameState.h` 里的 `enum class GameState` 是死代码，真正的状态机在 `ui/UIManager.h` 的 `UIState`。
 - `core/ScriptPlayer.cpp / .h` 未被使用。
+- `story/History.cpp / .h` 仍被编译，但 UI 层已不再显示历史记录。
+- `GameState.h` 里的 `enum class GameState` 是死代码，真正的状态机在 `ui/UIManager.h` 的 `UIState`。
 
 ## 模糊效果
 
@@ -585,11 +684,10 @@ Windows 中文输入法激活时，字母键会被 IME 拦截，SDL 收不到 `S
 1. **中文输入框**（恢复 IME + SDL_TEXTINPUT）
 2. **新建存档自定义名**
 3. **BGM / SE 接入实际资源**
-4. **设置页面配置修复**（键名对齐）
-5. **剧情状态恢复**（读档后 `History` 一起恢复）
-6. **中文标点替换表**（`——` `「」` `·`）
-7. **视觉效果**（转场、淡入淡出、立绘动画）
-8. **存档缩略图**
+4. **剧情状态恢复**（读档后 `History` 一起恢复）
+5. **中文标点替换表**（`——` `「」` `·`）
+6. **视觉效果**（转场、淡入淡出、立绘动画）
+7. **存档缩略图**
 
 ---
 
@@ -601,5 +699,7 @@ Windows 中文输入法激活时，字母键会被 IME 拦截，SDL 收不到 `S
 - 关键链路：`SaveSystem ↔ SaveMenu ↔ Game`。
 - 状态机在 `ui/UIManager.h` 的 `UIState`，不在 `GameState.h`（后者是死代码）。
 - 所有键鼠输入最终汇聚到 `Game::OnActivateCurrentState()` / `Game::OnAdvanceDialogue()` / `Game::OnBack()` / `Game::ConfirmChoice()` 四个函数，避免逻辑分叉。
-- 菜单坐标统一放在各菜单 `.h` 的 `static constexpr` 或 `ui/MenuCommon.h`，`Render` 和鼠标命中检测共用同一份常量，避免「画在这、点在那」。
+- 菜单坐标统一放在各菜单 `.h` 的 `static constexpr` 或 `ui/MenuCommon.h`，`Render` 和鼠标命中检测共用同一份常量。
 - 剧本里 `[立绘]` 必须在对应角色台词**之前**，否则立绘会滞后一句。
+- 剧本里 `[标签]` / `[跳转]` 支持单行写法，脚本简洁优先用单行。
+- 存档格式变化后**必须删旧存档**，否则 `Story::Load()` 恢复章节时 index 会对不上。

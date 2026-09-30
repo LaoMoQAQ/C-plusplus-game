@@ -169,14 +169,9 @@ void SaveMenu::Render(
 
 
 
-    // ==========================================================
-    // 底部提示区域
-    // ==========================================================
-
     if(renaming)
     {
 
-        // 输入模式：显示输入框
         std::string line =
             "重命名: " + renameBuffer + "_";
 
@@ -261,7 +256,6 @@ void SaveMenu::HandleInput(
 )
 {
 
-    // 重命名模式或删除确认时不响应上下
     if(renaming)
     {
         return;
@@ -386,7 +380,8 @@ void SaveMenu::Create(
     const std::string& name,
     const std::string& scriptFile,
     const std::string& chapterName,
-    int index
+    int index,
+    const std::map<std::string, int>& affection
 )
 {
 
@@ -394,7 +389,8 @@ void SaveMenu::Create(
         name,
         scriptFile,
         chapterName,
-        index
+        index,
+        affection
     );
 
 
@@ -495,7 +491,8 @@ bool SaveMenu::Confirm(
     SaveSystem& saveSystem,
     std::string& outScriptFile,
     std::string& outChapterName,
-    int& outIndex
+    int& outIndex,
+    std::map<std::string, int>& outAffection
 )
 {
 
@@ -531,7 +528,8 @@ bool SaveMenu::Confirm(
             data.filename,
             outScriptFile,
             outChapterName,
-            outIndex
+            outIndex,
+            outAffection
         );
 
     }
@@ -717,7 +715,7 @@ bool SaveMenu::IsConfirmingDelete() const
 
 
 // ==========================================================
-// [新增] 重命名输入模式
+// 重命名输入模式
 // ==========================================================
 
 void SaveMenu::BeginRename()
@@ -736,7 +734,6 @@ void SaveMenu::BeginRename()
 
     renameTargetFile = data.filename;
 
-    // 用当前名字做初始内容，方便用户改
     renameBuffer = data.displayName;
 
 }
@@ -757,7 +754,6 @@ void SaveMenu::HandleRenameKey(
     }
 
 
-    // Enter 确认
     if(sym == SDLK_RETURN)
     {
 
@@ -768,7 +764,6 @@ void SaveMenu::HandleRenameKey(
     }
 
 
-    // ESC 取消
     if(sym == SDLK_ESCAPE)
     {
 
@@ -779,17 +774,7 @@ void SaveMenu::HandleRenameKey(
     }
 
 
-    // [修改] 退格：按 UTF-8 字符边界删除。
-    //
-    // renameBuffer 里存的是 UTF-8 字符串，
-    // 一个中文字符占 3 字节。
-    // 之前的 pop_back() 只删 1 字节，
-    // 剩下半个字符渲染成方框。
-    //
-    // 正确做法：
-    //   从末尾往前扫，
-    //   跳过所有 continuation 字节（10xxxxxx），
-    //   删到第一个非 continuation 字节为止。
+    // 退格：按 UTF-8 字符边界删除
     if(sym == SDLK_BACKSPACE)
     {
 
@@ -826,7 +811,6 @@ void SaveMenu::HandleRenameKey(
     }
 
 
-    // 空格
     if(sym == SDLK_SPACE)
     {
 
@@ -837,7 +821,6 @@ void SaveMenu::HandleRenameKey(
     }
 
 
-    // 字母 a-z
     if(sym >= SDLK_a && sym <= SDLK_z)
     {
 
@@ -849,7 +832,6 @@ void SaveMenu::HandleRenameKey(
     }
 
 
-    // 数字 0-9
     if(sym >= SDLK_0 && sym <= SDLK_9)
     {
 

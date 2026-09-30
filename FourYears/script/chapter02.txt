@@ -40,9 +40,53 @@ wuhongtao/happy.png
 
 谢谢你。
 
-[系统]
+[选择]
 
-李君浩好感度+10
+1. 好，那就麻烦你帮我看看 | 李君浩 +15 -> #ch02_help
+
+2. 我自己能应付 -> #ch02_alone
+
+[标签] ch02_help
+
+[背景]
+library.png
+
+[立绘]
+li_junhao/normal.png
+
+[李君浩]
+
+行，周六图书馆见。
+
+[旁白]
+
+李君浩耐心地帮吴鸿涛梳理了重点。
+
+那天下午，两个人都忘了时间。
+
+[跳转] #ch02_join
+
+[标签] ch02_alone
+
+[背景]
+library.png
+
+[立绘]
+wuhongtao/normal.png
+
+[吴鸿涛]
+
+我想自己再试试。
+
+[旁白]
+
+吴鸿涛一个人熬到深夜，终于把题目啃了下来。
+
+他习惯了不麻烦别人。
+
+[跳转] #ch02_join
+
+[标签] ch02_join
 
 [旁白]
 
@@ -92,9 +136,51 @@ zhang_hanyu/normal.png
 
 现在才发现？
 
-[系统]
+[选择]
 
-张瀚宇好感度+10
+1. 那以后项目多合作 | 张瀚宇 +15 -> #ch02_coop
+
+2. 我还有事先走了 -> #ch02_leave
+
+[标签] ch02_coop
+
+[背景]
+classroom_evening.png
+
+[立绘]
+zhang_hanyu/normal.png
+
+[张瀚宇]
+
+好啊，合作愉快。
+
+[旁白]
+
+从此以后，项目里经常能看到他们一起讨论的身影。
+
+[跳转] #ch02_end
+
+[标签] ch02_leave
+
+[背景]
+classroom_evening.png
+
+[立绘]
+wuhongtao/normal.png
+
+[吴鸿涛]
+
+我先走了。
+
+[旁白]
+
+吴鸿涛匆匆离开。
+
+留下张瀚宇站在灯下，看着他的背影。
+
+[跳转] #ch02_end
+
+[标签] ch02_end
 
 [旁白]
 

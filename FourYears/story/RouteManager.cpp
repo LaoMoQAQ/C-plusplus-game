@@ -62,7 +62,6 @@ int RouteManager::GetAffection(
 
     return affection[character];
 
-
 }
 
 
@@ -109,7 +108,6 @@ RouteType RouteManager::GetCurrentRoute() const
 RouteType RouteManager::CheckRoute()
 {
 
-
     int li =
     GetAffection(
         "李君浩"
@@ -124,26 +122,27 @@ RouteType RouteManager::CheckRoute()
 
 
 
-    if(li>=20)
+    if(li < 20 && zhang < 20)
     {
+        return RouteType::NORMAL_END;
+    }
 
+
+
+    if(li == zhang)
+    {
+        return RouteType::NORMAL_END;
+    }
+
+
+
+    if(li > zhang)
+    {
         return RouteType::LI_JUNHAO;
-
     }
 
 
-
-    if(zhang>=20)
-    {
-
-        return RouteType::ZHANG_HANYU;
-
-    }
-
-
-
-    return RouteType::NORMAL_END;
-
+    return RouteType::ZHANG_HANYU;
 
 }
 
@@ -189,8 +188,36 @@ std::string RouteManager::RouteName()
 
         return "未开启路线";
 
-
     }
 
+
+}
+
+
+
+
+
+std::map<std::string, int>
+RouteManager::GetAllAffection() const
+{
+
+    return affection;
+
+}
+
+
+
+
+
+// ==========================================================
+// [新增] 整体替换
+// ==========================================================
+
+void RouteManager::SetAllAffection(
+    const std::map<std::string, int>& data
+)
+{
+
+    affection = data;
 
 }

@@ -7,7 +7,7 @@
 #include "PauseMenu.h"
 #include "SaveMenu.h"
 #include "ConfigMenu.h"
-#include "HistoryMenu.h"
+#include "AffectionMenu.h"
 
 #include "MenuCommon.h"
 
@@ -26,7 +26,8 @@ enum class UIState
 
     CONFIG,
 
-    HISTORY
+    // [修改] HISTORY -> AFFECTION
+    AFFECTION
 
 };
 
@@ -64,7 +65,6 @@ public:
 
 
 
-    // 鼠标移动分发到当前状态的菜单
     void HandleMouseMove(
         int x,
         int y
@@ -72,8 +72,6 @@ public:
 
 
 
-    // 鼠标点击分发。
-    // 返回值告诉 Game 该做什么。
     MenuMouseResult HandleMouseClick(
         int x,
         int y
@@ -93,7 +91,8 @@ public:
 
     ConfigMenu& GetConfigMenu();
 
-    HistoryMenu& GetHistoryMenu();
+    // [修改] GetHistoryMenu -> GetAffectionMenu
+    AffectionMenu& GetAffectionMenu();
 
 
 
@@ -115,7 +114,8 @@ private:
 
     ConfigMenu configMenu;
 
-    HistoryMenu historyMenu;
+    // [修改] historyMenu -> affectionMenu
+    AffectionMenu affectionMenu;
 
 };
 

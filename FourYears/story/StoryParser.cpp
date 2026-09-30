@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 
 using namespace std;
@@ -47,6 +48,92 @@ string StoryParser::Clean(
 
     return text;
 
+}
+
+
+
+
+
+static string Trim(
+    const string& s
+)
+{
+    size_t a = s.find_first_not_of(" \t");
+    if(a == string::npos) return "";
+    size_t b = s.find_last_not_of(" \t");
+    return s.substr(a, b - a + 1);
+}
+
+
+
+
+
+static void ParseAffection(
+    const string& str,
+    vector<AffectionChange>& out
+)
+{
+    stringstream ss(str);
+    string item;
+
+    while(getline(ss, item, ','))
+    {
+        item = Trim(item);
+        if(item.empty()) continue;
+
+        size_t sp = item.find_last_of(" \t");
+        if(sp == string::npos) continue;
+
+        string name = Trim(item.substr(0, sp));
+        string val  = Trim(item.substr(sp + 1));
+
+        if(name.empty() || val.empty()) continue;
+
+        try
+        {
+            int delta = stoi(val);
+
+            AffectionChange ch;
+            ch.character = name;
+            ch.delta = delta;
+
+            out.push_back(ch);
+        }
+        catch(...)
+        {
+        }
+    }
+}
+
+
+
+
+
+static void ParseChoiceLine(
+    const string& raw,
+    string& text,
+    vector<AffectionChange>& affection,
+    string& target
+)
+{
+    string s = raw;
+
+    size_t arrow = s.find("->");
+    if(arrow != string::npos)
+    {
+        target = Trim(s.substr(arrow + 2));
+        s = s.substr(0, arrow);
+    }
+
+    size_t bar = s.find('|');
+    if(bar != string::npos)
+    {
+        string affstr = s.substr(bar + 1);
+        ParseAffection(affstr, affection);
+        s = s.substr(0, bar);
+    }
+
+    text = Trim(s);
 }
 
 
@@ -119,6 +206,8 @@ bool StoryParser::Load(
             current.text.empty()
             &&
             !current.isChoice
+            &&
+            !current.isEndingBranch
         )
         {
             return;
@@ -174,9 +263,42 @@ bool StoryParser::Load(
 
 
 
+    // ==========================================================
+    // [新增] 统一的参数获取
+    // ==========================================================
+    //
+    // 优先用行内参数（[标签] xxx 的单行写法），
+    // 没有的话读下一行（两行写法）。
+    //
+    // 这样两种写法都支持：
+    //   [标签] ch01_help
+    //   [标签]
+    //   ch01_help
+
+    auto GetArg = [&](
+        const string& inlineArg
+    ) -> string
+    {
+
+        if(!inlineArg.empty())
+        {
+            return inlineArg;
+        }
 
 
+        string v;
 
+        if(getline(in, v))
+        {
+            return Clean(v);
+        }
+
+
+        return "";
+
+    };
+
+    // ==========================================================
 
 
 
@@ -256,21 +378,37 @@ bool StoryParser::Load(
         //========================
         // 标签
         //========================
-
+        //
+        // [修改] 支持两种写法：
+        //   [标签] 参数
+        //   [标签]
+        //   参数
 
         if(
             line.front()=='['
-            &&
-            line.back()==']'
         )
         {
 
+            size_t close = line.find(']');
 
-            string tag=
-            line.substr(
-                1,
-                line.size()-2
-            );
+            if(close == string::npos)
+            {
+                // 不闭合，当普通文本处理
+                goto NORMAL_TEXT;
+            }
+
+
+            string tag =
+                line.substr(1, close - 1);
+
+
+            string inlineArg;
+
+            if(close + 1 < line.size())
+            {
+                inlineArg =
+                    Trim(line.substr(close + 1));
+            }
 
 
 
@@ -283,17 +421,7 @@ bool StoryParser::Load(
             )
             {
 
-                string bg;
-
-
-                getline(
-                    in,
-                    bg
-                );
-
-
-                bg=
-                Clean(bg);
+                string bg = GetArg(inlineArg);
 
 
 
@@ -302,21 +430,6 @@ bool StoryParser::Load(
 
 
 
-                // [新增] 即时应用：
-                //
-                // 如果当前事件已经开始（name 非空），
-                // 但背景还是空的，
-                // 就把刚读到的背景直接补到当前事件上。
-                //
-                // 处理这种脚本顺序：
-                //   [结局]
-                //   《标题》
-                //   [背景] xxx.png     ← 此时 current 是"结局"事件
-                //
-                // 不这么做的话，[背景] 只会更新
-                // currentBackground 变量，
-                // 而 current 事件的 background 依然是空，
-                // 导致 UpdateScene 无法更新屏幕背景。
                 if(
                     !current.name.empty()
                     &&
@@ -346,17 +459,7 @@ bool StoryParser::Load(
             )
             {
 
-                string c;
-
-
-                getline(
-                    in,
-                    c
-                );
-
-
-                c=
-                Clean(c);
+                string c = GetArg(inlineArg);
 
 
 
@@ -365,8 +468,6 @@ bool StoryParser::Load(
 
 
 
-                // [新增] 同理：
-                // 给已经开始的"结局"事件补上立绘。
                 if(
                     !current.name.empty()
                     &&
@@ -396,19 +497,7 @@ bool StoryParser::Load(
             )
             {
 
-                string bgm;
-
-
-                getline(
-                    in,
-                    bgm
-                );
-
-
-                bgm=
-                Clean(bgm);
-
-
+                GetArg(inlineArg);
 
                 continue;
 
@@ -428,19 +517,7 @@ bool StoryParser::Load(
             )
             {
 
-                string se;
-
-
-                getline(
-                    in,
-                    se
-                );
-
-
-                se=
-                Clean(se);
-
-
+                GetArg(inlineArg);
 
                 continue;
 
@@ -482,6 +559,173 @@ bool StoryParser::Load(
 
 
 
+            // ==========================================================
+            // 标签
+            // ==========================================================
+
+            if(
+                tag=="标签"
+            )
+            {
+
+                SaveCurrent();
+
+
+                string name = GetArg(inlineArg);
+
+
+                if(!name.empty())
+                {
+                    story.AddLabel(
+                        name,
+                        (int)story.events.size()
+                    );
+                }
+
+
+                continue;
+
+            }
+
+
+
+
+
+
+
+
+            // ==========================================================
+            // 跳转
+            // ==========================================================
+
+            if(
+                tag=="跳转"
+            )
+            {
+
+                SaveCurrent();
+
+
+                string target = GetArg(inlineArg);
+
+
+                if(
+                    !target.empty() &&
+                    target[0] == '#'
+                )
+                {
+                    target = target.substr(1);
+                }
+
+
+                if(!target.empty())
+                {
+
+                    StoryEvent ev;
+
+                    ev.isGoto = true;
+
+                    ev.gotoLabel = target;
+
+                    story.Add(ev);
+
+                }
+
+
+                continue;
+
+            }
+
+
+
+
+
+
+
+
+            // 结局分支
+
+            if(
+                tag=="结局分支"
+            )
+            {
+
+                SaveCurrent();
+
+
+
+                current.name =
+                    "结局分支";
+
+                current.isEndingBranch = true;
+
+
+
+                int read = 0;
+
+                while(
+                    read < 3
+                    &&
+                    getline(in, line)
+                )
+                {
+
+                    line = Clean(line);
+
+                    if(line.empty())
+                    {
+                        continue;
+                    }
+
+
+                    size_t arrow = line.find("->");
+
+                    if(arrow == string::npos)
+                    {
+                        continue;
+                    }
+
+
+                    string key = Trim(
+                        line.substr(0, arrow)
+                    );
+
+                    string val = Trim(
+                        line.substr(arrow + 2)
+                    );
+
+
+                    if(key == "李君浩")
+                    {
+                        current.branchLiJunhao = val;
+                        read++;
+                    }
+                    else if(key == "张瀚宇")
+                    {
+                        current.branchZhangHanyu = val;
+                        read++;
+                    }
+                    else if(key == "单人")
+                    {
+                        current.branchNormal = val;
+                        read++;
+                    }
+
+                }
+
+
+
+                continue;
+
+            }
+
+
+
+
+
+
+
+
             // 下一章标记
 
             if(
@@ -489,17 +733,7 @@ bool StoryParser::Load(
             )
             {
 
-                string next;
-
-
-                getline(
-                    in,
-                    next
-                );
-
-
-                next=
-                Clean(next);
+                string next = GetArg(inlineArg);
 
 
 
@@ -548,6 +782,12 @@ bool StoryParser::Load(
 
 
 
+        // 标签解析失败时（line 首字符是 [ 但没找到 ]），
+        // 会跳到这里当普通文本处理
+
+    NORMAL_TEXT:
+
+
 
 
 
@@ -574,95 +814,26 @@ bool StoryParser::Load(
             )
             {
 
-                std::string item =
+                string item =
                     line.substr(2);
 
 
 
-                while(
-                    !item.empty()
-                    &&
-                    item.front()==' '
-                )
-                {
-                    item.erase(0,1);
-                }
+                string text;
+                vector<AffectionChange> aff;
+                string target;
 
-                while(
-                    !item.empty()
-                    &&
-                    item.back()==' '
-                )
-                {
-                    item.pop_back();
-                }
+                ParseChoiceLine(
+                    item,
+                    text,
+                    aff,
+                    target
+                );
 
 
-
-                size_t arrow =
-                    item.find("->");
-
-
-
-                if(
-                    arrow != std::string::npos
-                )
-                {
-
-                    std::string text =
-                        item.substr(
-                            0,
-                            arrow
-                        );
-
-                    std::string target =
-                        item.substr(
-                            arrow + 2
-                        );
-
-
-
-                    while(
-                        !text.empty()
-                        &&
-                        text.back()==' '
-                    )
-                    {
-                        text.pop_back();
-                    }
-
-
-                    while(
-                        !target.empty()
-                        &&
-                        target.front()==' '
-                    )
-                    {
-                        target.erase(0,1);
-                    }
-
-
-                    current.choices.push_back(
-                        text
-                    );
-
-                    current.choiceTargets.push_back(
-                        target
-                    );
-
-                }
-                else
-                {
-
-                    current.choices.push_back(
-                        item
-                    );
-
-                    current.choiceTargets.push_back(
-                        ""
-                    );
-
-                }
+                current.choices.push_back(text);
+                current.choiceAffection.push_back(aff);
+                current.choiceTargets.push_back(target);
 
             }
 

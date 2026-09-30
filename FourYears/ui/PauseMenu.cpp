@@ -16,7 +16,8 @@ PauseMenu::PauseMenu()
 
     items[2]="读取存档";
 
-    items[3]="历史记录";
+    // [修改] 历史记录 -> 好感度
+    items[3]="好感度";
 
     items[4]="设置";
 
@@ -86,7 +87,6 @@ void PauseMenu::Render(
 
 
 
-    // 返回按钮（点击 = ESC）
     renderer.DrawText(
         "返回 [ESC]",
         UILayout::BACK_X,
@@ -105,14 +105,6 @@ void PauseMenu::HandleInput(
 
 )
 {
-
-
-    /*
-    
-    1 上
-    2 下
-
-    */
 
 
     if(key==1)
@@ -196,7 +188,6 @@ MenuMouseResult PauseMenu::HandleMouseClick(
 )
 {
 
-    // 先检查返回按钮
     if(
         x >= UILayout::BACK_X &&
         x <  UILayout::BACK_X + UILayout::BACK_W &&
@@ -208,7 +199,6 @@ MenuMouseResult PauseMenu::HandleMouseClick(
     }
 
 
-    // 再检查菜单项
     for(int i=0;i<ITEM_COUNT;i++)
     {
 

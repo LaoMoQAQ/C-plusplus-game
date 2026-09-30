@@ -1,2 +1,35 @@
+# ========== 编译产物 ==========
+*.exe
+*.o
+*.obj
+*.dll.a
+*.a
+*.so
+*.dylib
+
+# ========== 打包目录 ==========
 /release/
-FourYears/game.exe
+
+# ========== 运行时数据 ==========
+/FourYears/save/*.dat
+/FourYears/save/*.dat.bak
+
+# ========== IDE ==========
+.vscode/*
+!.vscode/tasks.json
+!.vscode/c_cpp_properties.json
+!.vscode/settings.json
+!.vscode/launch.json
+
+# ========== 编辑器临时文件 ==========
+*.swp
+*~
+*.tmp
+Thumbs.db
+Desktop.ini
+
+# ========== 操作系统 ==========
+.DS_Store
+
+# ========== 日志 ==========
+*.log

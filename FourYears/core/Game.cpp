@@ -18,15 +18,6 @@ static constexpr int CHARACTER_CENTER_X = 1220;
 
 
 
-// ==========================================================
-// [新增] 从脚本路径推算章节显示名
-// ==========================================================
-//
-// 存档列表里显示的 [第X章]，
-// 不再用固定数字，而是根据脚本路径判断。
-//
-// 需要新增章节时，在这里加一条。
-
 static std::string ChapterNameFromScript(
     const std::string& script
 )
@@ -51,8 +42,6 @@ static std::string ChapterNameFromScript(
 
     return "未知";
 }
-
-// ==========================================================
 
 
 
@@ -275,8 +264,25 @@ bool Game::Init()
 
 
 
+    SDL_RenderSetLogicalSize(
+        renderer.GetSDLRenderer(),
+        config.GetWidth(),
+        config.GetHeight()
+    );
+
+
+
+
+
+
     resourceManager.Init();
 
+
+
+
+
+
+    audioManager.Init();
 
 
 
@@ -383,9 +389,34 @@ bool Game::Init()
 
 
 
-    ui.GetHistoryMenu().SetHistory(
-        &story.GetHistory()
+    ui.GetAffectionMenu().SetRouteManager(
+        &story.GetRouteManager()
     );
+
+
+
+
+
+
+    lastBgmVolume = config.GetBGMVolume();
+    lastSeVolume  = config.GetSEVolume();
+    lastTextSpeed = config.GetTextSpeed();
+    lastFullscreen = config.IsFullscreen();
+
+
+    audioManager.SetBGMVolume(lastBgmVolume);
+    audioManager.SetSEVolume(lastSeVolume);
+
+    ui.GetDialogueUI().SetTextSpeed(lastTextSpeed);
+
+
+    if(lastFullscreen)
+    {
+        SDL_SetWindowFullscreen(
+            window,
+            SDL_WINDOW_FULLSCREEN_DESKTOP
+        );
+    }
 
 
 
@@ -489,15 +520,6 @@ void Game::HandleEvents()
         )
         {
 
-            // ==========================================================
-            // [新增] 重命名输入模式优先拦截
-            // ==========================================================
-            //
-            // 处于重命名模式时，所有按键都交给 SaveMenu 处理，
-            // 不进入下面的正常分支。
-            // 这样上下方向键不会切换存档选项，
-            // 字母键也能作为文本输入。
-
             if(
                 ui.GetState()
                 ==
@@ -518,7 +540,52 @@ void Game::HandleEvents()
 
             }
 
-            // ==========================================================
+            // ----------------------------------------------------------
+            // [修改] 设置询问状态拦截
+            // ----------------------------------------------------------
+            //
+            // HandleConfirmKey 现在返回 int：
+            //  -1 留在设置
+            //   0 返回，未保存（还原 Config）
+            //   1 返回，已保存
+
+            if(
+                ui.GetState()
+                ==
+                UIState::CONFIG
+                &&
+                ui.GetConfigMenu()
+                .IsConfirming()
+            )
+            {
+
+                int r =
+                    ui.GetConfigMenu()
+                    .HandleConfirmKey(
+                        event.key.keysym.sym
+                    );
+
+
+                if(r == 1)
+                {
+                    // 已保存，直接返回
+                    OnBack();
+                }
+                else if(r == 0)
+                {
+                    // 未保存，还原 Config，再返回
+                    config = configBackup;
+
+                    OnBack();
+                }
+
+                // r == -1 继续留在设置
+
+                continue;
+
+            }
+
+            // ----------------------------------------------------------
 
 
             switch(
@@ -611,7 +678,67 @@ void Game::HandleEvents()
 
 
 
-            // 新建存档
+            case SDLK_LEFT:
+            {
+
+                if(
+                    ui.GetState()
+                    ==
+                    UIState::CONFIG
+                )
+                {
+                    ui.HandleInput(3);
+                }
+
+            }
+            break;
+
+
+
+
+
+            case SDLK_RIGHT:
+            {
+
+                if(
+                    ui.GetState()
+                    ==
+                    UIState::CONFIG
+                )
+                {
+                    ui.HandleInput(4);
+                }
+
+            }
+            break;
+
+
+
+
+
+            case SDLK_s:
+            {
+
+                if(
+                    ui.GetState()
+                    ==
+                    UIState::CONFIG
+                    &&
+                    !ui.GetConfigMenu()
+                    .IsConfirming()
+                )
+                {
+                    ui.GetConfigMenu()
+                    .Save();
+                }
+
+            }
+            break;
+
+
+
+
+
             case SDLK_n:
             {
 
@@ -622,7 +749,6 @@ void Game::HandleEvents()
                 )
                 {
 
-                    // [修改] 加上章节显示名
                     ui.GetSaveMenu()
                     .Create(
                         saveSystem,
@@ -631,7 +757,9 @@ void Game::HandleEvents()
                         ChapterNameFromScript(
                             story.GetCurrentFile()
                         ),
-                        story.GetIndex()
+                        story.GetIndex(),
+                        story.GetRouteManager()
+                             .GetAllAffection()
                     );
 
                 }
@@ -706,7 +834,6 @@ void Game::HandleEvents()
 
 
 
-            // 重命名存档
             case SDLK_r:
             {
 
@@ -717,8 +844,6 @@ void Game::HandleEvents()
                 )
                 {
 
-                    // [修改] 不再自动生成名字，
-                    // 进入输入模式让用户自己敲。
                     ui.GetSaveMenu()
                     .BeginRename();
 
@@ -794,6 +919,24 @@ void Game::HandleEvents()
                     .CancelDelete();
 
                 }
+                else if(
+                    ui.GetState()
+                    ==
+                    UIState::CONFIG
+                )
+                {
+
+                    if(
+                        ui.GetConfigMenu()
+                        .TryExit()
+                    )
+                    {
+                        OnBack();
+                    }
+
+                    // false 等待玩家按 Y / N / ESC
+
+                }
                 else
                 {
 
@@ -841,13 +984,43 @@ void Game::HandleEvents()
         )
         {
 
-            ui.HandleMouseMove(
+            if(
+                ui.GetState()
+                ==
+                UIState::DIALOGUE
+                &&
+                ui.GetDialogueUI()
+                .HasChoice()
+            )
+            {
 
-                event.motion.x,
+                int idx =
+                    ui.GetDialogueUI()
+                    .HitTestChoice(
+                        event.motion.x,
+                        event.motion.y
+                    );
 
-                event.motion.y
 
-            );
+                if(idx >= 0)
+                {
+                    ui.GetDialogueUI()
+                    .SetChoiceIndex(idx);
+                }
+
+            }
+            else
+            {
+
+                ui.HandleMouseMove(
+
+                    event.motion.x,
+
+                    event.motion.y
+
+                );
+
+            }
 
         }
 
@@ -878,9 +1051,31 @@ void Game::HandleEvents()
             {
 
                 if(
-                    !ui.GetDialogueUI()
+                    ui.GetDialogueUI()
                     .HasChoice()
                 )
+                {
+
+                    int idx =
+                        ui.GetDialogueUI()
+                        .HitTestChoice(
+                            mx,
+                            my
+                        );
+
+
+                    if(idx >= 0)
+                    {
+
+                        ui.GetDialogueUI()
+                        .SetChoiceIndex(idx);
+
+                        ConfirmChoice();
+
+                    }
+
+                }
+                else
                 {
                     OnAdvanceDialogue();
                 }
@@ -934,7 +1129,26 @@ void Game::HandleEvents()
                 )
                 {
 
-                    OnBack();
+                    if(
+                        ui.GetState()
+                        ==
+                        UIState::CONFIG
+                    )
+                    {
+
+                        if(
+                            ui.GetConfigMenu()
+                            .TryExit()
+                        )
+                        {
+                            OnBack();
+                        }
+
+                    }
+                    else
+                    {
+                        OnBack();
+                    }
 
                 }
 
@@ -1033,7 +1247,7 @@ void Game::Render()
     else if(
         st == UIState::SAVE ||
         st == UIState::CONFIG ||
-        st == UIState::HISTORY
+        st == UIState::AFFECTION
     )
     {
         useGameBackground =
@@ -1050,7 +1264,7 @@ void Game::Render()
         ||
         st == UIState::CONFIG
         ||
-        st == UIState::HISTORY;
+        st == UIState::AFFECTION;
 
 
 
@@ -1163,6 +1377,81 @@ void Game::Update()
     .Update();
 
 
+
+    if(config.GetBGMVolume() != lastBgmVolume)
+    {
+        lastBgmVolume = config.GetBGMVolume();
+
+        audioManager.SetBGMVolume(
+            lastBgmVolume
+        );
+    }
+
+
+    if(config.GetSEVolume() != lastSeVolume)
+    {
+        lastSeVolume = config.GetSEVolume();
+
+        audioManager.SetSEVolume(
+            lastSeVolume
+        );
+    }
+
+
+    if(config.GetTextSpeed() != lastTextSpeed)
+    {
+        lastTextSpeed = config.GetTextSpeed();
+
+        ui.GetDialogueUI()
+        .SetTextSpeed(
+            lastTextSpeed
+        );
+    }
+
+
+    if(config.IsFullscreen() != lastFullscreen)
+    {
+        lastFullscreen = config.IsFullscreen();
+
+
+        SDL_SetWindowFullscreen(
+            window,
+            lastFullscreen
+                ? SDL_WINDOW_FULLSCREEN_DESKTOP
+                : 0
+        );
+    }
+
+
+
+    if(
+        config.IsAutoPlay() &&
+        ui.GetState() == UIState::DIALOGUE &&
+        !ui.GetDialogueUI().HasChoice() &&
+        ui.GetDialogueUI().Finished()
+    )
+    {
+
+        autoPlayTimer += 0.016f;
+
+
+        if(autoPlayTimer >= AUTO_PLAY_DELAY)
+        {
+
+            autoPlayTimer = 0.0f;
+
+            OnAdvanceDialogue();
+
+        }
+
+    }
+    else
+    {
+
+        autoPlayTimer = 0.0f;
+
+    }
+
 }
 
 
@@ -1227,6 +1516,8 @@ void Game::OnActivateCurrentState()
 
         int idx = 0;
 
+        std::map<std::string, int> aff;
+
 
         if(
             ui.GetSaveMenu()
@@ -1234,7 +1525,8 @@ void Game::OnActivateCurrentState()
                 saveSystem,
                 scriptFile,
                 chapterName,
-                idx
+                idx,
+                aff
             )
         )
         {
@@ -1253,6 +1545,10 @@ void Game::OnActivateCurrentState()
                     (int)story.events.size()
                 )
                 {
+
+                    story.GetRouteManager()
+                         .SetAllAffection(aff);
+
 
                     story.SetIndex(
                         idx
@@ -1290,6 +1586,9 @@ void Game::OnActivateCurrentState()
 
                         currentChoiceTargets =
                             e.choiceTargets;
+
+                        currentChoiceAffection =
+                            e.choiceAffection;
                     }
                     else
                     {
@@ -1297,6 +1596,8 @@ void Game::OnActivateCurrentState()
                         .ClearChoice();
 
                         currentChoiceTargets.clear();
+
+                        currentChoiceAffection.clear();
                     }
 
 
@@ -1349,6 +1650,8 @@ void Game::OnActivateCurrentState()
             .ClearChoice();
 
             currentChoiceTargets.clear();
+
+            currentChoiceAffection.clear();
 
 
 
@@ -1417,11 +1720,26 @@ void Game::OnActivateCurrentState()
 
 
 
+        // ==========================================================
+        // 进入设置时：
+        //   1. 保存 Config 快照
+        //   2. 重置 ConfigMenu 内部状态（dirty / confirmSave）
+        // ==========================================================
+
         case 2:
         {
 
             lastState =
                 UIState::START;
+
+
+            configBackup = config;
+
+
+            // [新增] 重置 ConfigMenu 状态
+            ui.GetConfigMenu().SetConfig(
+                &config
+            );
 
 
             ui.SetState(
@@ -1430,6 +1748,7 @@ void Game::OnActivateCurrentState()
 
         }
         break;
+        // ==========================================================
 
 
 
@@ -1546,13 +1865,19 @@ void Game::OnActivateCurrentState()
 
 
             ui.SetState(
-                UIState::HISTORY
+                UIState::AFFECTION
             );
 
         }
         break;
 
 
+
+        // ==========================================================
+        // 进入设置时：
+        //   1. 保存 Config 快照
+        //   2. 重置 ConfigMenu 内部状态（dirty / confirmSave）
+        // ==========================================================
 
         case 4:
         {
@@ -1561,12 +1886,22 @@ void Game::OnActivateCurrentState()
                 UIState::PAUSE;
 
 
+            configBackup = config;
+
+
+            // [新增] 重置 ConfigMenu 状态
+            ui.GetConfigMenu().SetConfig(
+                &config
+            );
+
+
             ui.SetState(
                 UIState::CONFIG
             );
 
         }
         break;
+        // ==========================================================
 
 
 
@@ -1593,18 +1928,7 @@ void Game::OnActivateCurrentState()
     )
     {
 
-        if(
-            ui.GetConfigMenu()
-            .GetChoice()
-            ==
-            5
-        )
-        {
-
-            ui.GetConfigMenu()
-            .Save();
-
-        }
+        // 无操作
 
     }
 
@@ -1656,6 +1980,43 @@ void Game::OnAdvanceDialogue()
 
 
 
+            if(e.isEndingBranch)
+            {
+
+                RouteType rt =
+                    story.GetRouteManager()
+                    .CheckRoute();
+
+
+                std::string target;
+
+                if(rt == RouteType::LI_JUNHAO)
+                {
+                    target = e.branchLiJunhao;
+                }
+                else if(rt == RouteType::ZHANG_HANYU)
+                {
+                    target = e.branchZhangHanyu;
+                }
+                else
+                {
+                    target = e.branchNormal;
+                }
+
+
+                if(
+                    !target.empty()
+                    &&
+                    story.Load(target)
+                )
+                {
+                    e = story.GetCurrentEvent();
+                }
+
+            }
+
+
+
             UpdateScene();
 
 
@@ -1687,6 +2048,14 @@ void Game::OnAdvanceDialogue()
                 currentChoiceTargets =
                     e.choiceTargets;
 
+                currentChoiceAffection =
+                    e.choiceAffection;
+
+            }
+            else
+            {
+                currentChoiceTargets.clear();
+                currentChoiceAffection.clear();
             }
 
         }
@@ -1766,7 +2135,7 @@ void Game::OnBack()
     else if(
         ui.GetState()
         ==
-        UIState::HISTORY
+        UIState::AFFECTION
     )
     {
 
@@ -1807,6 +2176,24 @@ void Game::ConfirmChoice()
 
 
 
+    if(idx < (int)currentChoiceAffection.size())
+    {
+
+        for(auto& change : currentChoiceAffection[idx])
+        {
+
+            story.GetRouteManager()
+            .AddAffection(
+                change.character,
+                change.delta
+            );
+
+        }
+
+    }
+
+
+
     std::string target =
         currentChoiceTargets[idx];
 
@@ -1817,11 +2204,77 @@ void Game::ConfirmChoice()
 
     currentChoiceTargets.clear();
 
+    currentChoiceAffection.clear();
+
 
 
     if(target.empty())
     {
+
+        OnAdvanceDialogue();
+
         return;
+
+    }
+
+
+
+    if(target[0] == '#')
+    {
+
+        std::string labelName =
+            target.substr(1);
+
+
+        if(
+            story.JumpToLabel(
+                labelName
+            )
+        )
+        {
+
+            StoryEvent e =
+                story.GetCurrentEvent();
+
+
+            UpdateScene();
+
+
+            ui.GetDialogueUI()
+            .SetSpeaker(
+                e.name
+            );
+
+
+            ui.GetDialogueUI()
+            .SetText(
+                e.text,
+                e.waitTime
+            );
+
+
+            if(e.isChoice)
+            {
+
+                ui.GetDialogueUI()
+                .ShowChoice(
+                    e.choices
+                );
+
+
+                currentChoiceTargets =
+                    e.choiceTargets;
+
+                currentChoiceAffection =
+                    e.choiceAffection;
+
+            }
+
+        }
+
+
+        return;
+
     }
 
 
@@ -1860,6 +2313,9 @@ void Game::ConfirmChoice()
 
             currentChoiceTargets =
                 e.choiceTargets;
+
+            currentChoiceAffection =
+                e.choiceAffection;
 
         }
 
