@@ -1,6 +1,17 @@
 {
-    "[makefile]": {
-        "files.eol": "\n"
+    "terminal.integrated.profiles.windows": {
+        "MSYS2 UCRT64": {
+            "path": "C:/msys64/usr/bin/bash.exe",
+            "args": [
+                "--login",
+                "-i"
+            ],
+            "env": {
+                "MSYSTEM": "UCRT64",
+                "CHERE_INVOKING": "1"
+            }
+        }
     },
-    "files.eol": "\n"
+
+    "terminal.integrated.defaultProfile.windows": "MSYS2 UCRT64"
 }

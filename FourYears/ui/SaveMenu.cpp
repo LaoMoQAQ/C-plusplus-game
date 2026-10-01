@@ -33,6 +33,8 @@ void SaveMenu::SetPage(
 
     renameTargetFile.clear();
 
+    editingText.clear();
+
 }
 
 
@@ -169,9 +171,14 @@ void SaveMenu::Render(
 
 
 
+    // ==========================================================
+    // 输入框
+    // ==========================================================
+
     if(renaming)
     {
 
+        // 第一行：输入框本体
         std::string line =
             "重命名: " + renameBuffer + "_";
 
@@ -181,11 +188,32 @@ void SaveMenu::Render(
             780
         );
 
-        renderer.DrawText(
-            "Enter 确认 / ESC 取消",
-            400,
-            830
-        );
+
+        // [新增] 第二行：如果 IME 正在预编辑（拼音），
+        // 显示出来。没有的话显示一行操作提示。
+        if(!editingText.empty())
+        {
+
+            std::string pinyinLine =
+                "拼音: " + editingText;
+
+            renderer.DrawText(
+                pinyinLine,
+                400,
+                815
+            );
+
+        }
+        else
+        {
+
+            renderer.DrawText(
+                "支持中文输入  Enter 确认 / ESC 取消",
+                400,
+                815
+            );
+
+        }
 
     }
     else if(confirmingDelete && !saveDataList.empty())
@@ -344,6 +372,8 @@ void SaveMenu::Reset()
     renameBuffer.clear();
 
     renameTargetFile.clear();
+
+    editingText.clear();
 
 }
 
@@ -736,6 +766,9 @@ void SaveMenu::BeginRename()
 
     renameBuffer = data.displayName;
 
+    // [新增] 清空预编辑文本
+    editingText.clear();
+
 }
 
 
@@ -810,37 +843,38 @@ void SaveMenu::HandleRenameKey(
 
     }
 
+}
 
-    if(sym == SDLK_SPACE)
+
+
+
+
+void SaveMenu::AppendRenameText(
+    const std::string& utf8
+)
+{
+
+    if(!renaming)
     {
-
-        renameBuffer += ' ';
-
         return;
-
     }
 
 
-    if(sym >= SDLK_a && sym <= SDLK_z)
+    // 限长 30 个 UTF-8 字节
+    if(
+        renameBuffer.size() + utf8.size()
+        > 30
+    )
     {
-
-        renameBuffer +=
-            (char)('a' + (sym - SDLK_a));
-
         return;
-
     }
 
 
-    if(sym >= SDLK_0 && sym <= SDLK_9)
-    {
+    renameBuffer += utf8;
 
-        renameBuffer +=
-            (char)('0' + (sym - SDLK_0));
 
-        return;
-
-    }
+    // [新增] 上屏后清空预编辑显示
+    editingText.clear();
 
 }
 
@@ -856,6 +890,8 @@ void SaveMenu::CancelRename()
     renameBuffer.clear();
 
     renameTargetFile.clear();
+
+    editingText.clear();
 
 }
 
@@ -896,6 +932,8 @@ void SaveMenu::ConfirmRename(
 
     renameTargetFile.clear();
 
+    editingText.clear();
+
 }
 
 
@@ -906,5 +944,32 @@ bool SaveMenu::IsRenaming() const
 {
 
     return renaming;
+
+}
+
+
+
+
+
+// ==========================================================
+// [新增] 设置预编辑文本
+// ==========================================================
+//
+// 由 Game 收到 SDL_TEXTEDITING 时调用。
+// event.edit.text 是 UTF-8 字符串，
+// 例如 "nihao" 或 "ni'hao"。
+
+void SaveMenu::SetEditingText(
+    const std::string& utf8
+)
+{
+
+    if(!renaming)
+    {
+        return;
+    }
+
+
+    editingText = utf8;
 
 }

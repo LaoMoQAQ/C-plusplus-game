@@ -58,7 +58,6 @@ public:
 
 
 
-    // [修改] 带出 affection
     bool Confirm(
         SaveSystem& saveSystem,
         std::string& outScriptFile,
@@ -69,7 +68,6 @@ public:
 
 
 
-    // [修改] 加 affection 参数
     void Create(
         SaveSystem& saveSystem,
         const std::string& name,
@@ -131,6 +129,10 @@ public:
         SaveSystem& saveSystem
     );
 
+    void AppendRenameText(
+        const std::string& utf8
+    );
+
     void CancelRename();
 
     void ConfirmRename(
@@ -138,6 +140,23 @@ public:
     );
 
     bool IsRenaming() const;
+
+
+    // ==========================================================
+    // [新增] 预编辑文本（IME 正在输入的拼音）
+    // ==========================================================
+    //
+    // SDL_TEXTEDITING 事件里带的是"还没上屏"的内容，
+    // 例如输入法里刚敲的 "nihao"。
+    // 用来在输入框下方显示，让玩家知道自己正在打什么。
+    //
+    // 上屏后（SDL_TEXTINPUT）会清空。
+
+    void SetEditingText(
+        const std::string& utf8
+    );
+
+    // ==========================================================
 
 
 
@@ -167,6 +186,10 @@ private:
     bool renaming = false;
     std::string renameBuffer;
     std::string renameTargetFile;
+
+
+    // [新增] IME 预编辑文本
+    std::string editingText;
 
 
 

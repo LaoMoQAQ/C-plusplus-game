@@ -6,9 +6,11 @@
 
 #include <SDL_ttf.h>
 
+// [修改] Windows 专有头文件条件编译
+#ifdef _WIN32
 #include <SDL_syswm.h>
-
 #include <windows.h>
+#endif
 
 
 
@@ -161,23 +163,9 @@ bool Game::Init()
 
 
 
-    SDL_SetHint(
-        SDL_HINT_IME_SHOW_UI,
-        "0"
-    );
-
-    SDL_StopTextInput();
-
-    SDL_EventState(
-        SDL_TEXTINPUT,
-        SDL_DISABLE
-    );
-
-    SDL_EventState(
-        SDL_TEXTEDITING,
-        SDL_DISABLE
-    );
-
+    // ==========================================================
+    // [修改] 保存 HWND 和旧 HIMC，供 SetInputMode 使用
+    // ==========================================================
 
 #ifdef _WIN32
 
@@ -199,6 +187,10 @@ bool Game::Init()
 
             HWND hwnd =
                 wmInfo.info.win.window;
+
+
+            // 保存 HWND
+            winHwnd = (void*)hwnd;
 
 
             HMODULE hImm =
@@ -228,10 +220,14 @@ bool Game::Init()
                 if(pImmAssociateContext)
                 {
 
-                    pImmAssociateContext(
-                        hwnd,
-                        NULL
-                    );
+                    // 把 IME 从窗口解除，并记住旧句柄
+                    HIMC old =
+                        pImmAssociateContext(
+                            hwnd,
+                            NULL
+                        );
+
+                    winOldHimc = (void*)old;
 
                 }
 
@@ -242,6 +238,26 @@ bool Game::Init()
     }
 
 #endif
+
+    // ==========================================================
+
+
+
+
+
+
+    // 初始化时禁用文本输入，字母键全部走 KEYDOWN
+    SDL_StopTextInput();
+
+    SDL_EventState(
+        SDL_TEXTINPUT,
+        SDL_DISABLE
+    );
+
+    SDL_EventState(
+        SDL_TEXTEDITING,
+        SDL_DISABLE
+    );
 
 
 
@@ -447,6 +463,133 @@ bool Game::Init()
 
 
 
+// ==========================================================
+// 切换输入模式
+// ==========================================================
+//
+// 只在状态切换时调一次（HandleEvents 开头检测）。
+//
+// enabled = true  -> 恢复 IME + SDL_TEXTINPUT（输入框用）
+// enabled = false -> 禁用 IME + SDL_TEXTINPUT（快捷键用）
+
+void Game::SetInputMode(bool enabled)
+{
+
+#ifdef _WIN32
+
+    if(winHwnd)
+    {
+
+        HMODULE hImm =
+            LoadLibraryA(
+                "imm32.dll"
+            );
+
+
+        if(hImm)
+        {
+
+            typedef HIMC (WINAPI *PFN_ImmAssociateContext)(
+                HWND,
+                HIMC
+            );
+
+
+            PFN_ImmAssociateContext
+                pImmAssociateContext =
+                (PFN_ImmAssociateContext)
+                GetProcAddress(
+                    hImm,
+                    "ImmAssociateContext"
+                );
+
+
+            if(pImmAssociateContext)
+            {
+
+                if(enabled)
+                {
+                    pImmAssociateContext(
+                        (HWND)winHwnd,
+                        (HIMC)winOldHimc
+                    );
+                }
+                else
+                {
+                    pImmAssociateContext(
+                        (HWND)winHwnd,
+                        NULL
+                    );
+                }
+
+            }
+
+        }
+
+    }
+
+#endif
+
+
+    // ==========================================================
+    // SDL 层
+    // ==========================================================
+    //
+    // [新增] IME 候选窗提示：
+    //   输入框激活时显示候选词窗口（中文输入时能看到候选词）。
+    //   输入框关闭时隐藏，避免字母键误触发候选窗。
+    //
+    // 注意：SDL_SetHint 必须在 StartTextInput 之前调，
+    // 否则本次切换不会生效。
+
+    if(enabled)
+    {
+
+        // 显示 IME 候选窗
+        SDL_SetHint(
+            SDL_HINT_IME_SHOW_UI,
+            "1"
+        );
+
+
+        SDL_EventState(
+            SDL_TEXTINPUT,
+            SDL_ENABLE
+        );
+
+        SDL_EventState(
+            SDL_TEXTEDITING,
+            SDL_ENABLE
+        );
+
+        SDL_StartTextInput();
+
+    }
+    else
+    {
+
+    // [修改] 不再在这里强制设 0。
+    // 让 SetInputMode 在切换时自己控制。
+    // 有些 SDL 版本对同一个 hint 只读一次，
+    // Init 里设 0 之后 SetInputMode 改 1 就不生效了。
+
+    SDL_StopTextInput();
+
+    SDL_EventState(
+        SDL_TEXTINPUT,
+        SDL_DISABLE
+    );
+
+    SDL_EventState(
+        SDL_TEXTEDITING,
+        SDL_DISABLE
+    );
+
+    }
+
+}
+
+
 
 
 
@@ -492,6 +635,63 @@ void Game::Run()
 void Game::HandleEvents()
 {
 
+        bool renaming =
+
+        ui.GetState() == UIState::SAVE &&
+        ui.GetSaveMenu().IsRenaming();
+
+
+    if(renaming != lastRenaming)
+    {
+        SetInputMode(renaming);
+        lastRenaming = renaming;
+
+
+        // ==========================================================
+        // [新增] 告诉 IME 输入框在屏幕上的位置
+        // ==========================================================
+        //
+        // Windows 的 IME 候选窗会贴着这个矩形显示。
+        // 不设置的话，候选窗可能画在窗口外或者干脆不出现。
+        //
+        // 坐标是窗口坐标，不是逻辑坐标。
+        // 但 SDL2 在设置了 RenderSetLogicalSize 后，
+        // SDL_SetTextInputRect 用的仍是窗口坐标，
+        // 所以这里要按物理窗口尺寸换算。
+        //
+        // 简单起见，直接用窗口中心偏下：
+        //   x = 窗口宽的 25%
+        //   y = 窗口高的 85%
+        //   w = 窗口宽的 50%
+        //   h = 40
+
+        if(renaming)
+        {
+            int winW = 0;
+            int winH = 0;
+
+            SDL_GetWindowSize(
+                window,
+                &winW,
+                &winH
+            );
+
+
+            SDL_Rect rect;
+
+            rect.x = winW / 4;
+            rect.y = (int)(winH * 0.85f);
+            rect.w = winW / 2;
+            rect.h = 40;
+
+
+            SDL_SetTextInputRect(&rect);
+        }
+
+        // ==========================================================
+    } 
+
+
     while(
         SDL_PollEvent(
             &event
@@ -514,11 +714,75 @@ void Game::HandleEvents()
 
 
 
+                // ==========================================================
+        // SDL_TEXTINPUT：输入框接收"已上屏"的文本
+        // ==========================================================
+        //
+        // 输入法里选中汉字后，这里收到 "你好"。
+
+        if(
+            event.type ==
+            SDL_TEXTINPUT
+        )
+        {
+
+            if(renaming)
+            {
+                ui.GetSaveMenu()
+                .AppendRenameText(
+                    event.text.text
+                );
+            }
+
+        }
+
+        // ==========================================================
+
+
+        // ==========================================================
+        // [新增] SDL_TEXTEDITING：输入法预编辑（拼音）
+        // ==========================================================
+        //
+        // 玩家在输入法里敲 "nihao" 还没选字时，
+        // 这里收到 "nihao"。
+        // 用来在输入框下方实时显示，让玩家知道在打什么。
+        //
+        // 上屏（SDL_TEXTINPUT）后，SDL 会发一个空字符串的
+        // TEXTEDITING，表示预编辑结束。
+
+        if(
+            event.type ==
+            SDL_TEXTEDITING
+        )
+        {
+
+            if(renaming)
+            {
+                ui.GetSaveMenu()
+                .SetEditingText(
+                    event.edit.text
+                );
+            }
+
+        }
+
+        // ==========================================================
+
+
+
+
         if(
             event.type ==
             SDL_KEYDOWN
         )
         {
+
+            // ----------------------------------------------------------
+            // 重命名输入模式拦截（只处理控制键）
+            // ----------------------------------------------------------
+            //
+            // 字符输入走 SDL_TEXTINPUT，
+            // KEYDOWN 只处理 Enter / ESC / Backspace。
 
             if(
                 ui.GetState()
@@ -541,13 +805,8 @@ void Game::HandleEvents()
             }
 
             // ----------------------------------------------------------
-            // [修改] 设置询问状态拦截
+            // 设置询问状态拦截
             // ----------------------------------------------------------
-            //
-            // HandleConfirmKey 现在返回 int：
-            //  -1 留在设置
-            //   0 返回，未保存（还原 Config）
-            //   1 返回，已保存
 
             if(
                 ui.GetState()
@@ -568,18 +827,14 @@ void Game::HandleEvents()
 
                 if(r == 1)
                 {
-                    // 已保存，直接返回
                     OnBack();
                 }
                 else if(r == 0)
                 {
-                    // 未保存，还原 Config，再返回
                     config = configBackup;
 
                     OnBack();
                 }
-
-                // r == -1 继续留在设置
 
                 continue;
 
@@ -933,8 +1188,6 @@ void Game::HandleEvents()
                     {
                         OnBack();
                     }
-
-                    // false 等待玩家按 Y / N / ESC
 
                 }
                 else
@@ -1502,8 +1755,6 @@ void Game::Quit()
 void Game::OnActivateCurrentState()
 {
 
-    // 存档界面
-
     if(
         ui.GetState()
         ==
@@ -1617,8 +1868,6 @@ void Game::OnActivateCurrentState()
 
 
 
-    // 开始菜单
-
     else if(
         ui.GetState()
         ==
@@ -1720,12 +1969,6 @@ void Game::OnActivateCurrentState()
 
 
 
-        // ==========================================================
-        // 进入设置时：
-        //   1. 保存 Config 快照
-        //   2. 重置 ConfigMenu 内部状态（dirty / confirmSave）
-        // ==========================================================
-
         case 2:
         {
 
@@ -1736,7 +1979,6 @@ void Game::OnActivateCurrentState()
             configBackup = config;
 
 
-            // [新增] 重置 ConfigMenu 状态
             ui.GetConfigMenu().SetConfig(
                 &config
             );
@@ -1748,7 +1990,6 @@ void Game::OnActivateCurrentState()
 
         }
         break;
-        // ==========================================================
 
 
 
@@ -1770,8 +2011,6 @@ void Game::OnActivateCurrentState()
 
 
 
-
-    // 暂停菜单
 
     else if(
         ui.GetState()
@@ -1873,12 +2112,6 @@ void Game::OnActivateCurrentState()
 
 
 
-        // ==========================================================
-        // 进入设置时：
-        //   1. 保存 Config 快照
-        //   2. 重置 ConfigMenu 内部状态（dirty / confirmSave）
-        // ==========================================================
-
         case 4:
         {
 
@@ -1889,7 +2122,6 @@ void Game::OnActivateCurrentState()
             configBackup = config;
 
 
-            // [新增] 重置 ConfigMenu 状态
             ui.GetConfigMenu().SetConfig(
                 &config
             );
@@ -1901,7 +2133,6 @@ void Game::OnActivateCurrentState()
 
         }
         break;
-        // ==========================================================
 
 
 

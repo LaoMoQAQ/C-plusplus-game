@@ -7,11 +7,11 @@
 
             "type": "process",
 
-            "command": "C:/msys64/usr/bin/bash.exe",
+            "command": "C:/msys64/usr/bin/make.exe",
 
             "args": [
-                "-c",
-                "source /etc/profile && rm -f /f/gal/FourYears/game.exe && make -C /f/gal > /tmp/make_vscode.log 2>&1"
+                "-C",
+                "F:/gal"
             ],
 
             "group": {
@@ -21,13 +21,7 @@
 
             "problemMatcher": [
                 "$gcc"
-            ],
-
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared",
-                "clear": true
-            }
+            ]
         },
 
         {
@@ -35,24 +29,15 @@
 
             "type": "process",
 
-            "command": "C:/msys64/usr/bin/bash.exe",
+            "command": "F:/gal/FourYears/game.exe",
 
-            "args": [
-                "-c",
-                "cd /f/gal/FourYears && ./game.exe"
-            ],
+            "args": [],
 
             "group": {
                 "kind": "test"
             },
 
-            "problemMatcher": [],
-
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared",
-                "clear": true
-            }
+            "problemMatcher": []
         },
 
         {
@@ -60,22 +45,17 @@
 
             "type": "process",
 
-            "command": "C:/msys64/usr/bin/bash.exe",
+            "command": "C:/msys64/usr/bin/make.exe",
 
             "args": [
-                "-c",
-                "source /etc/profile && make -C /f/gal clean"
+                "-C",
+                "F:/gal",
+                "clean"
             ],
 
             "group": "none",
 
-            "problemMatcher": [],
-
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared",
-                "clear": true
-            }
+            "problemMatcher": []
         }
     ]
 }
