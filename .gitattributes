@@ -1,0 +1,17 @@
+* text=auto eol=lf
+
+*.cpp  text eol=lf
+*.h    text eol=lf
+*.c    text eol=lf
+*.txt  text eol=lf
+*.md   text eol=lf
+*.ini  text eol=lf
+*.json text eol=lf
+Makefile text eol=lf
+
+*.dll   binary
+*.exe   binary
+*.png   binary
+*.jpg   binary
+*.ttf   binary
+*.otf   binary
