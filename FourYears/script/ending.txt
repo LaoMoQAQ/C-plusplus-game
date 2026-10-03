@@ -11,6 +11,9 @@
 [背景]
 ending_sunset.png
 
+[BGM]
+sunset_love.mp3
+
 [立绘]
 wuhongtao/normal.png
 

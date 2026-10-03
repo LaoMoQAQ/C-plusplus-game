@@ -150,9 +150,10 @@ SDL_Texture* ResourceManager::LoadTexture(
 
 
 
+    // 打开 alpha 混合，立绘淡入淡出需要
+    SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+
     textures[path] = texture;
-
-
 
     return texture;
 

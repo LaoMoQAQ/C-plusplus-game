@@ -6,264 +6,202 @@
 
 SaveMenu::SaveMenu()
 {
+    choice = 0;
+    page = SavePage::LOAD;
 
-    choice=0;
-
-    page=SavePage::LOAD;
-
+    displayHighlightY = (float)LIST_Y;
 }
 
 
 
 
-void SaveMenu::SetPage(
-    SavePage value
-)
+
+void SaveMenu::SetPage(SavePage value)
 {
+    page = value;
+    choice = 0;
 
-    page=value;
-
-    choice=0;
-
-    confirmingDelete=false;
-
-    renaming=false;
-
+    confirmingDelete = false;
+    renaming = false;
+    creating = false;
     renameBuffer.clear();
-
     renameTargetFile.clear();
-
     editingText.clear();
-
 }
 
 
 
 
 
-void SaveMenu::Refresh(
-    SaveSystem& saveSystem
-)
+void SaveMenu::Refresh(SaveSystem& saveSystem)
 {
-
     saves.clear();
-
     saveDataList.clear();
 
-
-
-    saveDataList =
-        saveSystem.GetSaveList();
-
-
+    saveDataList = saveSystem.GetSaveList();
 
     for(auto& data : saveDataList)
     {
-
         std::string line = data.displayName;
-
         line += "  [";
         line += data.chapterName;
         line += "]  ";
         line += data.time;
 
         saves.push_back(line);
-
     }
 
-
-
-    if(
-        saves.empty()
-    )
+    if(saves.empty())
     {
-
-        saves.push_back(
-            "没有存档"
-        );
-
+        saves.push_back("没有存档");
     }
 
-
-
-    choice=0;
-
-    confirmingDelete=false;
-
+    choice = 0;
+    confirmingDelete = false;
 }
 
 
 
 
 
-void SaveMenu::Render(
-    Renderer& renderer
-)
+void SaveMenu::Update()
 {
+    float target = (float)(LIST_Y + choice * LIST_GAP);
 
+    float diff = target - displayHighlightY;
 
-    if(
-        page==SavePage::LOAD
-    )
-    {
-
-        renderer.DrawText(
-            "读取存档",
-            600,
-            100
-        );
-
-    }
-
+    if(diff > -0.5f && diff < 0.5f)
+        displayHighlightY = target;
     else
+        displayHighlightY += diff * hlSpeed;
+}
+
+
+
+
+
+void SaveMenu::Render(Renderer& renderer)
+{
+    // ---- 全屏遮罩 ----
+
+    renderer.DrawFilledRect(
+        0, 0,
+        UILayout::SCREEN_W,
+        UILayout::SCREEN_H,
+        UILayout::OVERLAY_R,
+        UILayout::OVERLAY_G,
+        UILayout::OVERLAY_B,
+        UILayout::OVERLAY_A
+    );
+
+
+    // ---- 标题 ----
+
+    std::string title =
+        (page == SavePage::LOAD) ? "读取存档" : "存档管理";
+
+    renderer.DrawText(title, 700, 100);
+
+    renderer.DrawFilledRect(
+        650, 150, 300, 2,
+        UILayout::LINE_R,
+        UILayout::LINE_G,
+        UILayout::LINE_B,
+        UILayout::LINE_A
+    );
+
+
+    // ---- 高亮块 ----
+
+    if(!saves.empty() && !IsRenaming())
     {
-
-        renderer.DrawText(
-            "存档管理",
-            600,
-            100
+        renderer.DrawFilledRoundRect(
+            LIST_X - 20,
+            (int)displayHighlightY - 6,
+            LIST_W + 40,
+            LIST_H - 4,
+            UILayout::HL_RADIUS,
+            UILayout::HL_R,
+            UILayout::HL_G,
+            UILayout::HL_B,
+            UILayout::HL_A
         );
-
     }
 
 
+    // ---- 存档列表 ----
 
-
-    for(
-        int i=0;
-        i<(int)saves.size();
-        i++
-    )
+    for(int i = 0; i < (int)saves.size(); i++)
     {
+        int iy = LIST_Y + i * LIST_GAP;
 
         std::string text;
 
-
-        if(
-            i==choice
-        )
-        {
-
-            text=
-            "> "
-            +
-            saves[i];
-
-        }
+        if(i == choice && !IsRenaming())
+            text = "> " + saves[i];
+        else if(i == choice)
+            text = "  " + saves[i];
         else
-        {
+            text = "  " + saves[i];
 
-            text=
-            saves[i];
-
-        }
-
-
-
-        renderer.DrawText(
-            text,
-            LIST_X,
-            LIST_Y+i*LIST_GAP
-        );
-
+        renderer.DrawText(text, LIST_X, iy);
     }
 
 
+    // ---- 底部 ----
 
-
-    // ==========================================================
-    // 输入框
-    // ==========================================================
-
-    if(renaming)
+    if(IsRenaming())
     {
+        // 输入模式：区分新建 / 重命名
+        std::string prefix =
+            creating ? "新建存档: " : "重命名: ";
 
-        // 第一行：输入框本体
-        std::string line =
-            "重命名: " + renameBuffer + "_";
+        std::string line = prefix + renameBuffer + "_";
+        renderer.DrawText(line, 400, 780);
 
-        renderer.DrawText(
-            line,
-            400,
-            780
-        );
-
-
-        // [新增] 第二行：如果 IME 正在预编辑（拼音），
-        // 显示出来。没有的话显示一行操作提示。
         if(!editingText.empty())
         {
-
-            std::string pinyinLine =
-                "拼音: " + editingText;
-
-            renderer.DrawText(
-                pinyinLine,
-                400,
-                815
-            );
-
+            std::string pinyinLine = "拼音: " + editingText;
+            renderer.DrawText(pinyinLine, 400, 815);
         }
         else
         {
-
             renderer.DrawText(
                 "支持中文输入  Enter 确认 / ESC 取消",
-                400,
-                815
+                400, 815
             );
-
         }
-
     }
     else if(confirmingDelete && !saveDataList.empty())
     {
-
         SaveData data = GetCurrentSave();
 
         if(!data.filename.empty())
         {
-
             std::string msg =
                 "确认删除 \""
                 + data.displayName
                 + "\" ？   Enter 确认 / ESC 取消";
 
-            renderer.DrawText(
-                msg,
-                380,
-                800
-            );
-
+            renderer.DrawText(msg, 380, 800);
         }
-
     }
     else
     {
-
-        if(
-            page==SavePage::LOAD
-        )
+        if(page == SavePage::LOAD)
         {
-
             renderer.DrawText(
                 "Enter 读取存档  N 新建  C 复制  Delete 删除  R 重命名",
-                300,
-                750
+                300, 750
             );
-
         }
         else
         {
-
             renderer.DrawText(
                 "N 新建  C 复制  Delete 删除  R 重命名",
-                350,
-                750
+                350, 750
             );
-
         }
-
     }
 
 
@@ -272,77 +210,31 @@ void SaveMenu::Render(
         UILayout::BACK_X,
         UILayout::BACK_Y
     );
-
 }
 
 
 
 
 
-void SaveMenu::HandleInput(
-    int key
-)
+void SaveMenu::HandleInput(int key)
 {
+    if(IsRenaming()) return;
+    if(saves.empty()) return;
 
-    if(renaming)
+    hlSpeed = HL_ANIM_SPEED;
+
+    if(key == 1)
     {
-        return;
-    }
-
-
-    if(
-        saves.empty()
-    )
-    {
-        return;
-    }
-
-
-
-
-    if(
-        key==1
-    )
-    {
-
         choice--;
-
-
-        if(
-            choice<0
-        )
-        {
-
-            choice=
-            saves.size()-1;
-
-        }
-
+        if(choice < 0)
+            choice = saves.size() - 1;
     }
-
-
-
-
-    else if(
-        key==2
-    )
+    else if(key == 2)
     {
-
         choice++;
-
-
-        if(
-            choice>=
-            (int)saves.size()
-        )
-        {
-
-            choice=0;
-
-        }
-
+        if(choice >= (int)saves.size())
+            choice = 0;
     }
-
 }
 
 
@@ -351,9 +243,7 @@ void SaveMenu::HandleInput(
 
 int SaveMenu::GetChoice() const
 {
-
     return choice;
-
 }
 
 
@@ -362,19 +252,13 @@ int SaveMenu::GetChoice() const
 
 void SaveMenu::Reset()
 {
-
-    choice=0;
-
-    confirmingDelete=false;
-
-    renaming=false;
-
+    choice = 0;
+    confirmingDelete = false;
+    renaming = false;
+    creating = false;
     renameBuffer.clear();
-
     renameTargetFile.clear();
-
     editingText.clear();
-
 }
 
 
@@ -383,22 +267,10 @@ void SaveMenu::Reset()
 
 SaveData SaveMenu::GetCurrentSave()
 {
-
-    if(
-        choice>=0
-        &&
-        choice<(int)saveDataList.size()
-    )
-    {
-
+    if(choice >= 0 && choice < (int)saveDataList.size())
         return saveDataList[choice];
 
-    }
-
-
-
     return SaveData();
-
 }
 
 
@@ -414,7 +286,6 @@ void SaveMenu::Create(
     const std::map<std::string, int>& affection
 )
 {
-
     saveSystem.CreateSave(
         name,
         scriptFile,
@@ -423,83 +294,35 @@ void SaveMenu::Create(
         affection
     );
 
-
-
-    Refresh(
-        saveSystem
-    );
-
+    Refresh(saveSystem);
 }
 
 
 
 
 
-void SaveMenu::Delete(
-    SaveSystem& saveSystem
-)
+void SaveMenu::Delete(SaveSystem& saveSystem)
 {
+    SaveData data = GetCurrentSave();
 
-    SaveData data=
-        GetCurrentSave();
+    if(data.filename.empty()) return;
 
-
-
-    if(
-        data.filename.empty()
-    )
-    {
-        return;
-    }
-
-
-
-    saveSystem.DeleteSave(
-        data.filename
-    );
-
-
-
-    Refresh(
-        saveSystem
-    );
-
+    saveSystem.DeleteSave(data.filename);
+    Refresh(saveSystem);
 }
 
 
 
 
 
-void SaveMenu::Copy(
-    SaveSystem& saveSystem
-)
+void SaveMenu::Copy(SaveSystem& saveSystem)
 {
+    SaveData data = GetCurrentSave();
 
+    if(data.filename.empty()) return;
 
-    SaveData data=
-        GetCurrentSave();
-
-
-
-    if(
-        data.filename.empty()
-    )
-    {
-        return;
-    }
-
-
-
-    saveSystem.CopySave(
-        data.filename
-    );
-
-
-
-    Refresh(
-        saveSystem
-    );
-
+    saveSystem.CopySave(data.filename);
+    Refresh(saveSystem);
 }
 
 
@@ -508,9 +331,7 @@ void SaveMenu::Copy(
 
 SavePage SaveMenu::GetPage() const
 {
-
     return page;
-
 }
 
 
@@ -525,34 +346,13 @@ bool SaveMenu::Confirm(
     std::map<std::string, int>& outAffection
 )
 {
+    if(saves.empty()) return false;
 
-    if(
-        saves.empty()
-    )
+    if(page == SavePage::LOAD)
     {
-        return false;
-    }
+        SaveData data = GetCurrentSave();
 
-
-
-    if(
-        page==SavePage::LOAD
-    )
-    {
-
-        SaveData data =
-            GetCurrentSave();
-
-
-
-        if(
-            data.filename.empty()
-        )
-        {
-            return false;
-        }
-
-
+        if(data.filename.empty()) return false;
 
         return saveSystem.LoadSave(
             data.filename,
@@ -561,74 +361,48 @@ bool SaveMenu::Confirm(
             outIndex,
             outAffection
         );
-
     }
 
-
-
     return false;
-
 }
 
 
 
 
 
-void SaveMenu::HandleMouseMove(
-    int x,
-    int y
-)
+void SaveMenu::HandleMouseMove(int x, int y)
 {
+    if(IsRenaming()) return;
 
-    if(renaming)
+    for(int i = 0; i < (int)saves.size(); i++)
     {
-        return;
-    }
-
-
-    for(int i=0;i<(int)saves.size();i++)
-    {
-
         int ix = LIST_X;
         int iy = LIST_Y + i * LIST_GAP;
 
-        if(
-            x >= ix &&
-            x <  ix + LIST_W &&
-            y >= iy &&
-            y <  iy + LIST_H
-        )
+        if(x >= ix && x < ix + LIST_W &&
+           y >= iy && y < iy + LIST_H)
         {
+            hlSpeed = HL_ANIM_SPEED_FAST;
             choice = i;
             return;
         }
-
     }
-
 }
 
 
 
 
 
-MenuMouseResult SaveMenu::HandleMouseClick(
-    int x,
-    int y
-)
+MenuMouseResult SaveMenu::HandleMouseClick(int x, int y)
 {
-
-    if(renaming)
-    {
+    if(IsRenaming())
         return MenuMouseResult::NONE;
-    }
 
 
-    if(
-        x >= UILayout::BACK_X &&
-        x <  UILayout::BACK_X + UILayout::BACK_W &&
-        y >= UILayout::BACK_Y &&
-        y <  UILayout::BACK_Y + UILayout::BACK_H
-    )
+    if(x >= UILayout::BACK_X &&
+       x <  UILayout::BACK_X + UILayout::BACK_W &&
+       y >= UILayout::BACK_Y &&
+       y <  UILayout::BACK_Y + UILayout::BACK_H)
     {
         if(confirmingDelete)
         {
@@ -641,33 +415,23 @@ MenuMouseResult SaveMenu::HandleMouseClick(
 
 
     if(confirmingDelete)
-    {
         return MenuMouseResult::ACTIVATE;
-    }
 
 
-    for(int i=0;i<(int)saves.size();i++)
+    for(int i = 0; i < (int)saves.size(); i++)
     {
-
         int ix = LIST_X;
         int iy = LIST_Y + i * LIST_GAP;
 
-        if(
-            x >= ix &&
-            x <  ix + LIST_W &&
-            y >= iy &&
-            y <  iy + LIST_H
-        )
+        if(x >= ix && x < ix + LIST_W &&
+           y >= iy && y < iy + LIST_H)
         {
             choice = i;
             return MenuMouseResult::ACTIVATE;
         }
-
     }
 
-
     return MenuMouseResult::NONE;
-
 }
 
 
@@ -676,15 +440,9 @@ MenuMouseResult SaveMenu::HandleMouseClick(
 
 void SaveMenu::BeginDelete()
 {
-
-    if(GetCurrentSave().filename.empty())
-    {
-        return;
-    }
-
+    if(GetCurrentSave().filename.empty()) return;
 
     confirmingDelete = true;
-
 }
 
 
@@ -693,40 +451,24 @@ void SaveMenu::BeginDelete()
 
 void SaveMenu::CancelDelete()
 {
-
     confirmingDelete = false;
-
 }
 
 
 
 
 
-void SaveMenu::ConfirmDelete(
-    SaveSystem& saveSystem
-)
+void SaveMenu::ConfirmDelete(SaveSystem& saveSystem)
 {
-
     SaveData data = GetCurrentSave();
-
 
     if(!data.filename.empty())
     {
-
-        saveSystem.DeleteSave(
-            data.filename
-        );
-
-
-        Refresh(
-            saveSystem
-        );
-
+        saveSystem.DeleteSave(data.filename);
+        Refresh(saveSystem);
     }
 
-
     confirmingDelete = false;
-
 }
 
 
@@ -735,9 +477,7 @@ void SaveMenu::ConfirmDelete(
 
 bool SaveMenu::IsConfirmingDelete() const
 {
-
     return confirmingDelete;
-
 }
 
 
@@ -745,30 +485,46 @@ bool SaveMenu::IsConfirmingDelete() const
 
 
 // ==========================================================
-// 重命名输入模式
+// 输入模式
 // ==========================================================
 
 void SaveMenu::BeginRename()
 {
-
     SaveData data = GetCurrentSave();
 
-
-    if(data.filename.empty())
-    {
-        return;
-    }
-
+    if(data.filename.empty()) return;
 
     renaming = true;
+    creating = false;
 
     renameTargetFile = data.filename;
-
     renameBuffer = data.displayName;
 
-    // [新增] 清空预编辑文本
+    editingText.clear();
+}
+
+
+
+
+
+void SaveMenu::BeginCreate(
+    const std::string& scriptFile,
+    const std::string& chapterName,
+    int index,
+    const std::map<std::string, int>& affection
+)
+{
+    renaming = false;
+    creating = true;
+
+    renameTargetFile.clear();
+    renameBuffer.clear();
     editingText.clear();
 
+    pendingScriptFile = scriptFile;
+    pendingChapterName = chapterName;
+    pendingIndex = index;
+    pendingAffection = affection;
 }
 
 
@@ -780,102 +536,60 @@ void SaveMenu::HandleRenameKey(
     SaveSystem& saveSystem
 )
 {
-
-    if(!renaming)
-    {
-        return;
-    }
+    if(!IsRenaming()) return;
 
 
     if(sym == SDLK_RETURN)
     {
-
         ConfirmRename(saveSystem);
-
         return;
-
     }
-
 
     if(sym == SDLK_ESCAPE)
     {
-
         CancelRename();
-
         return;
-
     }
 
 
     // 退格：按 UTF-8 字符边界删除
     if(sym == SDLK_BACKSPACE)
     {
-
         if(!renameBuffer.empty())
         {
-
-            int i =
-                (int)renameBuffer.size() - 1;
-
+            int i = (int)renameBuffer.size() - 1;
 
             while(
-                i > 0
-                &&
-                (
-                    (unsigned char)renameBuffer[i]
-                    & 0xC0
-                )
-                ==
-                0x80
+                i > 0 &&
+                ((unsigned char)renameBuffer[i] & 0xC0) == 0x80
             )
             {
                 i--;
             }
 
-
-            renameBuffer.erase(
-                i
-            );
-
+            renameBuffer.erase(i);
         }
 
         return;
-
     }
-
 }
 
 
 
 
 
-void SaveMenu::AppendRenameText(
-    const std::string& utf8
-)
+void SaveMenu::AppendRenameText(const std::string& utf8)
 {
-
-    if(!renaming)
-    {
-        return;
-    }
-
+    if(!IsRenaming()) return;
 
     // 限长 30 个 UTF-8 字节
-    if(
-        renameBuffer.size() + utf8.size()
-        > 30
-    )
-    {
+    if(renameBuffer.size() + utf8.size() > 30)
         return;
-    }
-
 
     renameBuffer += utf8;
 
-
-    // [新增] 上屏后清空预编辑显示
+    // 上屏后清空预编辑显示
     editingText.clear();
-
 }
 
 
@@ -884,56 +598,59 @@ void SaveMenu::AppendRenameText(
 
 void SaveMenu::CancelRename()
 {
-
     renaming = false;
+    creating = false;
 
     renameBuffer.clear();
-
     renameTargetFile.clear();
-
     editingText.clear();
-
 }
 
 
 
 
 
-void SaveMenu::ConfirmRename(
-    SaveSystem& saveSystem
-)
+void SaveMenu::ConfirmRename(SaveSystem& saveSystem)
 {
+    // ---- 新建 ----
 
-    if(
-        renaming
-        &&
-        !renameTargetFile.empty()
-        &&
-        !renameBuffer.empty()
-    )
+    if(creating)
     {
+        if(!renameBuffer.empty())
+        {
+            saveSystem.CreateSave(
+                renameBuffer,
+                pendingScriptFile,
+                pendingChapterName,
+                pendingIndex,
+                pendingAffection
+            );
 
+            Refresh(saveSystem);
+        }
+    }
+
+    // ---- 重命名 ----
+
+    else if(renaming &&
+            !renameTargetFile.empty() &&
+            !renameBuffer.empty())
+    {
         saveSystem.RenameSave(
             renameTargetFile,
             renameBuffer
         );
 
-
-        Refresh(
-            saveSystem
-        );
-
+        Refresh(saveSystem);
     }
 
 
     renaming = false;
+    creating = false;
 
     renameBuffer.clear();
-
     renameTargetFile.clear();
-
     editingText.clear();
-
 }
 
 
@@ -942,34 +659,16 @@ void SaveMenu::ConfirmRename(
 
 bool SaveMenu::IsRenaming() const
 {
-
-    return renaming;
-
+    return renaming || creating;
 }
 
 
 
 
 
-// ==========================================================
-// [新增] 设置预编辑文本
-// ==========================================================
-//
-// 由 Game 收到 SDL_TEXTEDITING 时调用。
-// event.edit.text 是 UTF-8 字符串，
-// 例如 "nihao" 或 "ni'hao"。
-
-void SaveMenu::SetEditingText(
-    const std::string& utf8
-)
+void SaveMenu::SetEditingText(const std::string& utf8)
 {
-
-    if(!renaming)
-    {
-        return;
-    }
-
+    if(!IsRenaming()) return;
 
     editingText = utf8;
-
 }

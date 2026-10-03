@@ -6,16 +6,23 @@
 
 
 
+// ==========================================================
+// Character
+// ==========================================================
+//
+// 角色数据。
+//
+// 目前只用来记录名字和立绘路径。
+// 好感度由 RouteManager 统一管理，不在这里。
+//
+// Story::GetCharacter(name) 会按需创建。
+
 class Character
 {
 
-
 public:
 
-
     Character();
-
-
 
     Character(
         const std::string& name,
@@ -24,49 +31,17 @@ public:
 
 
 
-    std::string GetName() const;
-
-
-
+    std::string GetName()  const;
     std::string GetImage() const;
-
-
-
-
-    int GetAffection() const;
-
-
-
-    void AddAffection(
-        int value
-    );
-
-
-
-    void SetAffection(
-        int value
-    );
-
 
 
 
 private:
 
-
-    std::string name;
-
-
-
-    std::string image;
-
-
-
-    int affection;
-
-
+    std::string name;      // 角色名，如"李君浩"
+    std::string image;     // 立绘路径
 
 };
-
 
 
 #endif

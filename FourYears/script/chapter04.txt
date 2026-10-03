@@ -1,0 +1,235 @@
+[旁白]
+
+第三年。
+
+秋意渐浓，校园里的银杏开始变黄。
+
+[背景]
+corridor.png
+
+[BGM]
+school_daily.mp3
+
+[立绘 右]
+wuhongtao/normal.png
+
+[旁白]
+
+这一年，吴鸿涛成了学长。
+
+他开始带新生，也开始为未来做打算。
+
+[背景]
+library.png
+
+[立绘 右]
+clear
+
+[立绘 左]
+li_junhao/normal.png
+
+[李君浩]
+
+最近在忙什么？
+
+[立绘 右]
+wuhongtao/normal.png
+
+[吴鸿涛]
+
+在准备考研的事。
+
+[李君浩]
+
+哦。
+
+[旁白]
+
+李君浩停顿了一下。
+
+[立绘 左]
+li_junhao/normal.png
+
+[李君浩]
+
+那……有想过去哪个学校吗？
+
+[吴鸿涛]
+
+还没定。
+
+[选择]
+
+1. 想留在本校 | 李君浩 +15 -> #ch04_li_stay
+
+2. 想出去看看 | 李君浩 +5 -> #ch04_li_leave
+
+3. 还没想过这么远 -> #ch04_li_idle
+
+[标签] ch04_li_stay
+
+[立绘 左]
+li_junhao/normal.png
+
+[李君浩]
+
+那挺好的。
+
+[旁白]
+
+李君浩脸上闪过一丝轻松。
+
+吴鸿涛注意到了，但没说什么。
+
+[跳转] #ch04_mid
+
+[标签] ch04_li_leave
+
+[立绘 左]
+li_junhao/normal.png
+
+[李君浩]
+
+出去看看也好。
+
+[旁白]
+
+李君浩笑了笑，但笑得有点勉强。
+
+吴鸿涛假装没看见。
+
+[跳转] #ch04_mid
+
+[标签] ch04_li_idle
+
+[立绘 左]
+li_junhao/normal.png
+
+[李君浩]
+
+没事，慢慢想。
+
+[旁白]
+
+李君浩没再追问。
+
+两个人坐在图书馆里，谁都没有说话。
+
+[跳转] #ch04_mid
+
+[标签] ch04_mid
+
+[背景]
+classroom_evening.png
+
+[立绘 左]
+clear
+
+[立绘 右]
+clear
+
+[旁白]
+
+几天后。
+
+学院组织了一次毕业学长分享会。
+
+[立绘 左]
+li_junhao/normal.png
+
+[立绘 右]
+zhang_hanyu/normal.png
+
+[李君浩]
+
+你也来了？
+
+[张瀚宇]
+
+被导员抓来的。
+
+[李君浩]
+
+……
+
+[张瀚宇]
+
+……
+
+[旁白]
+
+两人对视了一眼，气氛微妙。
+
+[立绘 左]
+li_junhao/normal.png
+
+[立绘 右]
+zhang_hanyu/normal.png
+
+[张瀚宇]
+
+有些事，迟早要面对的。
+
+[李君浩]
+
+我知道。
+
+[旁白]
+
+吴鸿涛站在门口，听到了这句话。
+
+[立绘 左]
+clear
+
+[立绘 右]
+wuhongtao/normal.png
+
+[吴鸿涛]
+
+你们在说什么？
+
+[立绘 左]
+li_junhao/normal.png
+
+[立绘 右]
+zhang_hanyu/normal.png
+
+[李君浩]
+
+没什么。
+
+[张瀚宇]
+
+走吧，先进去。
+
+[跳转] #ch04_end
+
+[标签] ch04_end
+
+[背景]
+ending_sunset.png
+
+[立绘 左]
+clear
+
+[立绘 右]
+clear
+
+[旁白]
+
+分享会上，学长说了一句话。
+
+"大学四年，能遇到几个真心对你的人，不容易。"
+
+[旁白]
+
+吴鸿涛记了很久。
+
+[旁白]
+
+冬天到了。
+
+校园里下了第一场雪。
+
+[下一章]
+script/chapter05.txt

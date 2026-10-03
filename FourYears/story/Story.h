@@ -21,48 +21,44 @@ struct AffectionChange
 
 
 
+// ==========================================================
+// StoryEvent
+// ==========================================================
+//
+// 立绘有三个位置：左 / 中 / 右。
+// 每条事件记录这三个位置"目标纹理"，空字符串表示不变。
+// 特殊值 "clear" 表示清除该位置的立绘。
+
 struct StoryEvent
 {
+    // ---- 通用 ----
 
     std::string name;
-
     std::string text;
-
     std::string background;
 
-    std::string character;
+    // [修改] 立绘拆成三个位置
+    std::string characterLeft;
+    std::string characterCenter;
+    std::string characterRight;
+
+    // 音频
+    std::string bgm;
+    std::string se;
+
+    float waitTime = 0.0f;
 
 
-    bool isChoice=false;
+    // ---- 选择 ----
 
-    bool isEnding=false;
+    bool isChoice = false;
 
-
-    // ==========================================================
-    // [新增] 同文件跳转事件
-    // ==========================================================
-    //
-    // 由 [跳转] #名字 生成。
-    // Story::Next() 与 JumpToLabel() 会自动跳过它，
-    // 不会显示到对话框里。
-
-    bool isGoto = false;
-    std::string gotoLabel;
-
-    // ==========================================================
-
-
-    std::string choiceResult;
-
-    
     std::vector<std::string> choices;
-
     std::vector<std::string> choiceTargets;
-
-
     std::vector<std::vector<AffectionChange>> choiceAffection;
 
 
+    // ---- 结局分支 ----
 
     bool isEndingBranch = false;
 
@@ -71,121 +67,46 @@ struct StoryEvent
     std::string branchNormal;
 
 
+    // ---- 跳转 ----
 
-    float waitTime=0.0f;
-
+    bool isGoto = false;
+    std::string gotoLabel;
 };
-
-
 
 
 
 class Story
 {
 
-
 public:
-
 
     Story();
 
-
-
-    void Add(
-        const StoryEvent& event
-    );
-
-
-
-    bool Load(
-        const std::string& file
-    );
-
-
-
+    void Add(const StoryEvent& event);
+    bool Load(const std::string& file);
     bool Next();
-
-
-
     StoryEvent GetCurrentEvent();
-
-
-
     bool IsEnd() const;
 
-
-
-    Character& GetCharacter(
-        const std::string& name
-    );
-
-
-
+    Character& GetCharacter(const std::string& name);
     History& GetHistory();
-
-
-
     RouteManager& GetRouteManager();
 
+    int  GetIndex() const;
+    void SetIndex(int value);
 
-
-    int GetIndex() const;
-
-
-
-    void SetIndex(
-        int value
-    );
-
-
-
-    void SetNextFile(
-        const std::string& file
-    );
-
-    const std::string& GetNextFile() const;
-
-
-
+    void SetNextFile(const std::string& file);
+    const std::string& GetNextFile()    const;
     const std::string& GetCurrentFile() const;
 
-
-
-    // ==========================================================
-    // [新增] 标签系统
-    // ==========================================================
-    //
-    // StoryParser 解析到 [标签] 名字 时，
-    // 把当前事件列表的长度记下来。
-    //
-    // 之后可以通过 JumpToLabel("名字")
-    // 跳到这个位置。
-
-    void AddLabel(
-        const std::string& name,
-        int eventIndex
-    );
-
-    bool HasLabel(
-        const std::string& name
-    ) const;
-
-    int GetLabel(
-        const std::string& name
-    ) const;
-
-    // 跳转到标签位置，返回是否成功。
-    // 会自动跳过途中遇到的 [跳转] 链。
-    bool JumpToLabel(
-        const std::string& name
-    );
-
-    // ==========================================================
+    void AddLabel(const std::string& name, int eventIndex);
+    bool HasLabel(const std::string& name) const;
+    int  GetLabel(const std::string& name) const;
+    bool JumpToLabel(const std::string& name);
 
 
 
 public:
-
 
     std::vector<StoryEvent> events;
 
@@ -193,34 +114,24 @@ public:
 
 private:
 
+    void SkipGotoChain();
+
+
+
+private:
 
     int currentIndex;
 
-
-
     std::vector<Character> characters;
-
-
-    History history;
-
-
-    RouteManager routeManager;
-
-
+    History       history;
+    RouteManager  routeManager;
 
     std::string nextFile;
-
-
     std::string currentFile;
 
-
-    // [新增] 标签名 -> 事件索引
     std::map<std::string, int> labels;
 
-
-
 };
-
 
 
 #endif

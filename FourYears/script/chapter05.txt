@@ -1,0 +1,220 @@
+[旁白]
+
+第四年。
+
+春天来得格外早。
+
+[背景]
+school_gate.png
+
+[BGM]
+school_daily.mp3
+
+[立绘 右]
+wuhongtao/normal.png
+
+[旁白]
+
+毕业季的味道，已经弥漫在校园里。
+
+答辩、散伙饭、合影、离别。
+
+[背景]
+rooftop.png
+
+[立绘 右]
+clear
+
+[立绘 左]
+li_junhao/normal.png
+
+[立绘 右]
+zhang_hanyu/normal.png
+
+[李君浩]
+
+还有两个月。
+
+[张瀚宇]
+
+嗯。
+
+[李君浩]
+
+想好去哪儿了吗？
+
+[张瀚宇]
+
+看情况。
+
+[立绘 左]
+clear
+
+[立绘 右]
+wuhongtao/normal.png
+
+[吴鸿涛]
+
+你们……在聊毕业的事？
+
+[立绘 左]
+li_junhao/normal.png
+
+[立绘 右]
+zhang_hanyu/normal.png
+
+[李君浩]
+
+嗯。
+
+[张瀚宇]
+
+也聊聊你。
+
+[吴鸿涛]
+
+……我？
+
+[选择]
+
+1. 我想继续陪在你们身边 | 李君浩 +10, 张瀚宇 +10 -> #ch05_stay
+
+2. 我想把话说清楚 | 李君浩 +15, 张瀚宇 +15 -> #ch05_clear
+
+3. 我想一个人先想想 -> #ch05_alone
+
+[标签] ch05_stay
+
+[背景]
+rooftop.png
+
+[立绘 左]
+li_junhao/normal.png
+
+[立绘 右]
+zhang_hanyu/normal.png
+
+[李君浩]
+
+那就好。
+
+[张瀚宇]
+
+……随便你。
+
+[旁白]
+
+三个人在天台上吹了很久的风。
+
+谁都没再开口。
+
+但有些话，不说出来也知道。
+
+[跳转] #ch05_end
+
+[标签] ch05_clear
+
+[背景]
+rooftop.png
+
+[立绘 左]
+li_junhao/normal.png
+
+[立绘 右]
+zhang_hanyu/normal.png
+
+[李君浩]
+
+你说吧。
+
+[张瀚宇]
+
+我们听着。
+
+[旁白]
+
+吴鸿涛深吸了一口气。
+
+[立绘 左]
+clear
+
+[立绘 右]
+wuhongtao/normal.png
+
+[吴鸿涛]
+
+这四年，你们对我来说，不只是同学。
+
+[吴鸿涛]
+
+不管以后走到哪里，我都会记得。
+
+[立绘 左]
+li_junhao/normal.png
+
+[立绘 右]
+zhang_hanyu/normal.png
+
+[李君浩]
+
+……我们也是。
+
+[张瀚宇]
+
+嗯。
+
+[跳转] #ch05_end
+
+[标签] ch05_alone
+
+[背景]
+rooftop.png
+
+[立绘 左]
+clear
+
+[立绘 右]
+clear
+
+[旁白]
+
+吴鸿涛没有回答。
+
+他一个人走下天台，走进暮色里。
+
+有些答案，需要时间来给。
+
+[跳转] #ch05_end
+
+[标签] ch05_end
+
+[背景]
+ending_sunset.png
+
+[立绘 右]
+wuhongtao/normal.png
+
+[旁白]
+
+毕业典礼还有两个月。
+
+但故事，已经快走到了尾声。
+
+[旁白]
+
+吴鸿涛站在窗前，看着远处的校园。
+
+风轻轻吹过。
+
+[吴鸿涛]
+
+四年，真的很快。
+
+[背景]
+ending_sunset.png
+
+[BGM]
+sunset_love.mp3
+
+[下一章]
+script/ending.txt

@@ -9,6 +9,9 @@
 [背景]
 school_gate.png
 
+[BGM]
+school_daily.mp3
+
 [立绘]
 wuhongtao/normal.png
 
@@ -212,7 +215,7 @@ wuhongtao/normal.png
 大学生活，正式开始。
 
 [背景]
-ending_sunset.png
+school_gate.png
 
 [下一章]
 script/chapter02.txt

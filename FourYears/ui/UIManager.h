@@ -15,110 +15,76 @@
 
 enum class UIState
 {
-
     START,
-
     DIALOGUE,
-
     PAUSE,
-
     SAVE,
-
     CONFIG,
-
-    // [修改] HISTORY -> AFFECTION
     AFFECTION
-
 };
-
-
 
 
 
 class UIManager
 {
 
-
 public:
-
 
     UIManager();
 
-
-
-    void SetState(
-        UIState state
-    );
-
-
+    void SetState(UIState state);
     UIState GetState() const;
+    bool IsTransitioning() const;
 
+    void Update();
 
-    void Render(
-        Renderer& renderer
-    );
+    void Render(Renderer& renderer);
 
-
-    void HandleInput(
-        int key
-    );
-
-
-
-    void HandleMouseMove(
-        int x,
-        int y
-    );
+    void HandleInput(int key);
+    void HandleMouseMove(int x, int y);
+    MenuMouseResult HandleMouseClick(int x, int y);
 
 
 
-    MenuMouseResult HandleMouseClick(
-        int x,
-        int y
-    );
-
-
-
-
-    DialogueUI& GetDialogueUI();
-
-
-    StartMenu& GetStartMenu();
-
-    PauseMenu& GetPauseMenu();
-
-    SaveMenu& GetSaveMenu();
-
-    ConfigMenu& GetConfigMenu();
-
-    // [修改] GetHistoryMenu -> GetAffectionMenu
+    DialogueUI&    GetDialogueUI();
+    StartMenu&     GetStartMenu();
+    PauseMenu&     GetPauseMenu();
+    SaveMenu&      GetSaveMenu();
+    ConfigMenu&    GetConfigMenu();
     AffectionMenu& GetAffectionMenu();
-
 
 
 
 private:
 
-
     UIState currentState;
+    UIState pendingState;
+
+
+    enum class TransState
+    {
+        NONE,
+        OUT,
+        IN
+    };
+
+    TransState transition = TransState::NONE;
+
+    float alpha = 1.0f;
+
+    // [修改] 0.08 -> 0.18，单程约 0.1 秒
+    static constexpr float FADE_SPEED = 0.18f;
 
 
 
-    DialogueUI dialogueUI;
-
-    StartMenu startMenu;
-
-    PauseMenu pauseMenu;
-
-    SaveMenu saveMenu;
-
-    ConfigMenu configMenu;
-
-    // [修改] historyMenu -> affectionMenu
+    DialogueUI    dialogueUI;
+    StartMenu     startMenu;
+    PauseMenu     pauseMenu;
+    SaveMenu      saveMenu;
+    ConfigMenu    configMenu;
     AffectionMenu affectionMenu;
 
 };
-
 
 
 #endif

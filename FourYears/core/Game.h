@@ -11,7 +11,6 @@
 #include "Renderer.h"
 #include "ResourceManager.h"
 #include "TextSystem.h"
-#include "ScriptPlayer.h"
 #include "SaveSystem.h"
 #include "AudioManager.h"
 #include "FontManager.h"
@@ -20,189 +19,166 @@
 
 #include "../story/Story.h"
 
-
 #include "../ui/UIManager.h"
-
-
-#include "../GameState.h"
 
 
 
 class Game
 {
 
-
 public:
 
-
     Game();
-
-
-
     ~Game();
 
-
-
     bool Init();
-
-
-
     void Run();
-
-
-
     void Quit();
 
 
 
 private:
 
+    // ---- 主循环 ----
 
     void HandleEvents();
-
     void Update();
-
     void Render();
-
     void UpdateScene();
 
 
 
+    // ---- 事件分发 ----
+
+    void HandleTextInput();
+    void HandleKeyDown();
+    void HandleMouseEvent();
+
+
+
+    // ---- 输入处理 ----
+
     void OnActivateCurrentState();
-
-
     void OnAdvanceDialogue();
-
-
     void OnBack();
-
-
     void ConfirmChoice();
 
 
 
-    // ==========================================================
-    // [新增] 切换输入模式
-    // ==========================================================
-    //
-    // enabled = true  -> 启用 IME + SDL_TEXTINPUT（输入框用）
-    // enabled = false -> 禁用 IME + SDL_TEXTINPUT（快捷键用）
-    //
-    // 只在状态切换时调用一次，不要每帧调。
+    // ---- 输入法 ----
 
     void SetInputMode(bool enabled);
 
-    // ==========================================================
 
+
+    // ---- 内部辅助 ----
+
+    void EnterSavePage(SavePage page);
+    bool IsRenaming();
+
+    // [新增] 设置某个位置的立绘目标
+    void SetSprite(int slot, const std::string& path);
 
 
 
 private:
 
+    // ==========================================================
+    // [新增] 活动立绘
+    // ==========================================================
+    //
+    // 三个位置（左/中/右）各自维护纹理和透明度。
+    // 换立绘时 alpha 从 0 开始淡入到 1，实现淡入效果。
+
+    struct ActiveSprite
+    {
+        SDL_Texture* texture = nullptr;
+        float alpha = 0.0f;         // 当前透明度 0~1
+        float targetAlpha = 0.0f;   // 目标透明度
+    };
+
+    // 0=左 1=中 2=右
+    ActiveSprite sprites[3];
+
+    // 每帧 alpha 靠近 targetAlpha 的比例
+    static constexpr float SPRITE_FADE_SPEED = 0.12f;
+
+    // ==========================================================
+
+
+
+    // ---- 核心 ----
 
     bool running;
-
-
-
     SDL_Window* window;
-
-
-
     SDL_Event event;
 
 
 
+    // ---- 子系统 ----
 
-    Renderer renderer;
-
+    Renderer        renderer;
     ResourceManager resourceManager;
-
-    TextSystem textSystem;
-
-    ScriptPlayer scriptPlayer;
-
-
-
-    SaveSystem saveSystem;
+    TextSystem      textSystem;
+    SaveSystem      saveSystem;
+    AudioManager    audioManager;
+    FontManager     fontManager;
+    Config          config;
+    Config          configBackup;
 
 
 
-    AudioManager audioManager;
+    // ---- 场景状态 ----
+
+    SDL_Texture* currentBackground = nullptr;
 
 
 
-    FontManager fontManager;
+    // ---- 剧情 / UI ----
+
+    Story      story;
+    UIManager  ui;
+    UIState    lastState;
 
 
 
-    Config config;
-
-    Config configBackup;
-
-
-
-    SDL_Texture* currentBackground=nullptr;
-
-    SDL_Texture* currentCharacter=nullptr;
-
-
-
-    
-    Story story;
-
-
-
-    UIManager ui;
-
-
-
-    UIState lastState;
-
-
+    // ---- 选择事件 ----
 
     std::vector<std::string> currentChoiceTargets;
-
-
     std::vector<std::vector<AffectionChange>> currentChoiceAffection;
 
 
 
-    int lastBgmVolume = -1;
-    int lastSeVolume  = -1;
-    int lastTextSpeed = -1;
+    // ---- 音频 ----
+
+    std::string lastBgmPath;
+
+
+
+    // ---- 配置同步缓存 ----
+
+    int  lastBgmVolume  = -1;
+    int  lastSeVolume   = -1;
+    int  lastTextSpeed  = -1;
     bool lastFullscreen = false;
 
 
 
-    float autoPlayTimer = 0.0f;
+    // ---- 自动播放 ----
 
+    float autoPlayTimer = 0.0f;
     static constexpr float AUTO_PLAY_DELAY = 1.5f;
 
 
 
-    // ==========================================================
-    // [新增] 输入法句柄
-    // ==========================================================
-    //
-    // 用 void* 存，避免 Game.h 依赖 <windows.h>。
-    // 实际使用时在 Game.cpp 里强制转成 HWND / HIMC。
-    //
-    // winOldHimc 是 Init 时把 IME 从窗口解除时返回的旧句柄，
-    // 恢复 IME 时要用它。
+    // ---- 输入法 ----
 
-    void* winHwnd = nullptr;
-
+    void* winHwnd    = nullptr;
     void* winOldHimc = nullptr;
 
-    // 上一帧的输入框状态，用来检测边界
     bool lastRenaming = false;
 
-    // ==========================================================
-
-
-
 };
-
 
 
 #endif

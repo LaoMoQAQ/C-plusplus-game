@@ -9,6 +9,9 @@
 [背景]
 classroom_day.png
 
+[BGM]
+school_daily.mp3
+
 [立绘]
 li_junhao/normal.png
 
@@ -184,10 +187,12 @@ wuhongtao/normal.png
 
 [旁白]
 
-一次选择，可能改变未来。
+一学期很快就过去了。
+
+夏天，近了。
 
 [背景]
-rooftop.png
+classroom_evening.png
 
 [下一章]
-script/ending.txt
+script/chapter03.txt
