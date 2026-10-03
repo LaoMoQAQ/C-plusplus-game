@@ -37,7 +37,6 @@ FourYears/                 ← git 仓库根
 ├── FourYears/            游戏本体
 │   ├── main.cpp
 │   ├── config.ini
-│   ├── GameState.h
 │   ├── SavePage.h
 │   ├── SDL2*.dll
 │   │
@@ -47,11 +46,9 @@ FourYears/                 ← git 仓库根
 │   │   ├── ResourceManager.cpp / .h
 │   │   ├── FontManager.cpp / .h
 │   │   ├── TextSystem.cpp / .h
-│   │   ├── ScriptPlayer.cpp / .h       （保留，未使用）
 │   │   ├── SaveSystem.cpp / .h
 │   │   ├── AudioManager.cpp / .h
-│   │   ├── Config.cpp / .h
-│   │   └── Utils.cpp / .h
+│   │   └── Config.cpp / .h
 │   │
 │   ├── story/            剧情数据
 │   │   ├── Story.cpp / .h
@@ -73,10 +70,16 @@ FourYears/                 ← git 仓库根
 │   ├── resource/
 │   │   ├── bg/           背景图
 │   │   ├── character/    角色立绘
-│   │   └── font/         字体
+│   │   ├── font/         字体
+│   │   ├── bgm/          背景音乐
+│   │   └── se/           音效
 │   │
 │   ├── script/           剧本（UTF-8）
-│   │   └── chapter01.txt 等
+│   │   ├── chapter01.txt ~ chapter05.txt
+│   │   ├── ending.txt
+│   │   ├── li_junhao_route.txt
+│   │   ├── zhang_hanyu_route.txt
+│   │   └── alone_ending.txt
 │   │
 │   └── save/             存档（运行时生成）
 │
@@ -88,8 +91,6 @@ FourYears/                 ← git 仓库根
 # Windows（MSYS2 UCRT64）
 
 ## 安装 MSYS2
-
-下载并安装：
 
 https://www.msys2.org/
 
@@ -160,8 +161,6 @@ https://www.msys2.org/
 
 ## VS Code
 
-`.vscode/tasks.json` 已配置为直接调用 `make.exe`：
-
 - `Ctrl + Shift + B` —— 编译
 - `Ctrl + Shift + P` → `Tasks: Run Task` → `Run FourYears` / `Clean FourYears`
 
@@ -170,7 +169,7 @@ https://www.msys2.org/
 ## 注意事项
 
 - **改了 `.h` 文件**：Makefile 目前没有头文件依赖追踪，需要手动 `make clean && make`。
-- **行尾必须是 LF**：`.gitattributes` 已强制，Makefile 里如果有 CRLF 会导致编译失败（`make` 把 `\r` 传给 g++）。
+- **行尾必须是 LF**：`.gitattributes` 已强制。如果 Makefile 里出现 CRLF，会导致编译失败且 g++ 不报错。
 
 ---
 
@@ -205,7 +204,7 @@ https://www.msys2.org/
 | 跳过当前文字 | Space 或鼠标左键 |
 | 推进到下一段 | Space 或鼠标左键（文字已显示完） |
 | 打开暂停菜单 | ESC |
-| 选择分支 | ↑ / ↓ 或鼠标悬停切换，Enter 或鼠标点击确认 |
+| 选择分支 | ↑ / ↓ 或鼠标悬停，Enter 或鼠标点击确认 |
 
 出现选项时，Space 和鼠标左键**不会推进剧情**。
 
@@ -227,11 +226,12 @@ https://www.msys2.org/
 
 **删除**为两段式：按 Delete 后进入确认，再按 Enter 或 Delete 才真正删除，ESC 取消。
 
-**重命名**进入输入模式：
-- **支持中文输入**（输入法预编辑拼音会显示在输入框下方）
+**新建 / 重命名**进入输入模式：
+- 支持中文输入（输入法预编辑拼音显示在输入框下方）
 - 字母、数字、空格追加
 - 退格按 UTF-8 字符边界删除
 - Enter 确认，ESC 取消
+- 限长 30 UTF-8 字节
 
 ## 好感度页面
 
@@ -256,9 +256,9 @@ https://www.msys2.org/
 
 | 选项 | 范围 | 效果 |
 |---|---|---|
-| BGM 音量 | 0 ~ 100，步长 5 | 立即设置 SDL_mixer 音乐音量 |
-| SE 音量 | 0 ~ 100，步长 5 | 立即设置 SDL_mixer 音效音量 |
-| 文字速度 | 5 ~ 100 字/秒，步长 5 | 打字机速度立即变化 |
+| BGM 音量 | 0 ~ 100，步长 5 | 立即设置音乐音量 |
+| SE 音量 | 0 ~ 100，步长 5 | 立即设置音效音量 |
+| 文字速度 | 5 ~ 60 字/秒，步长 5 | 打字机速度立即变化 |
 | 全屏 | 开 / 关 | 立即切换全屏模式 |
 | 自动播放 | 开 / 关 | 文字显示完后等 1.5 秒自动推进 |
 
@@ -272,10 +272,14 @@ https://www.msys2.org/
 
 | 标签 | 写法 | 作用 |
 |---|---|---|
-| `[背景]` | `[背景] xxx.png` 或两行 | 切换背景 |
-| `[立绘]` | `[立绘] xxx.png` 或两行 | 切换立绘 |
-| `[BGM]` | 同上 | 预留 |
-| `[SE]` | 同上 | 预留 |
+| `[背景]` | `[背景] xxx.png` | 切换背景 |
+| `[立绘]` | `[立绘] xxx.png` | 右位置立绘 |
+| `[立绘 左]` | `[立绘 左] xxx.png` | 左位置立绘 |
+| `[立绘 中]` | `[立绘 中] xxx.png` | 中位置立绘 |
+| `[立绘 右]` | `[立绘 右] xxx.png` | 右位置立绘 |
+| 立绘清除 | `[立绘 左] clear` | 清除该位置立绘 |
+| `[BGM]` | `[BGM] xxx.mp3` | 切换背景音乐（`stop` 停止） |
+| `[SE]` | `[SE] xxx.wav` | 一次性音效 |
 | `[角色名]` | `[李君浩]` | 开始一段对话 |
 | `<n>` | `<1.5>` | 等待 n 秒 |
 | `[选择]` | 见下 | 进入选择事件 |
@@ -286,9 +290,16 @@ https://www.msys2.org/
 
 带参数的标签**单行和两行写法都支持**。
 
-## 立绘顺序约定
+## 立绘约定
 
-**`[立绘]` 必须紧跟在对应角色的 `[角色名]` 之前，中间不能夹别的 `[角色名]`。**
+**`[立绘 ...]` 必须紧跟在对应角色的 `[角色名]` 之前**，中间不能夹别的 `[角色名]`。
+
+立绘有**三个位置**：
+- 左（屏幕 25% 处）
+- 中（屏幕 50% 处）
+- 右（屏幕 75% 处，默认）
+
+换立绘时**自动淡入淡出**。
 
 ## 选择语法
 
@@ -339,13 +350,11 @@ https://www.msys2.org/
 单人 -> script/alone_ending.txt
 ```
 
-到达这个事件时，根据当前好感度自动判断：
+判定规则（`RouteManager::CheckRoute()`，阈值 20）：
 
 - 李君浩 ≥ 20 且高于张瀚宇 → 李君浩线
 - 张瀚宇 ≥ 20 且高于李君浩 → 张瀚宇线
 - 都 < 20 或相等 → 单人结局
-
-阈值在 `RouteManager::CheckRoute()` 里。
 
 ## 章节切换
 
@@ -377,7 +386,7 @@ index
 
 ## 章节显示名
 
-`Game.cpp` 顶部 `ChapterNameFromScript()` 根据脚本路径推算。新增章节时在这里加一条映射。
+`Game.cpp` 顶部 `ChapterNameFromScript()` 根据脚本路径推算。**新增章节时在这里加一条映射。**
 
 ## 兼容性
 
@@ -389,31 +398,42 @@ index
 
 ## 已实现
 
+### 引擎层
 - SDL2 初始化、窗口、渲染器
 - 资源管理（纹理缓存、按需加载）
 - 字体管理（多字号缓存）
 - 配置读取与保存，修改即时生效
-- 音频管理（BGM / SE 音量已接入 SDL_mixer）
-- 剧本解析
-  - `[背景]` `[立绘]` `[BGM]` `[SE]` `[选择]` `[标签]` `[跳转]` `[下一章]` `[结局分支]` `[角色名]`
-  - 单行 / 两行标签参数写法
-- 剧情播放
-- **章节切换**
-- **分支剧情**（标签 + 跳转）
-- **选择系统**（键盘 + 鼠标）
-- **好感度系统**（累积、结局判定、存进存档、独立页面）
-- 打字机效果（标点停顿、中文省略号替换、`\n` 强制换行）
-- 主菜单、暂停菜单、存档、设置、好感度
-- 键鼠双输入
-- 立绘固定高度 + 宽高比缩放 + 右中侧居中
-- 对话框深灰半透明
-- 二级菜单背景模糊
-- 设置页面 S 保存 + ESC 询问
-- 全屏切换（`SDL_RenderSetLogicalSize` 自动缩放）
+- 音频管理（BGM / SE 缓存，音量接入 SDL_mixer）
+- 跨平台 Makefile（Windows / Linux 同一套命令）
+- Windows 输入法智能禁用 / 恢复
+
+### 剧情层
+- 剧本解析：`[背景]` `[立绘 左/中/右]` `[BGM]` `[SE]` `[选择]` `[标签]` `[跳转]` `[下一章]` `[结局分支]` `[角色名]`
+- 单行 / 两行标签参数写法
+- 章节切换（`[下一章]` 自动加载）
+- 分支剧情（标签 + 跳转）
+- 选择系统（键盘 + 鼠标）
+- 好感度系统（累积、结局判定、存进存档、独立页面）
+- 中文标点替换（`——` `「」` `『』` `·`）
+
+### 表现层
+- 打字机效果（标点停顿、`\n` 强制换行、每字一个音效）
+- **多立绘同屏**（左 / 中 / 右三个位置独立管理）
+- **立绘淡入淡出**（换表情或换角色时渐变）
+- 对话框：圆角 + 背景模糊 + 半透明灰底 + 高度平滑动画
+- 菜单：全屏遮罩 + 蓝色圆角高亮块 + 平滑滑动
+- 状态切换黑幕过渡
+- 全屏自动缩放（`SDL_RenderSetLogicalSize`）
 - 自动播放
-- **存档重命名支持中文输入**（拼音预编辑提示）
-- **Windows 输入法智能禁用/恢复**（输入框激活时启用 IME，其他时候禁用）
-- **跨平台 Makefile**（Windows / Linux 同一套命令）
+
+### 存档
+- 新建 / 复制 / 删除（含二次确认） / 读取 / 重命名
+- **新建和重命名支持中文输入**（拼音预编辑提示）
+- 列表显示 `显示名 [章节名] 时间`，按保存时间倒序
+- 自动跳过 0 字节空文件
+
+### 内容
+- 五章主线剧情 + 三种结局
 
 ---
 
@@ -421,7 +441,7 @@ index
 
 ## 工作目录
 
-从 `FourYears/` 目录运行，因为 `resource/` `script/` `save/` `config.ini` 都是相对路径。
+从 `FourYears/` 目录运行，`resource/` `script/` `save/` `config.ini` 都是相对路径。
 
 ## Windows DLL
 
@@ -432,7 +452,7 @@ index
     SDL2_mixer.dll
     SDL2_ttf.dll
 
-以及 `ntldd` 输出的 MinGW 运行时和第三方依赖（见「发布打包」一节）。
+以及 `ntldd` 输出的 MinGW 运行时和第三方依赖（见「发布打包」）。
 
 ---
 
@@ -451,89 +471,77 @@ C++ 标准：C++17。Makefile 已配置。
 
 # 输入法
 
-Windows 中文输入法激活时，字母键会被 IME 拦截，SDL 收不到 `SDLK_n` / `SDLK_c` / `SDLK_r` / `SDLK_s` 的 KEYDOWN。
+Windows 中文输入法激活时，字母键会被 IME 拦截。`Game::SetInputMode(bool)` 动态切换：
 
-**解决方案**：`Game::SetInputMode(bool)` 动态切换。
-
-- **平时**（`enabled=false`）：`ImmAssociateContext(hwnd, NULL)` 切断 IME + `SDL_StopTextInput()`
-- **输入框激活**（`enabled=true`）：`ImmAssociateContext(hwnd, oldHimc)` 恢复 IME + `SDL_StartTextInput()`
+- **平时**：`ImmAssociateContext(hwnd, NULL)` 切断 IME + `SDL_StopTextInput()`
+- **输入框激活**：`ImmAssociateContext(hwnd, oldHimc)` 恢复 IME + `SDL_StartTextInput()`
 
 配合 `SDL_TEXTINPUT` 接收已上屏文本、`SDL_TEXTEDITING` 接收拼音预编辑文本。
 
-**候选词窗问题**：SDL2 在游戏窗口里通常不显示 IME 候选词窗。当前方案用**输入框下方的拼音提示**代替：
+**候选词窗**：SDL2 在游戏窗口里通常不显示 IME 候选词窗。当前方案用**输入框下方的拼音提示**代替：
 
 ```
-重命名: 新的存档_
-拼音: nihao
+新建存档: _
+拼音: xinjiancundang
 ```
 
-玩家能看到自己在打什么拼音。缺点：看不到候选字列表，选字靠拼音准确度。
+玩家能看到拼音，选字靠输入法自身的准确度。
 
 ---
 
 # 字体与中文显示
 
-项目使用 `resource/font/simhei.ttf`。另外有 `title.ttf`（标题）和 `number.ttf`（数字）。
+使用 `resource/font/simhei.ttf`。另外有 `title.ttf`（标题）和 `number.ttf`（数字）。
 
-字体缺失字形时会渲染成方框。已知位置和当前处理：
+字体缺失字形时会渲染成方框。当前处理：
 
 | 位置 | 字符 | 处理 |
 |---|---|---|
-| `TextSystem::SetText` | `…` | 替换成 `.` |
+| `TextSystem::SetText` | `…` `—` `「」` `『』` `·` | 替换成 ASCII |
 | `DialogueUI::SplitTextLine` | `\n` | 识别为强制换行 |
-| `AffectionMenu::Render` | — | 只显示中文名和数字 |
 
-如果脚本里用到其它字体缺失字符（如 `——` `「」` `·`），需要在 `TextSystem::SetText` 里继续加替换。
+**不要仅仅因为出现方框就立即换字体。**
 
 ---
 
 # 已知问题 / 待完善
 
-## 存档
+## 内容
 
-- **新建名字固定**：每次都是「新的存档」。
-- **章节名靠硬编码**：新增章节时需要在 `ChapterNameFromScript()` 里加映射。
+- 立绘表情少（每个角色基本只有 normal，吴鸿涛多两张）
+- 音效资源少（只有打字音效）
 
 ## 构建
 
 - **Makefile 没有头文件依赖追踪**：改 `.h` 后需要手动 `make clean && make`。
-- **VS Code 集成终端需要重启才生效**：改 `settings.json` 后要 `Reload Window` 或杀掉旧终端。
+- **VS Code 集成终端需要重启才生效**：改 `settings.json` 后要 `Reload Window`。
 
 ## 配置
 
-- `config.ini` 的 `[resource]` 段在游戏内保存设置后会丢失。
-- 全屏时因为逻辑分辨率 1600×900 → 物理 1920×1080 是 1.2 倍非整数缩放，文字会**轻微模糊**。
+- 全屏时逻辑分辨率 1600×900 → 物理 1920×1080 是 1.2 倍非整数缩放，文字会**轻微模糊**。
 
-## 代码清理
+## 代码
 
-- `core/ScriptPlayer.cpp / .h` 未被使用。
-- `story/History.cpp / .h` 仍被编译，UI 层已改用好感度页面。
-- `GameState.h` 里的 `enum class GameState` 是死代码，真正的状态机在 `ui/UIManager.h` 的 `UIState`。
+- `story/History.cpp / .h` 保留但 UI 层不再使用（为将来"剧情回退"预留）。
 
 ---
 
 # 发布打包
 
-见仓库 `.gitignore` 已忽略 `release/`。
-
 ## 1. 编译发布版
 
-    cd FourYears
-    g++ -std=c++17 -O2 -s -finput-charset=UTF-8 -fexec-charset=UTF-8 \
-        main.cpp \
-        core/*.cpp story/*.cpp ui/*.cpp \
-        -o game.exe \
-        -IC:/msys64/ucrt64/include/SDL2 \
-        -I. -Icore -Istory -Iui \
-        -LC:/msys64/ucrt64/lib \
-        -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer
+    cd /f/gal
+    make clean
+    make
 
-> 注：发布用 `-O2 -s`，日常 `make` 不带 `-s`。
+（`Makefile` 里已含 `-O2 -s`）
 
 ## 2. 收集文件
 
+    rm -rf /f/gal/release
     cd /f/gal
     mkdir -p release/FourYears/save
+
     cp FourYears/game.exe     release/FourYears/
     cp FourYears/config.ini   release/FourYears/
     cp -r FourYears/resource  release/FourYears/
@@ -564,14 +572,13 @@ GitHub Releases → Create a new release → 拖入 zip。
 
 # 开发计划
 
-1. **BGM / SE 接入实际资源**（脚本标签已解析，缺音频文件和调用）
-2. **立绘系统升级**（多立绘同屏 + 位置 + 淡入淡出）
-3. **剧情内容扩充**（现在只有 2 章）
-4. **新建存档自定义名**
-5. **剧情状态回退**（读档后 `History` 一起恢复）
-6. **中文标点替换表**（`——` `「」` `·`）
-7. **视觉效果**（转场、淡入淡出、立绘动画）
-8. **存档缩略图**
+1. **立绘表情扩充**（happy / sad / angry 等）——纯美术活
+2. **BGM 淡入淡出**（切换时渐变）
+3. **背景 / 立绘转场效果**
+4. **存档缩略图**
+5. **CG 鉴赏 / 音乐鉴赏**
+6. **多存档槽（固定 10 格）**
+7. **移动端 / Linux 打包**
 
 ---
 
@@ -582,8 +589,8 @@ GitHub Releases → Create a new release → 拖入 zip。
 - `.h` 声明与 `.cpp` 实现必须一致。
 - 关键链路：`SaveSystem ↔ SaveMenu ↔ Game`。
 - 状态机在 `ui/UIManager.h` 的 `UIState`。
-- 所有键鼠输入汇聚到 `Game::OnActivateCurrentState()` / `OnAdvanceDialogue()` / `OnBack()` / `ConfirmChoice()` 四个函数。
-- 剧本里 `[立绘]` 必须在对应角色台词**之前**。
+- 所有键鼠输入汇聚到 `Game::OnActivateCurrentState()` / `OnAdvanceDialogue()` / `OnBack()` / `ConfirmChoice()`。
+- 剧本里 `[立绘 ...]` 必须在对应角色台词**之前**。
 - 存档格式变化后**必须删旧存档**。
 - **Makefile 行尾必须是 LF**（CRLF 会导致编译失败且无错误提示）。
 - **改了 `.h` 要手动 clean**。
