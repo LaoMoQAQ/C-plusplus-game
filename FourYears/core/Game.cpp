@@ -7,6 +7,7 @@
 #ifdef _WIN32
 #include <SDL_syswm.h>
 #include <windows.h>
+#include <cstdlib>
 #endif
 
 
@@ -24,19 +25,37 @@ static std::string ChapterNameFromScript(
     const std::string& script
 )
 {
-    if(script.find("chapter01") != std::string::npos) return "第1章";
-    if(script.find("chapter02") != std::string::npos) return "第2章";
-    if(script.find("chapter03") != std::string::npos) return "第3章";
-    if(script.find("chapter04") != std::string::npos) return "第4章";
-    if(script.find("chapter05") != std::string::npos) return "第5章";
+    // chapterXX -> 第XX章
+    size_t pos = script.find("chapter");
 
-    // 结局相关的判定放最后（文件名匹配更宽松）
-    if(script.find("alone_ending") != std::string::npos) return "个人结局";
-    if(script.find("li_junhao_route") != std::string::npos) return "李君浩线";
+    if(pos != std::string::npos)
+    {
+        size_t start = pos + 7;  // "chapter" 7 个字符
+
+        std::string numStr;
+
+        while(
+            start < script.size() &&
+            script[start] >= '0' &&
+            script[start] <= '9'
+        )
+        {
+            numStr += script[start];
+            start++;
+        }
+
+        if(!numStr.empty())
+        {
+            int num = std::atoi(numStr.c_str());
+            return "第" + std::to_string(num) + "章";
+        }
+    }
+
+    // 结局特判
+    if(script.find("alone_ending")      != std::string::npos) return "个人结局";
+    if(script.find("li_junhao_route")   != std::string::npos) return "李君浩线";
     if(script.find("zhang_hanyu_route") != std::string::npos) return "张瀚宇线";
-
-    // ending 放最后：会匹配到 ending.txt
-    if(script.find("ending") != std::string::npos) return "结局";
+    if(script.find("ending")            != std::string::npos) return "结局";
 
     return "未知";
 }
@@ -492,6 +511,13 @@ void Game::HandleEvents()
                 event.type == SDL_MOUSEBUTTONDOWN)
         {
             HandleMouseEvent();
+        }
+        // [新增] 鼠标滚轮
+        else if(event.type == SDL_MOUSEWHEEL)
+        {
+            // SDL 的 wheel.y：正数=向上滚（远离用户），负数=向下
+            // 我们约定：正数=向下
+            ui.HandleMouseWheel(-event.wheel.y);
         }
     }
 }
@@ -1135,12 +1161,14 @@ void Game::OnActivateCurrentState()
                         ui.GetDialogueUI().ShowChoice(e.choices);
                         currentChoiceTargets   = e.choiceTargets;
                         currentChoiceAffection = e.choiceAffection;
+                        currentChoiceTexts     = e.choices;
                     }
                     else
                     {
                         ui.GetDialogueUI().ClearChoice();
                         currentChoiceTargets.clear();
                         currentChoiceAffection.clear();
+                        currentChoiceTexts.clear();
                     }
 
                     ui.SetState(UIState::DIALOGUE);
@@ -1169,6 +1197,7 @@ void Game::OnActivateCurrentState()
             ui.GetDialogueUI().ClearChoice();
             currentChoiceTargets.clear();
             currentChoiceAffection.clear();
+            currentChoiceTexts.clear();
 
             StoryEvent e = story.GetCurrentEvent();
 
@@ -1231,9 +1260,10 @@ void Game::OnActivateCurrentState()
 
         case 3:
             lastState = UIState::PAUSE;
+            ui.GetAffectionMenu().Reset();   // [新增] 重置滚动
             ui.SetState(UIState::AFFECTION);
             break;
-
+            
         case 4:
             lastState = UIState::PAUSE;
             configBackup = config;
@@ -1300,11 +1330,13 @@ void Game::OnAdvanceDialogue()
             ui.GetDialogueUI().ShowChoice(e.choices);
             currentChoiceTargets   = e.choiceTargets;
             currentChoiceAffection = e.choiceAffection;
+            currentChoiceTexts     = e.choices;
         }
         else
         {
             currentChoiceTargets.clear();
             currentChoiceAffection.clear();
+            currentChoiceTexts.clear();
         }
     }
 }
@@ -1347,11 +1379,19 @@ void Game::ConfirmChoice()
 
     if(idx < (int)currentChoiceAffection.size())
     {
+        // 取选项文本作为来源描述
+        std::string source;
+
+        if(idx < (int)currentChoiceTexts.size())
+            source = currentChoiceTexts[idx];
+
+
         for(auto& change : currentChoiceAffection[idx])
         {
             story.GetRouteManager().AddAffection(
                 change.character,
-                change.delta
+                change.delta,
+                source
             );
         }
     }
@@ -1389,6 +1429,7 @@ void Game::ConfirmChoice()
                 ui.GetDialogueUI().ShowChoice(e.choices);
                 currentChoiceTargets   = e.choiceTargets;
                 currentChoiceAffection = e.choiceAffection;
+                currentChoiceTexts     = e.choices;
             }
         }
         return;
@@ -1409,6 +1450,7 @@ void Game::ConfirmChoice()
             ui.GetDialogueUI().ShowChoice(e.choices);
             currentChoiceTargets   = e.choiceTargets;
             currentChoiceAffection = e.choiceAffection;
+            currentChoiceTexts     = e.choices;
         }
     }
 }

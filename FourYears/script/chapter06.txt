@@ -1,0 +1,246 @@
+[旁白]
+
+第三年，秋。
+
+大三的课业压得人喘不过气。
+
+[背景]
+library.png
+
+[BGM]
+school_daily.mp3
+
+[立绘 左]
+li_junhao/normal.png
+
+[立绘 右]
+wuhongtao/normal.png
+
+[李君浩]
+
+你决定了吗？
+
+[吴鸿涛]
+
+考研还是工作？
+
+[李君浩]
+
+嗯。
+
+[吴鸿涛]
+
+还没。
+
+[李君浩]
+
+如果……
+
+[李君浩]
+
+如果你考研，我们可能还能在一起多两年。
+
+[选择]
+
+1. 我会认真考虑 | 李君浩 +15 -> #ch06_consider
+
+2. 我想出去工作 | 李君浩 +5 -> #ch06_work
+
+[标签] ch06_consider
+
+[立绘 左]
+li_junhao/normal.png
+
+[李君浩]
+
+……谢谢。
+
+[旁白]
+
+李君浩低下头，声音很轻。
+
+吴鸿涛第一次觉得，他可能真的在害怕什么。
+
+[跳转] #ch06_mid
+
+[标签] ch06_work
+
+[立绘 左]
+li_junhao/normal.png
+
+[李君浩]
+
+嗯。
+
+[旁白]
+
+李君浩点了点头。
+
+没再说话。
+
+[跳转] #ch06_mid
+
+[标签] ch06_mid
+
+[背景]
+classroom_evening.png
+
+[立绘 左]
+clear
+
+[立绘 右]
+clear
+
+[旁白]
+
+一个月后。
+
+学院组织毕业生分享会。
+
+[立绘 左]
+li_junhao/normal.png
+
+[立绘 右]
+zhang_hanyu/normal.png
+
+[李君浩]
+
+你也来了？
+
+[张瀚宇]
+
+被导员抓来的。
+
+[李君浩]
+
+……
+
+[张瀚宇]
+
+……
+
+[旁白]
+
+两人对视了一眼，气氛微妙。
+
+[立绘 左]
+li_junhao/normal.png
+
+[立绘 右]
+zhang_hanyu/normal.png
+
+[张瀚宇]
+
+有些事，迟早要面对的。
+
+[李君浩]
+
+我知道。
+
+[旁白]
+
+吴鸿涛站在门口，听到了这句话。
+
+[立绘 左]
+clear
+
+[立绘 右]
+wuhongtao/normal.png
+
+[吴鸿涛]
+
+你们在说什么？
+
+[立绘 左]
+li_junhao/normal.png
+
+[立绘 右]
+zhang_hanyu/normal.png
+
+[李君浩]
+
+没什么。
+
+[张瀚宇]
+
+走吧，先进去。
+
+[选择]
+
+1. 追问下去 | 李君浩 +5, 张瀚宇 +5 -> #ch06_push
+
+2. 装作没听见 | -> #ch06_ignore
+
+[标签] ch06_push
+
+[立绘 左]
+li_junhao/normal.png
+
+[立绘 右]
+zhang_hanyu/normal.png
+
+[吴鸿涛]
+
+你们别瞒着我。
+
+[李君浩]
+
+……
+
+[张瀚宇]
+
+这事，你自己心里清楚。
+
+[旁白]
+
+吴鸿涛沉默了。
+
+他清楚。
+
+只是不想承认。
+
+[跳转] #ch06_end
+
+[标签] ch06_ignore
+
+[立绘 左]
+clear
+
+[立绘 右]
+wuhongtao/normal.png
+
+[吴鸿涛]
+
+……好。
+
+[旁白]
+
+吴鸿涛没有追问。
+
+三个人走进会场，各怀心思。
+
+[跳转] #ch06_end
+
+[标签] ch06_end
+
+[背景]
+classroom_night.png
+
+[立绘 左]
+clear
+
+[立绘 右]
+clear
+
+[旁白]
+
+晚上。
+
+吴鸿涛一个人坐在宿舍楼下。
+
+[吴鸿涛]
+
+我到底……想要什么？
+
+[下一章]
+script/chapter07.txt

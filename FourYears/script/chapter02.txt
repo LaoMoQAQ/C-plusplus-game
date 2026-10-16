@@ -1,10 +1,10 @@
 [旁白]
 
-第二学期开始。
+第一学期过半。
 
-吴鸿涛已经适应了大学生活。
+吴鸿涛渐渐适应了大学的节奏。
 
-但是两个人的出现，让他的生活发生变化。
+只是有些事情，他自己都没意识到正在悄悄改变。
 
 [背景]
 classroom_day.png
@@ -12,36 +12,27 @@ classroom_day.png
 [BGM]
 school_daily.mp3
 
-[立绘]
+[立绘 左]
 li_junhao/normal.png
+
+[立绘 右]
+wuhongtao/normal.png
 
 [李君浩]
 
 最近是不是很忙？
 
-[背景]
-library.png
-
-[立绘]
-wuhongtao/normal.png
-
 [吴鸿涛]
 
 课程和比赛有点多。
-
-[立绘]
-li_junhao/normal.png
 
 [李君浩]
 
 不要总想着一个人解决所有事情。
 
-[立绘]
-wuhongtao/happy.png
-
 [吴鸿涛]
 
-谢谢你。
+嗯……
 
 [选择]
 
@@ -54,8 +45,11 @@ wuhongtao/happy.png
 [背景]
 library.png
 
-[立绘]
+[立绘 左]
 li_junhao/normal.png
+
+[立绘 右]
+clear
 
 [李君浩]
 
@@ -67,14 +61,31 @@ li_junhao/normal.png
 
 那天下午，两个人都忘了时间。
 
-[跳转] #ch02_join
+[立绘 左]
+clear
+
+[立绘 右]
+wuhongtao/happy.png
+
+[吴鸿涛]
+
+谢谢你。
+
+[旁白]
+
+吴鸿涛突然觉得，有人帮一把的感觉不坏。
+
+[跳转] #ch02_mid
 
 [标签] ch02_alone
 
 [背景]
 library.png
 
-[立绘]
+[立绘 左]
+clear
+
+[立绘 右]
 wuhongtao/normal.png
 
 [吴鸿涛]
@@ -87,35 +98,34 @@ wuhongtao/normal.png
 
 他习惯了不麻烦别人。
 
-[跳转] #ch02_join
+但那天回宿舍的时候，心里空落落的。
 
-[标签] ch02_join
+[跳转] #ch02_mid
 
-[旁白]
-
-另一边。
-
-吴鸿涛参加学校项目。
+[标签] ch02_mid
 
 [背景]
 classroom_evening.png
 
-[立绘]
+[立绘 左]
 zhang_hanyu/normal.png
+
+[立绘 右]
+wuhongtao/normal.png
+
+[旁白]
+
+周末。
+
+吴鸿涛参加学校的项目组。
 
 [张瀚宇]
 
 你的方案有问题。
 
-[立绘]
-wuhongtao/normal.png
-
 [吴鸿涛]
 
 哪里？
-
-[立绘]
-zhang_hanyu/normal.png
 
 [张瀚宇]
 
@@ -125,15 +135,15 @@ zhang_hanyu/normal.png
 
 张瀚宇指出了几个关键问题。
 
-[立绘]
+[立绘 左]
+zhang_hanyu/normal.png
+
+[立绘 右]
 wuhongtao/happy.png
 
 [吴鸿涛]
 
 你其实挺厉害。
-
-[立绘]
-zhang_hanyu/normal.png
 
 [张瀚宇]
 
@@ -147,11 +157,11 @@ zhang_hanyu/normal.png
 
 [标签] ch02_coop
 
-[背景]
-classroom_evening.png
-
-[立绘]
+[立绘 左]
 zhang_hanyu/normal.png
+
+[立绘 右]
+wuhongtao/normal.png
 
 [张瀚宇]
 
@@ -161,14 +171,16 @@ zhang_hanyu/normal.png
 
 从此以后，项目里经常能看到他们一起讨论的身影。
 
+张瀚宇不爱说话，但每次吴鸿涛发言，他都在听。
+
 [跳转] #ch02_end
 
 [标签] ch02_leave
 
-[背景]
-classroom_evening.png
+[立绘 左]
+clear
 
-[立绘]
+[立绘 右]
 wuhongtao/normal.png
 
 [吴鸿涛]
@@ -181,18 +193,34 @@ wuhongtao/normal.png
 
 留下张瀚宇站在灯下，看着他的背影。
 
+他皱了皱眉，似乎想说什么。
+
 [跳转] #ch02_end
 
 [标签] ch02_end
 
 [旁白]
 
-一学期很快就过去了。
+冬天到了。
 
-夏天，近了。
+宿舍楼下的梧桐叶掉了一地。
+
+[旁白]
+
+吴鸿涛望着窗外。
+
+他不知道。
+
+这个冬天之后，有些关系，会变得再也回不去。
 
 [背景]
-classroom_evening.png
+classroom_night.png
+
+[立绘 左]
+clear
+
+[立绘 右]
+clear
 
 [下一章]
 script/chapter03.txt

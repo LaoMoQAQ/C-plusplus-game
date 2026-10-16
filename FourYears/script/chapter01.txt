@@ -12,7 +12,7 @@ school_gate.png
 [BGM]
 school_daily.mp3
 
-[立绘]
+[立绘 右]
 wuhongtao/normal.png
 
 [吴鸿涛]
@@ -27,30 +27,35 @@ wuhongtao/normal.png
 
 报道结束后，吴鸿涛来到新生宿舍。
 
-这是他大学生活的第一天。
+四人间的宿舍，其他三个床位都已经铺好了。
 
 [背景]
 classroom_day.png
 
-[立绘]
+[立绘 右]
 wuhongtao/sad.png
 
 [吴鸿涛]
+
+大学啊……
 
 希望这四年，不会留下遗憾。
 
 [旁白]
 
-下午，吴鸿涛在校园地图前迷路。
+下午，吴鸿涛拿着校园地图在综合楼前迷路。
 
 [背景]
 corridor.png
+
+[立绘 右]
+clear
 
 [???]
 
 你也是新生？
 
-[立绘]
+[立绘 右]
 wuhongtao/normal.png
 
 [吴鸿涛]
@@ -61,21 +66,24 @@ wuhongtao/normal.png
 
 我是李君浩。
 
-[立绘]
+[立绘 左]
 li_junhao/normal.png
+
+[立绘 右]
+wuhongtao/normal.png
 
 [李君浩]
 
 看你的样子，好像找不到教学楼。
 
-[立绘]
+[立绘 右]
 wuhongtao/happy.png
 
 [吴鸿涛]
 
 被你看出来了。
 
-[立绘]
+[立绘 左]
 li_junhao/normal.png
 
 [李君浩]
@@ -93,8 +101,11 @@ li_junhao/normal.png
 [背景]
 corridor.png
 
-[立绘]
+[立绘 左]
 li_junhao/normal.png
+
+[立绘 右]
+clear
 
 [李君浩]
 
@@ -106,6 +117,24 @@ li_junhao/normal.png
 
 两个人聊得意外投机。
 
+[立绘 左]
+li_junhao/normal.png
+
+[立绘 右]
+wuhongtao/happy.png
+
+[吴鸿涛]
+
+你懂的真多。
+
+[李君浩]
+
+我家就在本市，高中也在这附近。
+
+[李君浩]
+
+习惯了。
+
 [跳转] #ch01_join
 
 [标签] ch01_alone
@@ -113,7 +142,10 @@ li_junhao/normal.png
 [背景]
 corridor.png
 
-[立绘]
+[立绘 左]
+clear
+
+[立绘 右]
 wuhongtao/normal.png
 
 [吴鸿涛]
@@ -126,37 +158,42 @@ wuhongtao/normal.png
 
 吴鸿涛绕了一圈，终于在另一侧找到了方向。
 
+转身时，那个身影已经不在了。
+
 [跳转] #ch01_join
 
 [标签] ch01_join
+
+[背景]
+playground.png
+
+[立绘 左]
+clear
+
+[立绘 右]
+clear
 
 [旁白]
 
 几天后。
 
-社团招新活动开始。
+社团招新活动在操场上举行。
 
 吴鸿涛在人群中看到了一个熟悉的身影。
 
-[背景]
-playground.png
-
-[立绘]
+[立绘 左]
 zhang_hanyu/normal.png
+
+[立绘 右]
+wuhongtao/normal.png
 
 [张瀚宇]
 
 你也是计算机学院的？
 
-[立绘]
-wuhongtao/normal.png
-
 [吴鸿涛]
 
 对。
-
-[立绘]
-zhang_hanyu/normal.png
 
 [张瀚宇]
 
@@ -170,11 +207,11 @@ zhang_hanyu/normal.png
 
 [标签] ch01_wechat
 
-[背景]
-playground.png
-
-[立绘]
+[立绘 左]
 zhang_hanyu/normal.png
+
+[立绘 右]
+wuhongtao/normal.png
 
 [张瀚宇]
 
@@ -190,10 +227,10 @@ zhang_hanyu/normal.png
 
 [标签] ch01_bye
 
-[背景]
-playground.png
+[立绘 左]
+clear
 
-[立绘]
+[立绘 右]
 wuhongtao/normal.png
 
 [吴鸿涛]
@@ -216,6 +253,9 @@ wuhongtao/normal.png
 
 [背景]
 school_gate.png
+
+[立绘 右]
+clear
 
 [下一章]
 script/chapter02.txt

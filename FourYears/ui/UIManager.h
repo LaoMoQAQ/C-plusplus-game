@@ -43,6 +43,9 @@ public:
     void HandleInput(int key);
     void HandleMouseMove(int x, int y);
     MenuMouseResult HandleMouseClick(int x, int y);
+    
+    // [新增] 鼠标滚轮分发
+    void HandleMouseWheel(int delta);
 
 
 

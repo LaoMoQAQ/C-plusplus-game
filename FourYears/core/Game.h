@@ -147,6 +147,10 @@ private:
     std::vector<std::string> currentChoiceTargets;
     std::vector<std::vector<AffectionChange>> currentChoiceAffection;
 
+    // [新增] 当前选择事件的选项显示文本
+    // 用于记录好感度变化的来源
+    std::vector<std::string> currentChoiceTexts;
+
 
 
     // ---- 音频 ----

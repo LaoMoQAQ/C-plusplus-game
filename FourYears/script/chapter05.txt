@@ -1,11 +1,11 @@
 [旁白]
 
-第四年。
+第二年，冬。
 
-春天来得格外早。
+寒假前的最后一周。
 
 [背景]
-school_gate.png
+library.png
 
 [BGM]
 school_daily.mp3
@@ -13,39 +13,38 @@ school_daily.mp3
 [立绘 右]
 wuhongtao/normal.png
 
+[吴鸿涛]
+
+考完这科就能回家了。
+
 [旁白]
 
-毕业季的味道，已经弥漫在校园里。
+手机上，李君浩和张瀚宇的消息都停在了两天前。
 
-答辩、散伙饭、合影、离别。
-
-[背景]
-rooftop.png
-
-[立绘 右]
-clear
+吴鸿涛点开又关上，点开又关上。
 
 [立绘 左]
 li_junhao/normal.png
 
-[立绘 右]
-zhang_hanyu/normal.png
+[李君浩]
+
+考完了吗？
+
+[吴鸿涛]
+
+还有最后一科。
 
 [李君浩]
 
-还有两个月。
+加油。
 
-[张瀚宇]
+[吴鸿涛]
 
 嗯。
 
-[李君浩]
+[旁白]
 
-想好去哪儿了吗？
-
-[张瀚宇]
-
-看情况。
+一分钟后。
 
 [立绘 左]
 clear
@@ -53,122 +52,98 @@ clear
 [立绘 右]
 wuhongtao/normal.png
 
-[吴鸿涛]
-
-你们……在聊毕业的事？
-
-[立绘 左]
-li_junhao/normal.png
-
-[立绘 右]
-zhang_hanyu/normal.png
-
-[李君浩]
-
-嗯。
-
 [张瀚宇]
 
-也聊聊你。
+考完一起吃饭？
 
 [吴鸿涛]
 
-……我？
+……好。
 
 [选择]
 
-1. 我想继续陪在你们身边 | 李君浩 +10, 张瀚宇 +10 -> #ch05_stay
+1. 叫上李君浩一起 | 李君浩 +10, 张瀚宇 +10 -> #ch05_together
 
-2. 我想把话说清楚 | 李君浩 +15, 张瀚宇 +15 -> #ch05_clear
+2. 只和张瀚宇吃 | 张瀚宇 +10 -> #ch05_alone
 
-3. 我想一个人先想想 -> #ch05_alone
+3. 都推掉，一个人过年 | -> #ch05_none
 
-[标签] ch05_stay
+[标签] ch05_together
 
 [背景]
-rooftop.png
+cafe.png
 
 [立绘 左]
 li_junhao/normal.png
 
 [立绘 右]
 zhang_hanyu/normal.png
-
-[李君浩]
-
-那就好。
-
-[张瀚宇]
-
-……随便你。
 
 [旁白]
 
-三个人在天台上吹了很久的风。
+三个人坐在咖啡厅里。
 
-谁都没再开口。
-
-但有些话，不说出来也知道。
-
-[跳转] #ch05_end
-
-[标签] ch05_clear
-
-[背景]
-rooftop.png
-
-[立绘 左]
-li_junhao/normal.png
-
-[立绘 右]
-zhang_hanyu/normal.png
+有点尴尬，又有点自然。
 
 [李君浩]
 
-你说吧。
-
-[张瀚宇]
-
-我们听着。
-
-[旁白]
-
-吴鸿涛深吸了一口气。
-
-[立绘 左]
-clear
-
-[立绘 右]
-wuhongtao/normal.png
-
-[吴鸿涛]
-
-这四年，你们对我来说，不只是同学。
-
-[吴鸿涛]
-
-不管以后走到哪里，我都会记得。
-
-[立绘 左]
-li_junhao/normal.png
-
-[立绘 右]
-zhang_hanyu/normal.png
-
-[李君浩]
-
-……我们也是。
+……你也在？
 
 [张瀚宇]
 
 嗯。
+
+[吴鸿涛]
+
+我请的。
+
+[旁白]
+
+李君浩和张瀚宇都愣了一下。
+
+然后同时笑了。
+
+那天下午，他们聊了很多。
 
 [跳转] #ch05_end
 
 [标签] ch05_alone
 
 [背景]
-rooftop.png
+cafe.png
+
+[立绘 左]
+zhang_hanyu/normal.png
+
+[立绘 右]
+wuhongtao/normal.png
+
+[张瀚宇]
+
+就我们俩？
+
+[吴鸿涛]
+
+嗯。
+
+[张瀚宇]
+
+……行。
+
+[旁白]
+
+张瀚宇难得说了一晚上话。
+
+从他小时候，到为什么学计算机。
+
+吴鸿涛第一次觉得，他不是表面上那么冷。
+
+[跳转] #ch05_end
+
+[标签] ch05_none
+
+[背景]
+street_night.png
 
 [立绘 左]
 clear
@@ -178,43 +153,32 @@ clear
 
 [旁白]
 
-吴鸿涛没有回答。
+吴鸿涛婉拒了两个人。
 
-他一个人走下天台，走进暮色里。
+一个人回了老家。
 
-有些答案，需要时间来给。
+[吴鸿涛]
+
+……又是这样。
+
+[旁白]
+
+他也不知道自己在逃避什么。
 
 [跳转] #ch05_end
 
 [标签] ch05_end
 
 [背景]
-ending_sunset.png
-
-[立绘 右]
-wuhongtao/normal.png
+street_night.png
 
 [旁白]
 
-毕业典礼还有两个月。
+正月十五。
 
-但故事，已经快走到了尾声。
+吴鸿涛在阳台上看烟花。
 
-[旁白]
-
-吴鸿涛站在窗前，看着远处的校园。
-
-风轻轻吹过。
-
-[吴鸿涛]
-
-四年，真的很快。
-
-[背景]
-ending_sunset.png
-
-[BGM]
-sunset_love.mp3
+手机里两条未读消息，他一条也没回。
 
 [下一章]
-script/ending.txt
+script/chapter06.txt

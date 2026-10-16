@@ -148,11 +148,29 @@ void UIManager::HandleInput(int key)
 {
     switch(currentState)
     {
-    case UIState::START:  startMenu.HandleInput(key);  break;
-    case UIState::PAUSE:  pauseMenu.HandleInput(key);  break;
-    case UIState::SAVE:   saveMenu.HandleInput(key);   break;
-    case UIState::CONFIG: configMenu.HandleInput(key); break;
-    default: break;
+    case UIState::START:
+        startMenu.HandleInput(key);
+        break;
+
+    case UIState::PAUSE:
+        pauseMenu.HandleInput(key);
+        break;
+
+    case UIState::SAVE:
+        saveMenu.HandleInput(key);
+        break;
+
+    case UIState::CONFIG:
+        configMenu.HandleInput(key);
+        break;
+
+    // [新增] 好感度页面：↑↓ 翻页
+    case UIState::AFFECTION:
+        affectionMenu.HandleInput(key);
+        break;
+
+    default:
+        break;
     }
 }
 
@@ -197,6 +215,23 @@ MenuMouseResult UIManager::HandleMouseClick(int x, int y)
 
     default:
         return MenuMouseResult::NONE;
+    }
+}
+
+
+
+
+
+void UIManager::HandleMouseWheel(int delta)
+{
+    switch(currentState)
+    {
+    case UIState::AFFECTION:
+        affectionMenu.HandleMouseWheel(delta);
+        break;
+
+    default:
+        break;
     }
 }
 

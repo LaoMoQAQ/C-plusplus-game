@@ -28,6 +28,9 @@ wuhongtao/normal.png
 [背景]
 ending_sunset.png
 
+[立绘]
+clear
+
 [结局分支]
 
 李君浩 -> script/li_junhao_route.txt
