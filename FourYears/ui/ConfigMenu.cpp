@@ -350,15 +350,6 @@ bool ConfigMenu::TryExit()
 
 
 
-void ConfigMenu::CancelConfirm()
-{
-    confirmSave = false;
-}
-
-
-
-
-
 bool ConfigMenu::IsConfirming() const
 {
     return confirmSave;

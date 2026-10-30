@@ -287,12 +287,6 @@ void DialogueUI::Skip()
 }
 
 
-void DialogueUI::Draw(Renderer& renderer)
-{
-    Render(renderer);
-}
-
-
 void DialogueUI::ShowChoice(const std::vector<std::string>& options)
 {
     choiceOptions = options;

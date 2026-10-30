@@ -63,10 +63,7 @@ public:
 
     int GetAffection(const std::string& character);
 
-    void OpenRoute(RouteType route);
-    RouteType GetCurrentRoute() const;
     RouteType CheckRoute();
-    std::string RouteName();
 
     std::map<std::string, int> GetAllAffection() const;
 
@@ -83,8 +80,6 @@ private:
     std::map<std::string, int> affection;
 
     std::vector<AffectionRecord> records;
-
-    RouteType currentRoute;
 
 };
 

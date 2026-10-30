@@ -51,14 +51,12 @@ public:
 
 
     // 是否显示完毕。
-    bool Finished();
     bool IsFinished();
 
 
 
     // 当前已显示的文本（打字过程中逐渐变长）。
     std::string GetCurrentText();
-    std::string GetText();
 
 
 

@@ -60,7 +60,7 @@ DEPFLAGS := -MMD -MP
 INC := -IFourYears -IFourYears/core -IFourYears/story -IFourYears/ui
 
 # -------- 源文件清单（单行，不要续行） --------
-SRC := FourYears/main.cpp FourYears/core/Game.cpp FourYears/core/Renderer.cpp FourYears/core/ResourceManager.cpp FourYears/core/TextSystem.cpp FourYears/core/SaveSystem.cpp FourYears/core/AudioManager.cpp FourYears/core/FontManager.cpp FourYears/core/Config.cpp FourYears/story/Character.cpp FourYears/story/History.cpp FourYears/story/RouteManager.cpp FourYears/story/Story.cpp FourYears/story/StoryParser.cpp FourYears/ui/UIManager.cpp FourYears/ui/DialogueUI.cpp FourYears/ui/StartMenu.cpp FourYears/ui/PauseMenu.cpp FourYears/ui/SaveMenu.cpp FourYears/ui/AffectionMenu.cpp FourYears/ui/ConfigMenu.cpp
+SRC := FourYears/main.cpp FourYears/core/Game.cpp FourYears/core/Renderer.cpp FourYears/core/ResourceManager.cpp FourYears/core/TextSystem.cpp FourYears/core/SaveSystem.cpp FourYears/core/AudioManager.cpp FourYears/core/FontManager.cpp FourYears/core/Config.cpp FourYears/story/RouteManager.cpp FourYears/story/Story.cpp FourYears/story/StoryParser.cpp FourYears/ui/UIManager.cpp FourYears/ui/DialogueUI.cpp FourYears/ui/StartMenu.cpp FourYears/ui/PauseMenu.cpp FourYears/ui/SaveMenu.cpp FourYears/ui/AffectionMenu.cpp FourYears/ui/ConfigMenu.cpp
 
 # -------- 目标文件 --------
 OBJ_DIR := build/obj

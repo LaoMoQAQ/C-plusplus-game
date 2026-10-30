@@ -18,7 +18,6 @@ public:
 
     DialogueUI();
 
-    void Draw(Renderer& renderer);
     void Render(Renderer& renderer);
 
     void SetSpeaker(const std::string& name);

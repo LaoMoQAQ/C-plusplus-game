@@ -279,11 +279,6 @@ void TextSystem::SetCharsPerSecond(int cps)
 
 
 
-bool TextSystem::Finished()
-{
-    return finished;
-}
-
 bool TextSystem::IsFinished()
 {
     return finished;
@@ -294,11 +289,6 @@ bool TextSystem::IsFinished()
 
 
 std::string TextSystem::GetCurrentText()
-{
-    return displayText;
-}
-
-std::string TextSystem::GetText()
 {
     return displayText;
 }

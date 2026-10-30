@@ -30,7 +30,6 @@ public:
     void Save();
 
     bool TryExit();
-    void CancelConfirm();
     bool IsConfirming() const;
 
     int HandleConfirmKey(int sym);

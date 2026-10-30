@@ -6,12 +6,11 @@
 
 SaveMenu::SaveMenu()
 {
-    choice = 0;
+    choice = 1;
     page = SavePage::LOAD;
 
-    displayHighlightY = (float)LIST_Y;
+    saveDataList.resize(SAVE_SLOT_COUNT);
 }
-
 
 
 
@@ -19,63 +18,164 @@ SaveMenu::SaveMenu()
 void SaveMenu::SetPage(SavePage value)
 {
     page = value;
-    choice = 0;
+    choice = 1;
 
     confirmingDelete = false;
     renaming = false;
     creating = false;
     renameBuffer.clear();
-    renameTargetFile.clear();
     editingText.clear();
 }
 
 
 
 
+void SaveMenu::SetSaveSystem(SaveSystem* system)
+{
+    saveSystem = system;
+}
+
+
+
 
 void SaveMenu::Refresh(SaveSystem& saveSystem)
 {
-    saves.clear();
-    saveDataList.clear();
-
     saveDataList = saveSystem.GetSaveList();
 
-    for(auto& data : saveDataList)
-    {
-        std::string line = data.displayName;
-        line += "  [";
-        line += data.chapterName;
-        line += "]  ";
-        line += data.time;
-
-        saves.push_back(line);
-    }
-
-    if(saves.empty())
-    {
-        saves.push_back("没有存档");
-    }
-
-    choice = 0;
     confirmingDelete = false;
 }
 
 
 
 
+// ==========================================================
+// 布局
+// ==========================================================
+
+SDL_Rect SaveMenu::SlotRect(int slot) const
+{
+    SDL_Rect r = { 0, 0, 0, 0 };
+
+    if(slot < 1 || slot > SAVE_SLOT_COUNT)
+        return r;
+
+    int idx = slot - 1;
+    int col = idx / ROWS;       // 0 或 1
+    int row = idx % ROWS;
+
+    r.x = GRID_X + col * (CELL_W + CELL_GAP_X);
+    r.y = GRID_Y + row * (CELL_H + CELL_GAP_Y);
+    r.w = CELL_W;
+    r.h = CELL_H;
+
+    return r;
+}
+
+
+
+
+int SaveMenu::HitTest(int x, int y) const
+{
+    for(int i = 1; i <= SAVE_SLOT_COUNT; i++)
+    {
+        SDL_Rect r = SlotRect(i);
+
+        if(x >= r.x && x < r.x + r.w &&
+           y >= r.y && y < r.y + r.h)
+        {
+            return i;
+        }
+    }
+
+    return 0;
+}
+
+
+
+
+// ==========================================================
+// FitText
+// ==========================================================
+//
+// 按像素宽度截断文字，超出部分用 "…" 收尾。
+//
+// 这里只是粗略估算：正文用 simhei 32 号，中文字符约 32px 宽，
+// ASCII 约 16px。够用，且不依赖 TTF_SizeUTF8 的额外调用。
+
+std::string SaveMenu::FitText(
+    const std::string& text,
+    int maxWidth
+) const
+{
+    if(text.empty() || maxWidth <= 0)
+        return text;
+
+
+    int width = 0;
+    size_t i = 0;
+
+    for(; i < text.size();)
+    {
+        unsigned char c = (unsigned char)text[i];
+
+        size_t len = 1;
+        int adv = 16;
+
+        if((c & 0x80) == 0)
+        {
+            len = 1;
+            adv = 16;
+        }
+        else if((c & 0xE0) == 0xC0)
+        {
+            len = 2;
+            adv = 32;
+        }
+        else if((c & 0xF0) == 0xE0)
+        {
+            len = 3;
+            adv = 32;
+        }
+        else if((c & 0xF8) == 0xF0)
+        {
+            len = 4;
+            adv = 32;
+        }
+
+        if(width + adv > maxWidth)
+        {
+            // 放不下了，截断并加省略号
+            return text.substr(0, i) + "...";
+        }
+
+        width += adv;
+        i += len;
+    }
+
+    return text;
+}
+
+
+
 
 void SaveMenu::Update(float delta)
 {
-    float target = (float)(LIST_Y + choice * LIST_GAP);
+    SDL_Rect r = SlotRect(choice);
 
-    float diff = target - displayHighlightY;
+    float tx = (float)r.x;
+    float ty = (float)r.y;
 
-    if(diff > -0.5f && diff < 0.5f)
-        displayHighlightY = target;
-    else
-        displayHighlightY += diff * SmoothFactor(hlSpeed, delta);
+    float dx = tx - displayX;
+    float dy = ty - displayY;
+
+    float f = SmoothFactor(hlSpeed, delta);
+
+    if(dx > -0.5f && dx < 0.5f) displayX = tx;
+    else                        displayX += dx * f;
+
+    if(dy > -0.5f && dy < 0.5f) displayY = ty;
+    else                        displayY += dy * f;
 }
-
 
 
 
@@ -113,13 +213,13 @@ void SaveMenu::Render(Renderer& renderer)
 
     // ---- 高亮块 ----
 
-    if(!saves.empty() && !IsRenaming())
+    if(!IsRenaming())
     {
         renderer.DrawFilledRoundRect(
-            LIST_X - 20,
-            (int)displayHighlightY - 6,
-            LIST_W + 40,
-            LIST_H - 4,
+            (int)displayX - 6,
+            (int)displayY - 6,
+            CELL_W + 12,
+            CELL_H + 12,
             UILayout::HL_RADIUS,
             UILayout::HL_R,
             UILayout::HL_G,
@@ -129,22 +229,93 @@ void SaveMenu::Render(Renderer& renderer)
     }
 
 
-    // ---- 存档列表 ----
+    // ---- 10 个槽位 ----
 
-    for(int i = 0; i < (int)saves.size(); i++)
+    for(int i = 1; i <= SAVE_SLOT_COUNT; i++)
     {
-        int iy = LIST_Y + i * LIST_GAP;
+        SDL_Rect r = SlotRect(i);
 
-        std::string text;
+        const SaveData& data = saveDataList[i - 1];
 
-        if(i == choice && !IsRenaming())
-            text = "> " + saves[i];
-        else if(i == choice)
-            text = "  " + saves[i];
+        bool selected = (i == choice);
+
+
+        // 缩略图区：有图就画图，没图画个暗色占位框
+
+        SDL_Texture* thumb = nullptr;
+
+        if(data.used && saveSystem)
+            thumb = saveSystem->GetThumbnail(renderer.GetSDLRenderer(), i);
+
+        SDL_Rect thumbRect = {
+            r.x + 12,
+            r.y + (CELL_H - THUMB_H) / 2,
+            THUMB_W,
+            THUMB_H
+        };
+
+        if(thumb)
+        {
+            renderer.DrawTexture(
+                thumb,
+                thumbRect.x, thumbRect.y,
+                thumbRect.w, thumbRect.h
+            );
+        }
         else
-            text = "  " + saves[i];
+        {
+            renderer.DrawFilledRoundRect(
+                thumbRect.x, thumbRect.y,
+                thumbRect.w, thumbRect.h,
+                6,
+                30, 30, 40, 180
+            );
 
-        renderer.DrawText(text, LIST_X, iy);
+            renderer.DrawText(
+                "空",
+                thumbRect.x + 66,
+                thumbRect.y + 30
+            );
+        }
+
+
+        // 文字
+
+        int tx = r.x + TEXT_DX;
+        int ty = r.y + TEXT_DY;
+
+        if(data.used)
+        {
+            std::string line1 = data.displayName;
+            if(line1.empty()) line1 = "未命名";
+
+            renderer.DrawText(
+                FitText(line1, TEXT_MAX_W),
+                tx, ty
+            );
+
+            std::string line2 =
+                "[" + data.chapterName + "]  " + data.time;
+
+            renderer.DrawText(
+                FitText(line2, TEXT_MAX_W),
+                tx, ty + TEXT_GAP
+            );
+
+            std::string line3 = "槽位 " + std::to_string(i);
+
+            if(selected)
+                line3 = "> " + line3;
+
+            renderer.DrawText(line3, tx, ty + TEXT_GAP * 2);
+        }
+        else
+        {
+            std::string line1 = "空槽位 " + std::to_string(i);
+            if(selected) line1 = "> " + line1;
+
+            renderer.DrawText(line1, tx, ty + TEXT_GAP);
+        }
     }
 
 
@@ -152,38 +323,38 @@ void SaveMenu::Render(Renderer& renderer)
 
     if(IsRenaming())
     {
-        // 输入模式：区分新建 / 重命名
         std::string prefix =
             creating ? "新建存档: " : "重命名: ";
 
         std::string line = prefix + renameBuffer + "_";
-        renderer.DrawText(line, 400, 780);
+        renderer.DrawText(line, 400, 830);
 
         if(!editingText.empty())
         {
             std::string pinyinLine = "拼音: " + editingText;
-            renderer.DrawText(pinyinLine, 400, 815);
+            renderer.DrawText(pinyinLine, 400, 862);
         }
         else
         {
             renderer.DrawText(
                 "支持中文输入  Enter 确认 / ESC 取消",
-                400, 815
+                400, 862
             );
         }
     }
-    else if(confirmingDelete && !saveDataList.empty())
+    else if(confirmingDelete)
     {
         SaveData data = GetCurrentSave();
 
-        if(!data.filename.empty())
+        if(data.used)
         {
             std::string msg =
-                "确认删除 \""
-                + data.displayName
+                "确认删除槽位 "
+                + std::to_string(choice)
+                + " \"" + data.displayName
                 + "\" ？   Enter 确认 / ESC 取消";
 
-            renderer.DrawText(msg, 380, 800);
+            renderer.DrawText(msg, 380, 838);
         }
     }
     else
@@ -191,15 +362,15 @@ void SaveMenu::Render(Renderer& renderer)
         if(page == SavePage::LOAD)
         {
             renderer.DrawText(
-                "Enter 读取存档  N 新建  C 复制  Delete 删除  R 重命名",
-                300, 750
+                "Enter 读取  N 新建  C 复制  Delete 删除  R 重命名",
+                280, 838
             );
         }
         else
         {
             renderer.DrawText(
-                "N 新建  C 复制  Delete 删除  R 重命名",
-                350, 750
+                "Enter 保存  N 新建  C 复制  Delete 删除  R 重命名",
+                280, 838
             );
         }
     }
@@ -215,28 +386,46 @@ void SaveMenu::Render(Renderer& renderer)
 
 
 
-
 void SaveMenu::HandleInput(int key)
 {
     if(IsRenaming()) return;
-    if(saves.empty()) return;
 
     hlSpeed = HL_ANIM_SPEED;
 
+
+    int col = (choice - 1) / ROWS;
+    int row = (choice - 1) % ROWS;
+
+
+    // 1=上 2=下 3=左 4=右
+
     if(key == 1)
     {
-        choice--;
-        if(choice < 0)
-            choice = saves.size() - 1;
+        row--;
+        if(row < 0) row = ROWS - 1;
     }
     else if(key == 2)
     {
-        choice++;
-        if(choice >= (int)saves.size())
-            choice = 0;
+        row++;
+        if(row >= ROWS) row = 0;
     }
-}
+    else if(key == 3)
+    {
+        col--;
+        if(col < 0) col = COLS - 1;
+    }
+    else if(key == 4)
+    {
+        col++;
+        if(col >= COLS) col = 0;
+    }
 
+
+    choice = col * ROWS + row + 1;
+
+    if(choice < 1) choice = 1;
+    if(choice > SAVE_SLOT_COUNT) choice = SAVE_SLOT_COUNT;
+}
 
 
 
@@ -249,54 +438,32 @@ int SaveMenu::GetChoice() const
 
 
 
-
 void SaveMenu::Reset()
 {
-    choice = 0;
+    choice = 1;
+
     confirmingDelete = false;
     renaming = false;
     creating = false;
-    renameBuffer.clear();
-    renameTargetFile.clear();
-    editingText.clear();
-}
 
+    renameBuffer.clear();
+    editingText.clear();
+
+    pendingThumbnail.clear();
+    pendingThumbW = 0;
+    pendingThumbH = 0;
+}
 
 
 
 
 SaveData SaveMenu::GetCurrentSave()
 {
-    if(choice >= 0 && choice < (int)saveDataList.size())
-        return saveDataList[choice];
+    if(choice >= 1 && choice <= (int)saveDataList.size())
+        return saveDataList[choice - 1];
 
     return SaveData();
 }
-
-
-
-
-
-void SaveMenu::Create(
-    SaveSystem& saveSystem,
-    const std::string& name,
-    const std::string& scriptFile,
-    const std::string& chapterName,
-    int index,
-    const std::map<std::string, int>& affection
-)
-{
-    saveSystem.CreateSave(
-        name,
-        scriptFile,
-        chapterName,
-        index,
-        affection
-    );
-
-    Refresh(saveSystem);
-}
-
 
 
 
@@ -305,12 +472,11 @@ void SaveMenu::Delete(SaveSystem& saveSystem)
 {
     SaveData data = GetCurrentSave();
 
-    if(data.filename.empty()) return;
+    if(!data.used) return;
 
-    saveSystem.DeleteSave(data.filename);
+    saveSystem.DeleteSave(choice);
     Refresh(saveSystem);
 }
-
 
 
 
@@ -319,12 +485,15 @@ void SaveMenu::Copy(SaveSystem& saveSystem)
 {
     SaveData data = GetCurrentSave();
 
-    if(data.filename.empty()) return;
+    if(!data.used) return;
 
-    saveSystem.CopySave(data.filename);
+    // 复制到下一个槽位，循环
+    int target = choice + 1;
+    if(target > SAVE_SLOT_COUNT) target = 1;
+
+    saveSystem.CopySave(choice, target);
     Refresh(saveSystem);
 }
-
 
 
 
@@ -337,7 +506,6 @@ SavePage SaveMenu::GetPage() const
 
 
 
-
 bool SaveMenu::Confirm(
     SaveSystem& saveSystem,
     std::string& outScriptFile,
@@ -346,26 +514,22 @@ bool SaveMenu::Confirm(
     std::map<std::string, int>& outAffection
 )
 {
-    if(saves.empty()) return false;
+    if(page != SavePage::LOAD)
+        return false;
 
-    if(page == SavePage::LOAD)
-    {
-        SaveData data = GetCurrentSave();
+    SaveData data = GetCurrentSave();
 
-        if(data.filename.empty()) return false;
+    if(!data.used)
+        return false;
 
-        return saveSystem.LoadSave(
-            data.filename,
-            outScriptFile,
-            outChapterName,
-            outIndex,
-            outAffection
-        );
-    }
-
-    return false;
+    return saveSystem.LoadSave(
+        choice,
+        outScriptFile,
+        outChapterName,
+        outIndex,
+        outAffection
+    );
 }
-
 
 
 
@@ -374,21 +538,14 @@ void SaveMenu::HandleMouseMove(int x, int y)
 {
     if(IsRenaming()) return;
 
-    for(int i = 0; i < (int)saves.size(); i++)
-    {
-        int ix = LIST_X;
-        int iy = LIST_Y + i * LIST_GAP;
+    int slot = HitTest(x, y);
 
-        if(x >= ix && x < ix + LIST_W &&
-           y >= iy && y < iy + LIST_H)
-        {
-            hlSpeed = HL_ANIM_SPEED_FAST;
-            choice = i;
-            return;
-        }
+    if(slot > 0)
+    {
+        hlSpeed = HL_ANIM_SPEED_FAST;
+        choice = slot;
     }
 }
-
 
 
 
@@ -414,50 +571,35 @@ MenuMouseResult SaveMenu::HandleMouseClick(int x, int y)
     }
 
 
-    // 删除确认状态下，只有点在"当前选中项"上才算确认。
-    // 以前是页面上任意位置点击都返回 ACTIVATE，
-    // 按过一次 Delete 后点到哪儿都会把存档删掉。
+    int slot = HitTest(x, y);
+
+    if(slot <= 0)
+        return MenuMouseResult::NONE;
+
+
+    // 删除确认状态下，只有点当前选中槽位才算确认
     if(confirmingDelete)
     {
-        int iy = LIST_Y + choice * LIST_GAP;
-
-        if(x >= LIST_X && x < LIST_X + LIST_W &&
-           y >= iy    && y <  iy + LIST_H)
-        {
+        if(slot == choice)
             return MenuMouseResult::ACTIVATE;
-        }
 
         return MenuMouseResult::NONE;
     }
 
 
-    for(int i = 0; i < (int)saves.size(); i++)
-    {
-        int ix = LIST_X;
-        int iy = LIST_Y + i * LIST_GAP;
-
-        if(x >= ix && x < ix + LIST_W &&
-           y >= iy && y < iy + LIST_H)
-        {
-            choice = i;
-            return MenuMouseResult::ACTIVATE;
-        }
-    }
-
-    return MenuMouseResult::NONE;
+    choice = slot;
+    return MenuMouseResult::ACTIVATE;
 }
-
 
 
 
 
 void SaveMenu::BeginDelete()
 {
-    if(GetCurrentSave().filename.empty()) return;
+    if(!GetCurrentSave().used) return;
 
     confirmingDelete = true;
 }
-
 
 
 
@@ -470,20 +612,16 @@ void SaveMenu::CancelDelete()
 
 
 
-
 void SaveMenu::ConfirmDelete(SaveSystem& saveSystem)
 {
-    SaveData data = GetCurrentSave();
-
-    if(!data.filename.empty())
+    if(GetCurrentSave().used)
     {
-        saveSystem.DeleteSave(data.filename);
+        saveSystem.DeleteSave(choice);
         Refresh(saveSystem);
     }
 
     confirmingDelete = false;
 }
-
 
 
 
@@ -496,7 +634,6 @@ bool SaveMenu::IsConfirmingDelete() const
 
 
 
-
 // ==========================================================
 // 输入模式
 // ==========================================================
@@ -505,17 +642,15 @@ void SaveMenu::BeginRename()
 {
     SaveData data = GetCurrentSave();
 
-    if(data.filename.empty()) return;
+    if(!data.used) return;
 
     renaming = true;
     creating = false;
 
-    renameTargetFile = data.filename;
     renameBuffer = data.displayName;
 
     editingText.clear();
 }
-
 
 
 
@@ -530,7 +665,6 @@ void SaveMenu::BeginCreate(
     renaming = false;
     creating = true;
 
-    renameTargetFile.clear();
     renameBuffer.clear();
     editingText.clear();
 
@@ -540,6 +674,18 @@ void SaveMenu::BeginCreate(
     pendingAffection = affection;
 }
 
+
+
+
+void SaveMenu::SetPendingThumbnail(
+    const std::vector<unsigned char>& rgba,
+    int w, int h
+)
+{
+    pendingThumbnail = rgba;
+    pendingThumbW = w;
+    pendingThumbH = h;
+}
 
 
 
@@ -590,7 +736,6 @@ void SaveMenu::HandleRenameKey(
 
 
 
-
 void SaveMenu::AppendRenameText(const std::string& utf8)
 {
     if(!IsRenaming()) return;
@@ -608,17 +753,18 @@ void SaveMenu::AppendRenameText(const std::string& utf8)
 
 
 
-
 void SaveMenu::CancelRename()
 {
     renaming = false;
     creating = false;
 
     renameBuffer.clear();
-    renameTargetFile.clear();
     editingText.clear();
-}
 
+    pendingThumbnail.clear();
+    pendingThumbW = 0;
+    pendingThumbH = 0;
+}
 
 
 
@@ -629,30 +775,31 @@ void SaveMenu::ConfirmRename(SaveSystem& saveSystem)
 
     if(creating)
     {
-        if(!renameBuffer.empty())
-        {
-            saveSystem.CreateSave(
-                renameBuffer,
-                pendingScriptFile,
-                pendingChapterName,
-                pendingIndex,
-                pendingAffection
-            );
+        std::string name = renameBuffer;
 
-            Refresh(saveSystem);
-        }
+        if(name.empty())
+            name = "存档 " + std::to_string(choice);
+
+        saveSystem.CreateSave(
+            choice,
+            name,
+            pendingScriptFile,
+            pendingChapterName,
+            pendingIndex,
+            pendingAffection,
+            pendingThumbnail.empty() ? nullptr : pendingThumbnail.data(),
+            pendingThumbW,
+            pendingThumbH
+        );
+
+        Refresh(saveSystem);
     }
 
     // ---- 重命名 ----
 
-    else if(renaming &&
-            !renameTargetFile.empty() &&
-            !renameBuffer.empty())
+    else if(renaming && !renameBuffer.empty())
     {
-        saveSystem.RenameSave(
-            renameTargetFile,
-            renameBuffer
-        );
+        saveSystem.RenameSave(choice, renameBuffer);
 
         Refresh(saveSystem);
     }
@@ -662,10 +809,12 @@ void SaveMenu::ConfirmRename(SaveSystem& saveSystem)
     creating = false;
 
     renameBuffer.clear();
-    renameTargetFile.clear();
     editingText.clear();
-}
 
+    pendingThumbnail.clear();
+    pendingThumbW = 0;
+    pendingThumbH = 0;
+}
 
 
 
@@ -674,7 +823,6 @@ bool SaveMenu::IsRenaming() const
 {
     return renaming || creating;
 }
-
 
 
 

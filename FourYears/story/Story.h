@@ -7,8 +7,6 @@
 #include <map>
 
 
-#include "Character.h"
-#include "History.h"
 #include "RouteManager.h"
 
 
@@ -95,8 +93,6 @@ public:
     StoryEvent GetCurrentEvent();
     bool IsEnd() const;
 
-    Character& GetCharacter(const std::string& name);
-    History& GetHistory();
     RouteManager& GetRouteManager();
 
     int  GetIndex() const;
@@ -107,8 +103,6 @@ public:
     const std::string& GetCurrentFile() const;
 
     void AddLabel(const std::string& name, int eventIndex);
-    bool HasLabel(const std::string& name) const;
-    int  GetLabel(const std::string& name) const;
     bool JumpToLabel(const std::string& name);
 
 
@@ -129,8 +123,6 @@ private:
 
     int currentIndex;
 
-    std::vector<Character> characters;
-    History       history;
     RouteManager  routeManager;
 
     std::string nextFile;

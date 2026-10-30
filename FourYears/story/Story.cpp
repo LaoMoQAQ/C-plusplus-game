@@ -77,17 +77,6 @@ bool Story::Next()
 
         SkipGotoChain();
 
-        if(
-            currentIndex < (int)events.size() &&
-            !events[currentIndex].isGoto
-        )
-        {
-            history.Add(
-                events[currentIndex].name,
-                events[currentIndex].text
-            );
-        }
-
         return true;
     }
 
@@ -110,14 +99,6 @@ bool Story::Next()
             currentIndex = 0;
             currentFile  = file;
             nextFile     = temp.GetNextFile();
-
-            if(!events.empty())
-            {
-                history.Add(
-                    events[0].name,
-                    events[0].text
-                );
-            }
 
             return true;
         }
@@ -173,32 +154,6 @@ bool Story::Load(const std::string& file)
     nextFile     = temp.GetNextFile();
 
     return true;
-}
-
-
-
-
-
-Character& Story::GetCharacter(const std::string& name)
-{
-    for(auto& c : characters)
-    {
-        if(c.GetName() == name)
-            return c;
-    }
-
-    characters.push_back(Character(name, ""));
-
-    return characters.back();
-}
-
-
-
-
-
-History& Story::GetHistory()
-{
-    return history;
 }
 
 
@@ -272,29 +227,6 @@ void Story::AddLabel(const std::string& name, int eventIndex)
 
 
 
-bool Story::HasLabel(const std::string& name) const
-{
-    return labels.find(name) != labels.end();
-}
-
-
-
-
-
-int Story::GetLabel(const std::string& name) const
-{
-    auto it = labels.find(name);
-
-    if(it == labels.end())
-        return -1;
-
-    return it->second;
-}
-
-
-
-
-
 bool Story::JumpToLabel(const std::string& name)
 {
     auto it = labels.find(name);
@@ -310,17 +242,6 @@ bool Story::JumpToLabel(const std::string& name)
     currentIndex = target;
 
     SkipGotoChain();
-
-    if(
-        currentIndex < (int)events.size() &&
-        !events[currentIndex].isGoto
-    )
-    {
-        history.Add(
-            events[currentIndex].name,
-            events[currentIndex].text
-        );
-    }
 
     return true;
 }

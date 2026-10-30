@@ -69,6 +69,12 @@ private:
     void OnBack();
     void ConfirmChoice();
 
+    // 把当前帧缩成存档缩略图，交给 SaveMenu 暂存
+    void CaptureThumbnail();
+
+    // Present 之前把整帧读回缓存，供 CaptureThumbnail 用
+    void GrabFrame();
+
     // ---- 剧情事件 ----
 
     // 把 story 当前事件同步到画面（背景/立绘/BGM/SE + 对话框 + 选项）。
@@ -151,6 +157,11 @@ private:
 
     SDL_Texture* currentBackground = nullptr;
 
+    // 最近一帧的像素缓存（RGBA32），供存档缩略图使用
+    std::vector<unsigned char> framePixels;
+    int frameW = 0;
+    int frameH = 0;
+
 
 
     // ---- 剧情 / UI ----
@@ -172,9 +183,6 @@ private:
 
 
 
-    // ---- 音频 ----
-
-    std::string lastBgmPath;
 
 
 

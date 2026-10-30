@@ -252,6 +252,7 @@ bool Game::Init()
     ui.GetStartMenu().SetFontManager(&fontManager);
     ui.GetConfigMenu().SetConfig(&config);
     ui.GetAffectionMenu().SetRouteManager(&story.GetRouteManager());
+    ui.GetSaveMenu().SetSaveSystem(&saveSystem);
 
     // [新增] 打字音效
     ui.GetDialogueUI().SetTypingSound(
@@ -691,9 +692,13 @@ void Game::HandleKeyDown()
 
 
     case SDLK_n:
-        if(st == UIState::SAVE)
+        if(st == UIState::SAVE &&
+           ui.GetSaveMenu().GetPage() == SavePage::MANAGE)
         {
-            // [修改] 进入输入模式让玩家起名，而不是直接创建
+            // 先把当前帧截下来，等玩家输完名字一起存进槽位
+            CaptureThumbnail();
+
+            // 进入输入模式让玩家起名，而不是直接创建
             ui.GetSaveMenu().BeginCreate(
                 story.GetCurrentFile(),
                 ChapterNameFromScript(story.GetCurrentFile()),
@@ -722,8 +727,11 @@ void Game::HandleKeyDown()
 
 
     case SDLK_r:
-        if(st == UIState::SAVE)
+        if(st == UIState::SAVE &&
+           ui.GetSaveMenu().GetPage() == SavePage::MANAGE)
+        {
             ui.GetSaveMenu().BeginRename();
+        }
         break;
 
 
@@ -909,11 +917,12 @@ void Game::UpdateScene()
 
 
     // ---- BGM ----
+    //
+    // AudioManager 内部会判断同一首不重播，这里只负责把
+    // 事件里的路径转成完整路径。
 
-    if(!e.bgm.empty() && e.bgm != lastBgmPath)
+    if(!e.bgm.empty())
     {
-        lastBgmPath = e.bgm;
-
         if(e.bgm == "stop")
         {
             audioManager.StopBGM();
@@ -1047,6 +1056,13 @@ void Game::Render()
 
     ui.Render(renderer);
 
+
+    // 剧情画面才缓存像素，供存档缩略图使用。
+    // 必须在 Present 之前读，Present 之后渲染目标内容未定义。
+    if(st == UIState::DIALOGUE)
+        GrabFrame();
+
+
     renderer.Present();
 }
 
@@ -1065,6 +1081,11 @@ void Game::Update()
     ui.Update(delta);
 
     ui.GetDialogueUI().Update(delta);
+
+
+    // ---- 音频淡入淡出 ----
+
+    audioManager.Update(delta);
 
 
     // ---- 立绘淡入淡出 ----
@@ -1199,6 +1220,7 @@ void Game::Shutdown()
 
     // ---- 子系统（顺序不能改） ----
 
+    saveSystem.ClearThumbnails();
     fontManager.Shutdown();
     resourceManager.Destroy();
     audioManager.Clean();
@@ -1219,6 +1241,97 @@ void Game::Shutdown()
     TTF_Quit();
     SDL_Quit();
 }
+
+
+
+// ==========================================================
+// CaptureThumbnail
+// ==========================================================
+//
+// 把"最近一次渲染完成的画面"缩成 16:9 的存档缩略图，交给 SaveMenu 暂存。
+//
+// 注意：不能在按键处理里直接 SDL_RenderReadPixels。
+// 那时当前帧还没画出来，读到的是上一帧甚至空白。
+// 所以 Render() 每帧结束时顺手把像素缓存下来，这里只做缩放。
+
+void Game::CaptureThumbnail()
+{
+    const int THUMB_W = 320;
+    const int THUMB_H = 180;
+
+    if(framePixels.empty() || frameW <= 0 || frameH <= 0)
+        return;
+
+
+    std::vector<unsigned char> thumb(
+        (size_t)THUMB_W * THUMB_H * 4
+    );
+
+    for(int y = 0; y < THUMB_H; y++)
+    {
+        int sy = y * frameH / THUMB_H;
+        if(sy >= frameH) sy = frameH - 1;
+
+        for(int x = 0; x < THUMB_W; x++)
+        {
+            int sx = x * frameW / THUMB_W;
+            if(sx >= frameW) sx = frameW - 1;
+
+            size_t src = ((size_t)sy * frameW + sx) * 4;
+            size_t dst = ((size_t)y * THUMB_W + x) * 4;
+
+            thumb[dst + 0] = framePixels[src + 0];
+            thumb[dst + 1] = framePixels[src + 1];
+            thumb[dst + 2] = framePixels[src + 2];
+            thumb[dst + 3] = 255;
+        }
+    }
+
+
+    ui.GetSaveMenu().SetPendingThumbnail(thumb, THUMB_W, THUMB_H);
+}
+
+
+
+
+// ==========================================================
+// GrabFrame
+// ==========================================================
+//
+// 在 Present 之前把整帧读回来缓存。
+// 只在剧情画面（DIALOGUE）下读，其他状态没意义。
+
+void Game::GrabFrame()
+{
+    SDL_Renderer* r = renderer.GetSDLRenderer();
+
+    if(!r)
+        return;
+
+    int w = config.GetWidth();
+    int h = config.GetHeight();
+
+    if(w <= 0 || h <= 0)
+        return;
+
+    size_t need = (size_t)w * h * 4;
+
+    if(framePixels.size() != need)
+    {
+        framePixels.resize(need);
+        frameW = w;
+        frameH = h;
+    }
+
+    SDL_RenderReadPixels(
+        r,
+        nullptr,
+        SDL_PIXELFORMAT_RGBA32,
+        framePixels.data(),
+        w * 4
+    );
+}
+
 
 
 
@@ -1264,7 +1377,6 @@ void Game::OnActivateCurrentState()
                     }
 
                     currentBackground = nullptr;
-                    lastBgmPath.clear();
                     autoPlayTimer = 0.0f;
 
                     if(!ApplyCurrentEvent())
@@ -1295,8 +1407,6 @@ void Game::OnActivateCurrentState()
             story.GetRouteManager().SetAllAffection({});
 
             // 换章节时重置 BGM 状态
-            lastBgmPath.clear();
-
             // 立绘清干净，避免上一轮残留
             for(int i = 0; i < 3; i++)
             {
@@ -1462,7 +1572,6 @@ void Game::ReturnToTitle()
     for(int i = 0; i < 3; i++)
         sprites[i].targetAlpha = 0.0f;
 
-    lastBgmPath.clear();
     autoPlayTimer = 0.0f;
 
     ui.SetState(UIState::START);
