@@ -18,10 +18,30 @@ Renderer::Renderer()
 
 Renderer::~Renderer()
 {
+    Shutdown();
+}
+
+
+
+
+// ==========================================================
+// Shutdown
+// ==========================================================
+//
+// 顺序很重要：先销毁离屏纹理，再销毁 renderer。
+// 都要赶在 SDL_Quit() 之前，否则是未定义行为。
+
+void Renderer::Shutdown()
+{
+    // 文字缓存必须先清，它们也是 renderer 创建出来的纹理
+    ClearTextCache();
+
     if(blurTarget)
     {
         SDL_DestroyTexture(blurTarget);
         blurTarget = nullptr;
+        blurW = 0;
+        blurH = 0;
     }
 
     if(renderer)
@@ -29,6 +49,8 @@ Renderer::~Renderer()
         SDL_DestroyRenderer(renderer);
         renderer = nullptr;
     }
+
+    font = nullptr;
 }
 
 
@@ -105,43 +127,88 @@ void Renderer::DrawText(
     SDL_Color color
 )
 {
-    if(!f || text.empty())
+    if(!f || text.empty() || !renderer)
         return;
 
 
-    SDL_Surface* surface =
-        TTF_RenderUTF8_Blended(f, text.c_str(), color);
+    // ---- 查缓存 ----
 
-    if(!surface)
+    TextKey key;
+    key.text  = text;
+    key.font  = f;
+    key.color =
+        ((Uint32)color.r << 24) |
+        ((Uint32)color.g << 16) |
+        ((Uint32)color.b << 8)  |
+        ((Uint32)color.a);
+
+    auto it = textCache.find(key);
+
+    if(it == textCache.end())
     {
-        std::cout
-            << "文字渲染失败:" << text
-            << "\n" << TTF_GetError()
-            << std::endl;
-        return;
-    }
+        // 缓存满了就整体清空。菜单文字高度重复，重建成本可接受。
+        if(textCache.size() >= TEXT_CACHE_LIMIT)
+            ClearTextCache();
 
+        SDL_Surface* surface =
+            TTF_RenderUTF8_Blended(f, text.c_str(), color);
 
-    SDL_Texture* texture =
-        SDL_CreateTextureFromSurface(renderer, surface);
+        if(!surface)
+        {
+            std::cout
+                << "文字渲染失败:" << text
+                << "\n" << TTF_GetError()
+                << std::endl;
+            return;
+        }
 
-    if(!texture)
-    {
+        SDL_Texture* texture =
+            SDL_CreateTextureFromSurface(renderer, surface);
+
+        if(!texture)
+        {
+            SDL_FreeSurface(surface);
+            return;
+        }
+
+        CachedText entry;
+        entry.texture = texture;
+        entry.w = surface->w;
+        entry.h = surface->h;
+
         SDL_FreeSurface(surface);
-        return;
+
+        it = textCache.emplace(key, entry).first;
     }
 
+
+    // ---- 绘制 ----
 
     SDL_Rect rect;
     rect.x = x;
     rect.y = y;
-    rect.w = surface->w;
-    rect.h = surface->h;
+    rect.w = it->second.w;
+    rect.h = it->second.h;
 
-    SDL_RenderCopy(renderer, texture, nullptr, &rect);
+    SDL_RenderCopy(renderer, it->second.texture, nullptr, &rect);
+}
 
-    SDL_DestroyTexture(texture);
-    SDL_FreeSurface(surface);
+
+
+
+// ==========================================================
+// ClearTextCache
+// ==========================================================
+
+void Renderer::ClearTextCache()
+{
+    for(auto& pair : textCache)
+    {
+        if(pair.second.texture)
+            SDL_DestroyTexture(pair.second.texture);
+    }
+
+    textCache.clear();
 }
 
 

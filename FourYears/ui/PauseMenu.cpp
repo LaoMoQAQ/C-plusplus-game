@@ -20,7 +20,7 @@ PauseMenu::PauseMenu()
 
 
 
-void PauseMenu::Update()
+void PauseMenu::Update(float delta)
 {
     float target = (float)(MENU_Y + choice * MENU_GAP);
 
@@ -29,7 +29,7 @@ void PauseMenu::Update()
     if(diff > -0.5f && diff < 0.5f)
         displayHighlightY = target;
     else
-        displayHighlightY += diff * hlSpeed;
+        displayHighlightY += diff * SmoothFactor(hlSpeed, delta);
 }
 
 

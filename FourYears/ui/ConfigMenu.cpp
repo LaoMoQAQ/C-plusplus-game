@@ -31,7 +31,7 @@ void ConfigMenu::SetConfig(Config* config)
 
 
 
-void ConfigMenu::Update()
+void ConfigMenu::Update(float delta)
 {
     float target = (float)(MENU_Y + choice * MENU_GAP);
 
@@ -40,7 +40,7 @@ void ConfigMenu::Update()
     if(diff > -0.5f && diff < 0.5f)
         displayHighlightY = target;
     else
-        displayHighlightY += diff * hlSpeed;
+        displayHighlightY += diff * SmoothFactor(hlSpeed, delta);
 }
 
 

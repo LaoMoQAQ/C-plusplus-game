@@ -37,6 +37,8 @@ void TextSystem::Init()
     punctuationTimer = 0;
     punctuationTarget = 0;
 
+    lastEmitted.clear();
+
     finished = true;
 }
 
@@ -99,8 +101,6 @@ float TextSystem::GetPunctuationDelay(const std::string& ch)
 
 
 
-
-
 void TextSystem::SetText(
     const std::string& text,
     float wait
@@ -150,6 +150,8 @@ void TextSystem::SetText(
     punctuationTimer = 0;
     punctuationTarget = 0;
 
+    lastEmitted.clear();
+
     finished = false;
 
     SplitUTF8();
@@ -168,12 +170,15 @@ void TextSystem::SetText(
 // 每帧最多显示一个字符——这样打字音效才能和字符一一对应。
 // 之前用 while 会一帧加多个字，导致音效"漏拍"。
 
-void TextSystem::Update()
+void TextSystem::Update(float delta)
 {
     if(finished)
         return;
 
-    float delta = 0.016f;
+    // 切后台 / 断点调试后回来，delta 可能非常大。
+    // 限制在 0.1 秒以内，避免一帧内吐出一大段文字。
+    if(delta > 0.1f) delta = 0.1f;
+    if(delta < 0.0f) delta = 0.0f;
 
 
     // 等待阶段
@@ -212,8 +217,27 @@ void TextSystem::Update()
 
         displayText += ch;
 
-        punctuationTarget = GetPunctuationDelay(ch);
+        // 连续的点号只停顿一次。
+        //
+        // 剧本里的 "……" 在 SetText 阶段会被替换成 "......"，
+        // 如果每个点都停 0.18 秒，一句省略号会卡一秒多。
+        // 这里把"上一个是点、这个也是点"的情况跳过停顿。
+        bool dotChain =
+            (ch == "." || ch == "…") &&
+            (lastEmitted == "." || lastEmitted == "…");
+
+        if(dotChain)
+        {
+            punctuationTarget = 0.0f;
+        }
+        else
+        {
+            punctuationTarget = GetPunctuationDelay(ch);
+        }
+
         punctuationTimer = 0;
+
+        lastEmitted = ch;
 
         currentIndex++;
     }
@@ -227,6 +251,10 @@ void TextSystem::Skip()
 {
     displayText = fullText;
     currentIndex = (int)characters.size();
+
+    punctuationTimer = 0;
+    punctuationTarget = 0;
+    lastEmitted.clear();
 
     finished = true;
 }

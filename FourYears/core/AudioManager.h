@@ -30,6 +30,8 @@ public:
     void SetBGMVolume(int volume);
     void SetSEVolume(int volume);
 
+    // 释放所有音乐/音效并关闭音频设备。
+    // 必须在 SDL_Quit() 之前调用。可重复调用。
     void Clean();
 
 
@@ -40,6 +42,9 @@ private:
 
     int bgmVolume;
     int seVolume;
+
+    // Mix_OpenAudio 是否成功过。Clean 用它防止重复关闭。
+    bool audioOpen = false;
 
 
     // [新增] SE 缓存：路径 -> Mix_Chunk*

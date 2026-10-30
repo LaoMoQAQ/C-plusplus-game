@@ -36,7 +36,7 @@ public:
     UIState GetState() const;
     bool IsTransitioning() const;
 
-    void Update();
+    void Update(float delta);
 
     void Render(Renderer& renderer);
 

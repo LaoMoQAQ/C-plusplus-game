@@ -147,6 +147,22 @@ https://www.msys2.org/
 - Windows：`FourYears/game.exe`
 - Linux：`game`
 
+## 增量编译与头文件依赖
+
+每个 `.cpp` 单独编译到 `build/obj/**.o`，并自动生成 `.d` 依赖文件。
+
+**修改任何 `.h` 之后直接 `make` 即可**，不需要再 `make clean`。
+
+## 如果 `make` 命令找不到
+
+Windows 下 `make` 默认不在 PATH 里，需要显式调用：
+
+    C:/msys64/usr/bin/make.exe
+
+或者在 MSYS2 UCRT64 终端里执行（该终端已把 `/usr/bin` 加进 PATH）。
+`Makefile` 内部已经强制使用 MSYS2 的 bash 并补全了 `/usr/bin`，
+所以从 PowerShell / cmd / VS Code 任务调用都不会缺 `rm`、`mkdir`。
+
 ---
 
 # 运行
@@ -238,6 +254,8 @@ https://www.msys2.org/
 | `[跳转]` | `[跳转] #name` | 跳到书签 |
 | `[下一章]` | `[下一章] script/xxx.txt` | 播完自动加载下一章 |
 | `[结局分支]` | 见下 | 根据好感度自动选结局 |
+| `[结局]` | `[结局]` | 结局标题，按旁白念出 |
+| `[END]` | `[END]` | 剧情结束，自动回到标题画面 |
 
 带参数的标签**单行和两行写法都支持**。
 
@@ -321,6 +339,12 @@ script/chapter02.txt
 
 路径要相对工作目录 `FourYears/` 写全。
 
+## 剧情结束
+
+结局文件末尾写 `[END]`。播完最后一句后自动回到标题画面。
+
+没有 `[END]` 且没有 `[下一章]` 时，播到最后一句也会回标题。
+
 ---
 
 # 存档
@@ -353,9 +377,30 @@ index
 
 # 注意事项
 
+## 行尾
+
+项目用 `.gitattributes` 统一成 LF，提交时 git 会自动转换。
+
+注意：**当前工具链（GCC 16 / GNU Make 4.4）下，CRLF 并不会导致编译失败**，
+这条经验来自旧工具链，已经无法复现。保留 LF 约定是为了 diff 干净，
+不用再当成"踩坑"来防。
+
+## 帧率与时间
+
+主循环用 `SDL_GetPerformanceCounter()` 算真实 delta，所有动画和
+打字速度都按 delta 推进，帧率无关。
+
+垂直同步优先；检测到 Present 不阻塞（窗口被遮挡、远程桌面等情况）
+时自动兜底限到 60 FPS。实测稳定 59~60 FPS。
+
+---
 ## 工作目录
 
-从 `FourYears/` 目录运行，所有路径都是相对路径。
+**必须从 `FourYears/` 目录运行**，所有资源路径都是相对这个目录的。
+
+从仓库根目录直接跑 `FourYears/game.exe` 不会崩，但会：
+字体加载失败、剧本打不开、背景全黑——一个纯黑窗口。
+`.vscode/tasks.json` 里的 "Run FourYears" 任务已经设置了正确的 `cwd`。
 
 ## Windows DLL
 
@@ -367,6 +412,50 @@ index
     SDL2_ttf.dll
 
 以及 `ntldd` 输出的 MinGW 运行时和第三方依赖。
+
+---
+
+# 打包发布
+
+## 一键打包
+
+    make release
+
+产物：`release/FourYears-v<版本号>.zip`（版本号在 `Makefile` 顶部的 `VERSION`）。
+
+这个目标会：清理 `release/` → 复制 exe / config.ini / resource / script →
+用 `ntldd` 自动收集全部依赖 DLL → 打包成 zip。
+
+## ⚠️ 必须用系统自带的 tar
+
+Windows 下打包用的是 **`C:/Windows/System32/tar.exe`**（bsdtar），
+它支持按扩展名自动选择 zip 格式。
+
+**不要用 MSYS2 里的 GNU tar**（`/usr/bin/tar`）。GNU tar 的 `-a` 只支持
+`.tar.gz` / `.tar.bz2` 之类，**不支持 zip**，执行
+`tar -a -c -f xxx.zip dir` 会产出一个**改了后缀的 tar 包**。
+玩家下载后双击解压会报"文件已损坏"。
+
+验证方法：
+
+    python -c "import zipfile; zipfile.ZipFile('release/FourYears-v0.5.0.zip').testzip()"
+
+没抛异常才是真 zip。
+
+## 上传 Release
+
+1. 打开 GitHub 仓库 → 右侧 Releases → Draft a new release
+2. Tag 填新版本号（如 `v0.5.0`）
+3. Title 写发布标题
+4. Description 写更新日志（Markdown）
+5. 把 zip 拖入附件区
+6. Publish release
+
+## 发版前本地自测
+
+解压 zip 到任意目录，从 `FourYears/` 里跑 `game.exe`，确认：
+主菜单正常、能进游戏、BGM/音效正常、能存档读档、中文输入正常、
+**点窗口 X 能正常退出且没有崩溃弹窗**。
 
 ---
 

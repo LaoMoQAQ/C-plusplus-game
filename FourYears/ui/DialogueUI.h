@@ -24,7 +24,7 @@ public:
     void SetSpeaker(const std::string& name);
     void SetText(const std::string& text, float wait = 0.0f);
 
-    void Update();
+    void Update(float delta);
 
     bool Finished();
     void Skip();

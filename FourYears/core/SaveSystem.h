@@ -27,7 +27,11 @@ struct SaveData
     std::string displayName;
     std::string scriptFile;
     std::string chapterName;
-    int index;
+
+    // 必须初始化：ReadSaveFile 里 in >> index 失败时该值是不确定的，
+    // 读档会跳到一个随机位置。
+    int index = 0;
+
     std::string time;
     std::map<std::string, int> affection;
 };

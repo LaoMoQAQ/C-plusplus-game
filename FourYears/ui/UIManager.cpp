@@ -56,13 +56,18 @@ bool UIManager::IsTransitioning() const
 // 1. 推进过渡动画
 // 2. 推进各菜单内部动画（高亮块滑动）
 
-void UIManager::Update()
+void UIManager::Update(float delta)
 {
     // ---- 过渡 ----
+    //
+    // 过渡速度同样按 60 FPS 标定，用 SmoothFactor 换算，
+    // 保证不同帧率下淡入淡出的时长一致。
+
+    float step = SmoothFactor(FADE_SPEED, delta);
 
     if(transition == TransState::OUT)
     {
-        alpha -= FADE_SPEED;
+        alpha -= step;
 
         if(alpha <= 0.0f)
         {
@@ -73,7 +78,7 @@ void UIManager::Update()
     }
     else if(transition == TransState::IN)
     {
-        alpha += FADE_SPEED;
+        alpha += step;
 
         if(alpha >= 1.0f)
         {
@@ -86,10 +91,10 @@ void UIManager::Update()
     // ---- 菜单内动画 ----
 
     // 全调一遍，非当前菜单也无所谓
-    startMenu.Update();
-    pauseMenu.Update();
-    configMenu.Update();
-    saveMenu.Update();
+    startMenu.Update(delta);
+    pauseMenu.Update(delta);
+    configMenu.Update(delta);
+    saveMenu.Update(delta);
 }
 
 

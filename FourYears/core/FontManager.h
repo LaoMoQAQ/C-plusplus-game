@@ -57,6 +57,12 @@ public:
 
 
 
+    // 关闭所有字体。必须在 TTF_Quit() 之前调用。
+    // 可重复调用。
+    void Shutdown();
+
+
+
 private:
 
     std::string defaultPath;   // Load 时记下

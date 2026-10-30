@@ -100,7 +100,7 @@ public:
     void SetEditingText(const std::string& utf8);
 
     // 每帧推进高亮块滑动
-    void Update();
+    void Update(float delta);
 
 
 

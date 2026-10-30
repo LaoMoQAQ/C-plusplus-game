@@ -71,6 +71,13 @@ struct StoryEvent
 
     bool isGoto = false;
     std::string gotoLabel;
+
+
+    // ---- 结束 ----
+
+    // 剧本里写了 [END]，或者 [结局] 事件本身就是结局标记。
+    // Game 收到它之后不再推进，直接回标题。
+    bool isEnd = false;
 };
 
 

@@ -64,7 +64,7 @@ void SaveMenu::Refresh(SaveSystem& saveSystem)
 
 
 
-void SaveMenu::Update()
+void SaveMenu::Update(float delta)
 {
     float target = (float)(LIST_Y + choice * LIST_GAP);
 
@@ -73,7 +73,7 @@ void SaveMenu::Update()
     if(diff > -0.5f && diff < 0.5f)
         displayHighlightY = target;
     else
-        displayHighlightY += diff * hlSpeed;
+        displayHighlightY += diff * SmoothFactor(hlSpeed, delta);
 }
 
 
@@ -414,8 +414,21 @@ MenuMouseResult SaveMenu::HandleMouseClick(int x, int y)
     }
 
 
+    // 删除确认状态下，只有点在"当前选中项"上才算确认。
+    // 以前是页面上任意位置点击都返回 ACTIVATE，
+    // 按过一次 Delete 后点到哪儿都会把存档删掉。
     if(confirmingDelete)
-        return MenuMouseResult::ACTIVATE;
+    {
+        int iy = LIST_Y + choice * LIST_GAP;
+
+        if(x >= LIST_X && x < LIST_X + LIST_W &&
+           y >= iy    && y <  iy + LIST_H)
+        {
+            return MenuMouseResult::ACTIVATE;
+        }
+
+        return MenuMouseResult::NONE;
+    }
 
 
     for(int i = 0; i < (int)saves.size(); i++)

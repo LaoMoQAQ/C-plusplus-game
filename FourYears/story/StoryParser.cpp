@@ -569,6 +569,52 @@ bool StoryParser::Load(
 
 
 
+            // [END] 结束标记
+            //
+            // 三个结局文件都以 [END] 结尾。
+            // 它不是一个角色名——把它当成结束事件挂到当前事件上，
+            // Game 播到这里会退回标题，而不是卡在最后一句。
+
+            if(tag == "END")
+            {
+                // 当前这段台词先落盘，再补一个纯结束事件
+                SaveCurrent();
+
+                StoryEvent ev;
+                ev.isEnd = true;
+
+                story.Add(ev);
+
+                continue;
+            }
+
+
+
+
+
+            // [结局] 章节标题
+            //
+            // 结局文件开头是 [结局] + 标题行。
+            // 用旁白念出来，避免显示成"结局"这个角色在说话。
+
+            if(tag == "结局")
+            {
+                SaveCurrent();
+
+                current.name = "旁白";
+                current.background = currentBackground;
+
+                current.characterLeft   = currentLeft;
+                current.characterCenter = currentCenter;
+                current.characterRight  = currentRight;
+
+                continue;
+            }
+
+
+
+
+
             // 普通人物
 
             SaveCurrent();

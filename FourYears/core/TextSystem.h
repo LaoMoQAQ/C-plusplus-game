@@ -42,7 +42,8 @@ public:
 
 
     // 每帧调用，推进打字机。
-    void Update();
+    // delta 是距上一帧的秒数，由 Game 传入真实值。
+    void Update(float delta);
 
     // 立即显示全部文本。
     void Skip();
@@ -95,6 +96,10 @@ private:
 
     float punctuationTimer;   // 标点额外停顿计时
     float punctuationTarget;
+
+    // 上一个真正吐出去的字符。
+    // 用来把连续的点号（"……" 会被替换成 "......"）合并成一次停顿。
+    std::string lastEmitted;
 
     bool finished;            // 是否显示完毕
 

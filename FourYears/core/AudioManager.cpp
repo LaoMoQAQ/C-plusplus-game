@@ -33,6 +33,8 @@ bool AudioManager::Init()
         return false;
     }
 
+    audioOpen = true;
+
     Mix_VolumeMusic(bgmVolume);
 
     // 允许最多 16 个 SE 通道同时播放。
@@ -147,8 +149,12 @@ void AudioManager::SetSEVolume(int volume)
 
 void AudioManager::Clean()
 {
+    if(!audioOpen)
+        return;
+
     if(currentMusic)
     {
+        Mix_HaltMusic();
         Mix_FreeMusic(currentMusic);
         currentMusic = nullptr;
     }
@@ -165,4 +171,5 @@ void AudioManager::Clean()
 
 
     Mix_CloseAudio();
+    audioOpen = false;
 }

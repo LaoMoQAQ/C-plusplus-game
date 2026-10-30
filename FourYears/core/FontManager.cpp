@@ -15,33 +15,40 @@ FontManager::FontManager()
 
 FontManager::~FontManager()
 {
+    Shutdown();
+}
 
+
+
+
+// ==========================================================
+// Shutdown
+// ==========================================================
+//
+// 关闭默认字体和缓存里的所有字体。
+// 必须在 TTF_Quit() 之前调用——TTF_Quit 之后 freetype 已经卸载，
+// 再调 TTF_CloseFont 会在 libfreetype 里段错误。
+
+void FontManager::Shutdown()
+{
     // 关闭默认字体
     if(font)
     {
-
         TTF_CloseFont(font);
-
-        font=nullptr;
-
+        font = nullptr;
     }
 
 
-    // [新增] 关闭缓存中的所有字体
+    // 关闭缓存中的所有字体
     for(auto& pair : cache)
     {
-
         if(pair.second)
         {
-
             TTF_CloseFont(pair.second);
-
         }
-
     }
 
     cache.clear();
-
 }
 
 

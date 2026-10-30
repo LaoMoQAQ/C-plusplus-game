@@ -33,9 +33,31 @@
 
             "args": [],
 
+            "options": {
+                "cwd": "${workspaceFolder}/FourYears"
+            },
+
             "group": {
                 "kind": "test"
             },
+
+            "problemMatcher": []
+        },
+
+        {
+            "label": "Release FourYears",
+
+            "type": "process",
+
+            "command": "C:/msys64/usr/bin/make.exe",
+
+            "args": [
+                "-C",
+                "F:/gal",
+                "release"
+            ],
+
+            "group": "none",
 
             "problemMatcher": []
         },

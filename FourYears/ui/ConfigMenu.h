@@ -36,7 +36,7 @@ public:
     int HandleConfirmKey(int sym);
 
     // [新增] 每帧推进高亮块滑动
-    void Update();
+    void Update(float delta);
 
 
 

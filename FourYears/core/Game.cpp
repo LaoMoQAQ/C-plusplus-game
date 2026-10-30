@@ -98,7 +98,7 @@ Game::Game()
 
 Game::~Game()
 {
-    Quit();
+    Shutdown();
 }
 
 
@@ -429,14 +429,56 @@ void Game::SetSprite(int slot, const std::string& path)
 // 主循环
 // ==========================================================
 
+// ==========================================================
+// Run
+// ==========================================================
+//
+// 帧率策略：
+//   1. 优先靠 Renderer 的垂直同步（D3D/OpenGL 都支持）。
+//   2. vsync 不一定生效——窗口被遮挡、远程桌面、部分驱动下
+//      Present 会立刻返回，实测能跑到 300+ FPS 空转。
+//      所以再加一个兜底限帧：只有"这一帧跑得太快"时才补 sleep，
+//      vsync 正常工作时它永远不会触发，不引入额外延迟。
+//
+// 之前这里是 SDL_Delay(16) 无条件等待，和 vsync 叠加后
+// 实际帧率被压到 ~50 FPS，且文字速度、自动播放都按 0.016 写死，
+// 导致手感比配置值慢约 18%。
+
 void Game::Run()
 {
+    Uint64 freq = SDL_GetPerformanceFrequency();
+    Uint64 prev = SDL_GetPerformanceCounter();
+
+    const float TARGET_FRAME = 1.0f / 60.0f;
+
     while(running)
     {
+        Uint64 now = SDL_GetPerformanceCounter();
+
+        deltaTime = (float)(now - prev) / (float)freq;
+        prev = now;
+
+        // 限制单帧步长：切后台、拖窗口、断点回来时
+        // delta 可能是好几秒，直接喂进去会让动画瞬移。
+        if(deltaTime > 0.1f) deltaTime = 0.1f;
+        if(deltaTime < 0.0f) deltaTime = 0.0f;
+
         HandleEvents();
         Update();
         Render();
-        SDL_Delay(16);
+
+
+        // ---- 兜底限帧 ----
+
+        float elapsed = (float)(SDL_GetPerformanceCounter() - now) / (float)freq;
+
+        if(elapsed < TARGET_FRAME)
+        {
+            Uint32 sleepMs = (Uint32)((TARGET_FRAME - elapsed) * 1000.0f);
+
+            if(sleepMs > 0)
+                SDL_Delay(sleepMs);
+        }
     }
 }
 
@@ -946,8 +988,12 @@ void Game::Render()
     }
 
 
-    // 立绘：只在 DIALOGUE 状态画
-    if(st == UIState::DIALOGUE)
+    // 立绘
+    //
+    // 以前只在 DIALOGUE 下画，按 ESC 进暂停菜单时立绘会整块消失，
+    // 只剩模糊背景，是一次很突兀的画面跳变。
+    // 现在暂停菜单也画，只是叠一层暗色遮罩（菜单本身会画）。
+    if(st == UIState::DIALOGUE || st == UIState::PAUSE)
     {
         // 三个位置的中心 X
         // 左：屏幕 25%  中：50%  右：75%
@@ -1012,10 +1058,13 @@ void Game::Render()
 
 void Game::Update()
 {
-    // 推进 UI 过渡动画
-    ui.Update();
+    float delta = deltaTime;
 
-    ui.GetDialogueUI().Update();
+
+    // 推进 UI 过渡动画
+    ui.Update(delta);
+
+    ui.GetDialogueUI().Update(delta);
 
 
     // ---- 立绘淡入淡出 ----
@@ -1035,7 +1084,7 @@ void Game::Update()
         }
         else
         {
-            sp.alpha += diff * SPRITE_FADE_SPEED;
+            sp.alpha += diff * SmoothFactor(SPRITE_FADE_SPEED, delta);
         }
     }
 
@@ -1080,7 +1129,7 @@ void Game::Update()
        !ui.GetDialogueUI().HasChoice() &&
        ui.GetDialogueUI().Finished())
     {
-        autoPlayTimer += 0.016f;
+        autoPlayTimer += delta;
 
         if(autoPlayTimer >= AUTO_PLAY_DELAY)
         {
@@ -1100,15 +1149,72 @@ void Game::Update()
 // Quit
 // ==========================================================
 
+// ==========================================================
+// Quit / Shutdown
+// ==========================================================
+//
+// Quit 只负责停主循环，不碰任何资源。
+//
+// Shutdown 负责按正确的逆序释放：
+//   1. 立绘纹理、背景纹理（都是 ResourceManager 的，交给它统一释放）
+//   2. FontManager      —— 必须在 TTF_Quit 之前
+//   3. ResourceManager  —— 必须在 SDL_Quit 之前（SDL_DestroyTexture + IMG_Quit）
+//   4. AudioManager     —— 必须在 SDL_Quit 之前（Mix_CloseAudio）
+//   5. Renderer         —— 必须在所有纹理之后
+//   6. 最后才是 TTF_Quit / SDL_Quit
+//
+// 之前的实现在 Quit 里就调了 TTF_Quit/SDL_Quit，
+// 而成员析构要等到之后才发生，导致 FontManager 在 freetype 卸载后
+// 调 TTF_CloseFont，退出时必崩（libfreetype 里 SIGSEGV）。
+
 void Game::Quit()
 {
     running = false;
+}
+
+
+
+
+void Game::Shutdown()
+{
+    if(shutdownDone)
+        return;
+
+    shutdownDone = true;
+
+    running = false;
+
+
+    // ---- 先让 UI / 剧情侧丢掉对纹理的引用 ----
+
+    for(int i = 0; i < 3; i++)
+    {
+        sprites[i].texture = nullptr;
+        sprites[i].alpha = 0.0f;
+        sprites[i].targetAlpha = 0.0f;
+    }
+
+    currentBackground = nullptr;
+
+
+    // ---- 子系统（顺序不能改） ----
+
+    fontManager.Shutdown();
+    resourceManager.Destroy();
+    audioManager.Clean();
+    renderer.Shutdown();
+
+
+    // ---- 窗口 ----
 
     if(window)
     {
         SDL_DestroyWindow(window);
         window = nullptr;
     }
+
+
+    // ---- 最后关闭库 ----
 
     TTF_Quit();
     SDL_Quit();
@@ -1149,29 +1255,22 @@ void Game::OnActivateCurrentState()
                     story.GetRouteManager().SetAllAffection(aff);
                     story.SetIndex(idx);
 
-                    UpdateScene();
-
-                    StoryEvent e = story.GetCurrentEvent();
-
-                    ui.GetDialogueUI().SetSpeaker(e.name);
-                    ui.GetDialogueUI().SetText(e.text, e.waitTime);
-
-                    if(e.isChoice)
+                    // 读档后立绘也要清掉，重新按事件重建
+                    for(int i = 0; i < 3; i++)
                     {
-                        ui.GetDialogueUI().ShowChoice(e.choices);
-                        currentChoiceTargets   = e.choiceTargets;
-                        currentChoiceAffection = e.choiceAffection;
-                        currentChoiceTexts     = e.choices;
+                        sprites[i].texture = nullptr;
+                        sprites[i].alpha = 0.0f;
+                        sprites[i].targetAlpha = 0.0f;
                     }
+
+                    currentBackground = nullptr;
+                    lastBgmPath.clear();
+                    autoPlayTimer = 0.0f;
+
+                    if(!ApplyCurrentEvent())
+                        ReturnToTitle();
                     else
-                    {
-                        ui.GetDialogueUI().ClearChoice();
-                        currentChoiceTargets.clear();
-                        currentChoiceAffection.clear();
-                        currentChoiceTexts.clear();
-                    }
-
-                    ui.SetState(UIState::DIALOGUE);
+                        ui.SetState(UIState::DIALOGUE);
                 }
             }
         }
@@ -1191,22 +1290,35 @@ void Game::OnActivateCurrentState()
         {
             story.Load("script/chapter01.txt");
 
+            // 新游戏必须清空上一轮的好感度与历史，
+            // 否则二周目会带着上周目的数值直接锁死结局。
+            story.GetRouteManager().SetAllAffection({});
+
             // 换章节时重置 BGM 状态
             lastBgmPath.clear();
+
+            // 立绘清干净，避免上一轮残留
+            for(int i = 0; i < 3; i++)
+            {
+                sprites[i].texture = nullptr;
+                sprites[i].alpha = 0.0f;
+                sprites[i].targetAlpha = 0.0f;
+            }
+
+            currentBackground = nullptr;
 
             ui.GetDialogueUI().ClearChoice();
             currentChoiceTargets.clear();
             currentChoiceAffection.clear();
             currentChoiceTexts.clear();
 
-            StoryEvent e = story.GetCurrentEvent();
+            autoPlayTimer = 0.0f;
 
-            UpdateScene();
+            if(!ApplyCurrentEvent())
+                ReturnToTitle();
+            else
+                ui.SetState(UIState::DIALOGUE);
 
-            ui.GetDialogueUI().SetSpeaker(e.name);
-            ui.GetDialogueUI().SetText(e.text, e.waitTime);
-
-            ui.SetState(UIState::DIALOGUE);
             break;
         }
 
@@ -1282,6 +1394,84 @@ void Game::OnActivateCurrentState()
 
 
 // ==========================================================
+// ApplyCurrentEvent
+// ==========================================================
+//
+// 把 story 的当前事件同步到画面上。
+//
+// 返回 false 表示剧情已经结束（事件带 isEnd，或者 story 已经走到头），
+// 调用方负责回标题。
+//
+// 之前这段逻辑在 OnActivateCurrentState / OnAdvanceDialogue /
+// ConfirmChoice 里各抄了一遍，四处不一致，顺手合并。
+
+bool Game::ApplyCurrentEvent()
+{
+    StoryEvent e = story.GetCurrentEvent();
+
+
+    // ---- 结束标记 ----
+
+    if(e.isEnd)
+    {
+        return false;
+    }
+
+
+    UpdateScene();
+
+    ui.GetDialogueUI().SetSpeaker(e.name);
+    ui.GetDialogueUI().SetText(e.text, e.waitTime);
+
+
+    if(e.isChoice)
+    {
+        ui.GetDialogueUI().ShowChoice(e.choices);
+        currentChoiceTargets   = e.choiceTargets;
+        currentChoiceAffection = e.choiceAffection;
+        currentChoiceTexts     = e.choices;
+    }
+    else
+    {
+        ui.GetDialogueUI().ClearChoice();
+        currentChoiceTargets.clear();
+        currentChoiceAffection.clear();
+        currentChoiceTexts.clear();
+    }
+
+
+    return true;
+}
+
+
+
+
+// ==========================================================
+// ReturnToTitle
+// ==========================================================
+
+void Game::ReturnToTitle()
+{
+    ui.GetDialogueUI().ClearChoice();
+
+    currentChoiceTargets.clear();
+    currentChoiceAffection.clear();
+    currentChoiceTexts.clear();
+
+    // 背景保持最后一张，立绘淡出
+    for(int i = 0; i < 3; i++)
+        sprites[i].targetAlpha = 0.0f;
+
+    lastBgmPath.clear();
+    autoPlayTimer = 0.0f;
+
+    ui.SetState(UIState::START);
+}
+
+
+
+
+// ==========================================================
 // OnAdvanceDialogue
 // ==========================================================
 
@@ -1296,48 +1486,41 @@ void Game::OnAdvanceDialogue()
         return;
     }
 
-    if(story.Next())
+
+    if(!story.Next())
     {
-        StoryEvent e = story.GetCurrentEvent();
+        // 剧本真的走完了：回标题，别把最后一句挂在屏幕上
+        ReturnToTitle();
+        return;
+    }
 
 
-        if(e.isEndingBranch)
-        {
-            RouteType rt = story.GetRouteManager().CheckRoute();
-
-            std::string target;
-
-            if(rt == RouteType::LI_JUNHAO)
-                target = e.branchLiJunhao;
-            else if(rt == RouteType::ZHANG_HANYU)
-                target = e.branchZhangHanyu;
-            else
-                target = e.branchNormal;
-
-            if(!target.empty() && story.Load(target))
-                e = story.GetCurrentEvent();
-        }
+    StoryEvent e = story.GetCurrentEvent();
 
 
-        UpdateScene();
+    // ---- 结局分支 ----
 
-        ui.GetDialogueUI().SetSpeaker(e.name);
-        ui.GetDialogueUI().SetText(e.text, e.waitTime);
+    if(e.isEndingBranch)
+    {
+        RouteType rt = story.GetRouteManager().CheckRoute();
 
+        std::string target;
 
-        if(e.isChoice)
-        {
-            ui.GetDialogueUI().ShowChoice(e.choices);
-            currentChoiceTargets   = e.choiceTargets;
-            currentChoiceAffection = e.choiceAffection;
-            currentChoiceTexts     = e.choices;
-        }
+        if(rt == RouteType::LI_JUNHAO)
+            target = e.branchLiJunhao;
+        else if(rt == RouteType::ZHANG_HANYU)
+            target = e.branchZhangHanyu;
         else
-        {
-            currentChoiceTargets.clear();
-            currentChoiceAffection.clear();
-            currentChoiceTexts.clear();
-        }
+            target = e.branchNormal;
+
+        if(!target.empty() && story.Load(target))
+            e = story.GetCurrentEvent();
+    }
+
+
+    if(!ApplyCurrentEvent())
+    {
+        ReturnToTitle();
     }
 }
 
@@ -1417,20 +1600,19 @@ void Game::ConfirmChoice()
 
         if(story.JumpToLabel(labelName))
         {
-            StoryEvent e = story.GetCurrentEvent();
+            if(!ApplyCurrentEvent())
+                ReturnToTitle();
+        }
+        else
+        {
+            // 标签写错时以前是静默卡住，玩家只会觉得"点了没反应"。
+            // 这里退化成继续推进，至少不会锁死。
+            std::cout
+                << "跳转失败，标签不存在: #"
+                << labelName
+                << std::endl;
 
-            UpdateScene();
-
-            ui.GetDialogueUI().SetSpeaker(e.name);
-            ui.GetDialogueUI().SetText(e.text, e.waitTime);
-
-            if(e.isChoice)
-            {
-                ui.GetDialogueUI().ShowChoice(e.choices);
-                currentChoiceTargets   = e.choiceTargets;
-                currentChoiceAffection = e.choiceAffection;
-                currentChoiceTexts     = e.choices;
-            }
+            OnAdvanceDialogue();
         }
         return;
     }
@@ -1438,19 +1620,13 @@ void Game::ConfirmChoice()
 
     if(story.Load(target))
     {
-        StoryEvent e = story.GetCurrentEvent();
+        if(!ApplyCurrentEvent())
+            ReturnToTitle();
+    }
+    else
+    {
+        std::cout << "剧本加载失败: " << target << std::endl;
 
-        UpdateScene();
-
-        ui.GetDialogueUI().SetSpeaker(e.name);
-        ui.GetDialogueUI().SetText(e.text, e.waitTime);
-
-        if(e.isChoice)
-        {
-            ui.GetDialogueUI().ShowChoice(e.choices);
-            currentChoiceTargets   = e.choiceTargets;
-            currentChoiceAffection = e.choiceAffection;
-            currentChoiceTexts     = e.choices;
-        }
+        OnAdvanceDialogue();
     }
 }

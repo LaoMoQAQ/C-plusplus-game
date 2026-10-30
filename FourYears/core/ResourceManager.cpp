@@ -49,6 +49,7 @@ bool ResourceManager::Init()
     }
 
 
+    imageInited = true;
 
     return true;
 
@@ -200,32 +201,19 @@ SDL_Texture* ResourceManager::GetTexture(
 
 void ResourceManager::Destroy()
 {
-
+    if(!imageInited)
+        return;
 
     for(auto& pair : textures)
     {
-
-
         if(pair.second)
         {
-
-            SDL_DestroyTexture(
-                pair.second
-            );
-
-
+            SDL_DestroyTexture(pair.second);
         }
-
-
     }
-
-
 
     textures.clear();
 
-
-
     IMG_Quit();
-
-
+    imageInited = false;
 }

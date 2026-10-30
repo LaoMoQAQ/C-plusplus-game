@@ -33,7 +33,13 @@ public:
 
     bool Init();
     void Run();
+
+    // 停止主循环。只置标志位，不做资源释放。
     void Quit();
+
+    // 按正确顺序释放所有子系统，最后才 TTF_Quit / SDL_Quit。
+    // 由析构函数自动调用，可重复调用。
+    void Shutdown();
 
 
 
@@ -62,6 +68,15 @@ private:
     void OnAdvanceDialogue();
     void OnBack();
     void ConfirmChoice();
+
+    // ---- 剧情事件 ----
+
+    // 把 story 当前事件同步到画面（背景/立绘/BGM/SE + 对话框 + 选项）。
+    // 返回 false 表示剧情已结束，调用方应该回标题。
+    bool ApplyCurrentEvent();
+
+    // 回到标题画面，重置剧情侧状态。
+    void ReturnToTitle();
 
 
 
@@ -110,8 +125,12 @@ private:
     // ---- 核心 ----
 
     bool running;
+    bool shutdownDone = false;
     SDL_Window* window;
     SDL_Event event;
+
+    // 距上一帧的秒数，由 Run() 每帧更新
+    float deltaTime = 0.016f;
 
 
 

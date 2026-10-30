@@ -26,7 +26,7 @@ public:
     int GetChoice() const;
     void Reset();
 
-    void Update();
+    void Update(float delta);
 
 
 

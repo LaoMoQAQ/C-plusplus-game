@@ -67,6 +67,9 @@ private:
         SDL_Texture*
     > textures;
 
+    // IMG_Init 是否成功过。Destroy 用它防止重复 IMG_Quit。
+    bool imageInited = false;
+
 };
 
 

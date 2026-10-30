@@ -61,12 +61,12 @@ void DialogueUI::SetText(const std::string& text, float wait)
 }
 
 
-void DialogueUI::Update()
+void DialogueUI::Update(float delta)
 {
     // ---- 1. 打字机 ----
 
     int beforeLen = (int)textSystem.GetCurrentText().size();
-    textSystem.Update();
+    textSystem.Update(delta);
     int afterLen = (int)textSystem.GetCurrentText().size();
 
 
@@ -113,7 +113,7 @@ void DialogueUI::Update()
     if(diff > -0.5f && diff < 0.5f)
         displayBoxH = (float)targetBoxH;
     else
-        displayBoxH += diff * BOX_ANIM_SPEED;
+        displayBoxH += diff * SmoothFactor(BOX_ANIM_SPEED, delta);
 
 
     // ---- 4. 选项高亮块滑动 ----
@@ -125,7 +125,7 @@ void DialogueUI::Update()
         if(cdiff > -0.02f && cdiff < 0.02f)
             displayChoiceIndex = (float)choiceIndex;
         else
-            displayChoiceIndex += cdiff * choiceAnimSpeed;
+            displayChoiceIndex += cdiff * SmoothFactor(choiceAnimSpeed, delta);
     }
 }
 
