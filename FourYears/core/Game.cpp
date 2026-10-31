@@ -128,13 +128,18 @@ bool Game::Init()
     config.Load("config.ini");
 
 
+    // 先隐藏创建窗口，等资源和首帧准备好再显示。
+    //
+    // 之前用 SDL_WINDOW_SHOWN 直接显示，从窗口出现到第一次 Present
+    // 之间约有 300ms（加载字体、图片、剧本）。这段时间窗口是全黑的，
+    // 玩家看到的就是"启动时黑屏闪一下"。
     window = SDL_CreateWindow(
         "Four Years",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         config.GetWidth(),
         config.GetHeight(),
-        SDL_WINDOW_SHOWN
+        SDL_WINDOW_HIDDEN
     );
 
     if(!window)
@@ -285,6 +290,21 @@ bool Game::Init()
 
 
     ui.SetState(UIState::START);
+
+
+    // 资源和状态都就绪了，先渲染一帧再显示窗口。
+    //
+    // 这样窗口第一次出现在玩家眼前时，内容已经是完整的主菜单，
+    // 不会先看到一块黑屏再"刷"地变成菜单。
+    Render();
+
+
+    SDL_ShowWindow(window);
+
+    // 有些驱动在 ShowWindow 后会清掉刚画的内容，
+    // 这里再补一帧，代价可以忽略。
+    Render();
+
 
     running = true;
 
@@ -467,6 +487,7 @@ void Game::Run()
         HandleEvents();
         Update();
         Render();
+
 
 
         // ---- 兜底限帧 ----
@@ -1077,9 +1098,16 @@ void Game::Render()
     ui.Render(renderer);
 
 
-    // 剧情画面才缓存像素，供存档缩略图使用。
-    // 必须在 Present 之前读，Present 之后渲染目标内容未定义。
-    if(st == UIState::DIALOGUE)
+    // 剧情画面下按需抓帧，供暂停背景和存档缩略图使用。
+    //
+    // SDL_RenderReadPixels 是 GPU -> CPU 回读，D3D 下会强制等待 GPU，
+    // 即使每 15 帧抓一次也会造成周期性卡顿（表现为画面一顿一顿）。
+    //
+    // 所以只在「确实需要」时抓：
+    //   - 玩家按 N 存新档（CaptureThumbnail 内部会同步抓）
+    //   - 玩家按 ESC 进暂停（进暂停前已经在抓）
+    // 这里不再做定时抓取，改为在进入暂停菜单的那一帧抓一次。
+    if(frameGrabRequested)
         GrabFrame();
 
 
@@ -1286,6 +1314,14 @@ void Game::CaptureThumbnail()
     const int THUMB_W = 320;
     const int THUMB_H = 180;
 
+    // 没有有效帧就现抓一次。
+    // 存档缩略图是玩家按 N 才触发的低频操作，这里同步读一次可以接受。
+    if(!frameValid || framePixels.empty())
+    {
+        frameGrabRequested = true;
+        GrabFrame();
+    }
+
     if(framePixels.empty() || frameW <= 0 || frameH <= 0)
         return;
 
@@ -1326,10 +1362,20 @@ void Game::CaptureThumbnail()
 // ==========================================================
 //
 // 在 Present 之前把整帧读回来缓存。
-// 只在剧情画面（DIALOGUE）下读，其他状态没意义。
+//
+// 重要：SDL_RenderReadPixels 是 GPU -> CPU 回读，D3D 后端下会
+// 强制等待 GPU 完成，每帧都调会让帧率剧烈抖动，
+// 启动时表现为黑屏闪烁。
+//
+// 所以只在 frameGrabRequested 为真时读一次，读完清标志。
 
 void Game::GrabFrame()
 {
+    if(!frameGrabRequested)
+        return;
+
+    frameGrabRequested = false;
+
     SDL_Renderer* r = renderer.GetSDLRenderer();
 
     if(!r)
@@ -1350,13 +1396,17 @@ void Game::GrabFrame()
         frameH = h;
     }
 
-    SDL_RenderReadPixels(
-        r,
-        nullptr,
-        SDL_PIXELFORMAT_RGBA32,
-        framePixels.data(),
-        w * 4
-    );
+    if(SDL_RenderReadPixels(
+           r,
+           nullptr,
+           SDL_PIXELFORMAT_RGBA32,
+           framePixels.data(),
+           w * 4) != 0)
+    {
+        return;
+    }
+
+    frameValid = true;
 }
 
 
@@ -1377,7 +1427,15 @@ void Game::GrabFrame()
 
 void Game::CapturePauseBackground()
 {
-    if(framePixels.empty() || frameW <= 0 || frameH <= 0)
+    // 用最近一次有效帧做纹理。
+    //
+    // 这个函数在 OnBack() 里调用，那时玩家刚按下 ESC，
+    // framePixels 里是上一帧 Render 抓的剧情画面（含立绘和对话框），
+    // 正是想要的"当前画面"。
+    //
+    // 如果还没有任何有效帧（比如刚启动就按 ESC），
+    // 退化成用 currentBackground，至少不会全黑。
+    if(!frameValid || framePixels.empty() || frameW <= 0 || frameH <= 0)
         return;
 
 
@@ -1738,7 +1796,13 @@ void Game::OnBack()
     if(st == UIState::DIALOGUE)
     {
         // 截下玩家刚才看到的画面，作为暂停菜单的毛玻璃背景。
-        // 必须在切状态之前截，否则 GrabFrame 已经不再更新。
+        //
+        // 这里同步抓一次：虽然 RenderReadPixels 会等 GPU，
+        // 但只发生在按 ESC 的瞬间（不是每帧），玩家感知不到。
+        // 抓到的就是渲染目标里的上一帧内容——正是想要的"当前画面"。
+        frameGrabRequested = true;
+        GrabFrame();
+
         CapturePauseBackground();
 
         // 每次打开暂停菜单都回到第一项。

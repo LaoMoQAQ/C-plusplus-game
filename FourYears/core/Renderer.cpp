@@ -488,10 +488,12 @@ void Renderer::BlurRegionTo(
     SDL_SetRenderTarget(renderer, nullptr);
 
 
-    // ---- 2. 多级降采样，ping <-> pong 交替 ----
+    // ---- 2. 多级降采样 ----
     //
-    // 两张离屏纹理各有自己的尺寸记录，不能共用变量，
-    // 否则 EnsureTarget 会误判「尺寸没变」而不重建。
+    // 每张纹理必须用自己的尺寸记录。
+    // 之前无论哪张都写 pongW/pongH，导致 blurPing 的记录被污染，
+    // EnsureTarget 误判尺寸没变而不重建，最后拿到的是错尺寸的旧纹理，
+    // 放大到全屏就成了"只截了一小块"。
 
     SDL_Texture* cur = blurPing;
     int curW = s.w;
@@ -510,11 +512,12 @@ void Renderer::BlurRegionTo(
 
         SDL_Texture* next = usePong ? blurPong : blurPing;
 
-        if(!EnsureTarget(next, pongW, pongH, nw, nh))
-            break;
+        // 用各自独立的尺寸记录
+        int& nW = usePong ? pongW : pingW;
+        int& nH = usePong ? pongH : pingH;
 
-        // 两个尺寸记录同步（哪张在前不重要，重建后都会对齐）
-        if(usePong) { blurPong = next; } else { blurPing = next; }
+        if(!EnsureTarget(next, nW, nH, nw, nh))
+            break;
 
         DownsampleInto(cur, curW, curH, next, nw, nh);
 
@@ -707,6 +710,7 @@ void Renderer::DrawFrostedRegionRound(
 
         SDL_Texture* next = toB ? roundB : roundA;
 
+        // 各自独立的尺寸记录，不能共用
         int& nW = toB ? roundBW : roundAW;
         int& nH = toB ? roundBH : roundAH;
 

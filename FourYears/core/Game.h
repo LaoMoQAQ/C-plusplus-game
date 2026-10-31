@@ -160,10 +160,21 @@ private:
 
     SDL_Texture* currentBackground = nullptr;
 
-    // 最近一帧的像素缓存（RGBA32），供存档缩略图使用
+    // 最近一帧的像素缓存（RGBA32），供存档缩略图和暂停背景使用
     std::vector<unsigned char> framePixels;
     int frameW = 0;
     int frameH = 0;
+
+    // 是否已经抓到过有效帧
+    bool frameValid = false;
+
+    // 是否需要在下一次 Render 时抓帧。
+    // SDL_RenderReadPixels 会强制 GPU 同步，不能每帧都调，
+    // 否则启动时会黑屏闪烁。改成每 N 帧抓一次。
+    bool frameGrabRequested = false;
+
+    // 抓帧计数，到阈值才真正读一次
+    int frameGrabCounter = 0;
 
     // 进入暂停菜单时截下的当前画面，用作毛玻璃背景。
     // 暂停期间一直用这张，避免每帧重新截图。
