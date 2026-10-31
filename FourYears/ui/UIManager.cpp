@@ -15,9 +15,28 @@ UIManager::UIManager()
 
 
 
+// ==========================================================
+// SetState
+// ==========================================================
+//
+// 切换状态，带黑幕过渡。
+//
+// 判断只看 currentState 和"是否正在往同一目标过渡"，
+// 不要用 pendingState 做提前返回的依据。
+//
+// 之前写成 state == currentState || state == pendingState 就 return，
+// 一旦 pendingState 因为某次过渡被打断而残留旧值，
+// 后续所有切到那个状态的操作都会被静默忽略——
+// 表现为按 ESC 没反应、或者停在某个菜单出不来。
+
 void UIManager::SetState(UIState state)
 {
-    if(state == currentState || state == pendingState)
+    // 已经在目标状态，且没有过渡在跑：什么都不用做
+    if(state == currentState && transition == TransState::NONE)
+        return;
+
+    // 已经在往同一个目标过渡：不重启动画
+    if(transition != TransState::NONE && state == pendingState)
         return;
 
     pendingState = state;
