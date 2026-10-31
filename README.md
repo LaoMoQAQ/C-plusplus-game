@@ -293,24 +293,32 @@ Windows 下 `make` 默认不在 PATH 里，需要显式调用：
 
 工具链在 `E:\fouryears workspace\imagegen\`，完整文档见该目录的 `README.md`。
 
-**现状：能跑通，但产出达不到本项目要求。**
+**现状：能稳定出图，但产出达不到本项目要求。**
 
-已稳定做到：
-- 全身站姿（ControlNet OpenPose 硬约束）
-- 角色一致性（同 seed + 只改表情词）
-- 透明背景（泛洪填充抠图）
+已做到：
+- ComfyUI + DirectML 连续出图不 OOM（38~42 秒/张）
+- ControlNet OpenPose 控制全身站姿
+- 泛洪填充 / PS 魔棒抠图
+- 多 seed 批量 + 自动评分筛选
 
 做不到：
-- 去不掉模型强加的装饰（飘带、墨迹、月牙）
-- 服装颜色不受控（`red t-shirt` 常变黑）
+- 稳定出「白底 + 全身 + 无装饰 + 指定服装」
+- 构图随机（半身/全身/侧身都可能）
+- 服装上会印文字
 - 分辨率上限 512x768
 
-根因是**显存**：显卡标称 8 GB，被桌面占用后实测只剩 2 GB。
-业界做法（LoRA 微调 / SDXL）都需要 6~8 GB 以上。
+根因不是显存，是 **DirectML 不支持 LoRA**。
+PyTorch 被 `torch-directml` 锁在 2.4.1，而 `peft` 和 ComfyUI 的
+LoRA 加载器都要求 2.5+。要稳定出立绘，LoRA 几乎是必需的。
+
+试过的底模里只有 **Realistic Vision V5.1** 画风正确（写实照片风），
+其余（SD1.5 / MeinaMix / Counterfeit / DreamShaper）都会强加装饰。
 
 **游戏代码不关心立绘怎么来的**，只要满足：
 RGBA PNG、透明背景、高度约 700px、
 放在 `FourYears/resource/character/<角色>/<表情>.png`。
+
+角色清单：吴鸿涛（男）、李君浩（女）、张瀚宇（女）。
 
 ---
 
