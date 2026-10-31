@@ -511,7 +511,8 @@ bool SaveMenu::Confirm(
     std::string& outScriptFile,
     std::string& outChapterName,
     int& outIndex,
-    std::map<std::string, int>& outAffection
+    std::map<std::string, int>& outAffection,
+    std::vector<AffectionRecord>& outRecords
 )
 {
     if(page != SavePage::LOAD)
@@ -527,7 +528,8 @@ bool SaveMenu::Confirm(
         outScriptFile,
         outChapterName,
         outIndex,
-        outAffection
+        outAffection,
+        outRecords
     );
 }
 
@@ -659,7 +661,8 @@ void SaveMenu::BeginCreate(
     const std::string& scriptFile,
     const std::string& chapterName,
     int index,
-    const std::map<std::string, int>& affection
+    const std::map<std::string, int>& affection,
+    const std::vector<AffectionRecord>& records
 )
 {
     renaming = false;
@@ -672,6 +675,7 @@ void SaveMenu::BeginCreate(
     pendingChapterName = chapterName;
     pendingIndex = index;
     pendingAffection = affection;
+    pendingRecords = records;
 }
 
 
@@ -787,6 +791,7 @@ void SaveMenu::ConfirmRename(SaveSystem& saveSystem)
             pendingChapterName,
             pendingIndex,
             pendingAffection,
+            pendingRecords,
             pendingThumbnail.empty() ? nullptr : pendingThumbnail.data(),
             pendingThumbW,
             pendingThumbH

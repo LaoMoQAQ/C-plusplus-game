@@ -106,8 +106,10 @@ void RouteManager::SetAllAffection(
     const std::map<std::string, int>& data
 )
 {
+    // 只替换数值，不动历史。
+    // 读档时会紧接着调 SetRecords 恢复历史；
+    // 新游戏则显式调 ClearRecords。
     affection = data;
-    records.clear();
 }
 
 
@@ -118,4 +120,24 @@ const std::vector<AffectionRecord>&
 RouteManager::GetRecords() const
 {
     return records;
+}
+
+
+
+
+
+void RouteManager::SetRecords(
+    const std::vector<AffectionRecord>& data
+)
+{
+    records = data;
+}
+
+
+
+
+
+void RouteManager::ClearRecords()
+{
+    records.clear();
 }

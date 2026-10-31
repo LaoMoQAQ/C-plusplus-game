@@ -271,11 +271,123 @@ static void DeserializeAffection(
 
 
 // ==========================================================
+// 好感度历史序列化 / 反序列化
+// ==========================================================
+//
+// 格式：李君浩|10|好，麻烦你了,张瀚宇|-5|随便聊聊
+// 字段之间用 | 分隔，记录之间用 , 分隔。
+//
+// 来源文本里如果有 , 或 | 会破坏格式，写的时候替换成空格。
+
+static std::string SanitizeField(const std::string& s)
+{
+    std::string out = s;
+
+    for(char& c : out)
+    {
+        if(c == ',' || c == '|' || c == '\n' || c == '\r')
+            c = ' ';
+    }
+
+    return out;
+}
+
+
+
+
+static std::string SerializeRecords(
+    const std::vector<AffectionRecord>& records
+)
+{
+    std::string result;
+
+    for(auto& rec : records)
+    {
+        if(!result.empty())
+            result += ',';
+
+        result += SanitizeField(rec.character);
+        result += '|';
+        result += std::to_string(rec.delta);
+        result += '|';
+        result += SanitizeField(rec.source);
+    }
+
+    return result;
+}
+
+
+
+
+static void DeserializeRecords(
+    const std::string& line,
+    std::vector<AffectionRecord>& out
+)
+{
+    out.clear();
+
+    if(line.empty())
+        return;
+
+    std::stringstream ss(line);
+    std::string item;
+
+    while(std::getline(ss, item, ','))
+    {
+        if(item.empty())
+            continue;
+
+        // 拆成 角色|变化量|来源
+        size_t p1 = item.find('|');
+
+        if(p1 == std::string::npos)
+            continue;
+
+        size_t p2 = item.find('|', p1 + 1);
+
+        AffectionRecord rec;
+        rec.character = item.substr(0, p1);
+
+        std::string deltaStr;
+
+        if(p2 == std::string::npos)
+        {
+            deltaStr = item.substr(p1 + 1);
+        }
+        else
+        {
+            deltaStr = item.substr(p1 + 1, p2 - p1 - 1);
+            rec.source = item.substr(p2 + 1);
+        }
+
+        if(rec.character.empty() || deltaStr.empty())
+            continue;
+
+        try
+        {
+            rec.delta = std::stoi(deltaStr);
+        }
+        catch(...)
+        {
+            continue;
+        }
+
+        out.push_back(rec);
+    }
+}
+
+
+
+
+// ==========================================================
 // ReadSaveFile
 // ==========================================================
 //
-// 读一个存档文件并解析 6 行格式。
+// 读一个存档文件并解析格式。
 // 打开失败返回 false。
+//
+// 第 7 行（历史）是后加的，旧存档没有这一行，
+// getline 会失败，此时 out.records 保持空。
 
 bool SaveSystem::ReadSaveFile(
     const std::string& path,
@@ -300,6 +412,13 @@ bool SaveSystem::ReadSaveFile(
     std::getline(in, affLine);
 
     DeserializeAffection(affLine, out.affection);
+
+
+    // 第 7 行：历史（旧存档没有）
+    std::string recLine;
+
+    if(std::getline(in, recLine))
+        DeserializeRecords(recLine, out.records);
 
     return true;
 }
@@ -417,6 +536,7 @@ bool SaveSystem::CreateSave(
     const std::string& chapterName,
     int index,
     const std::map<std::string, int>& affection,
+    const std::vector<AffectionRecord>& records,
     const void* thumbnailPixels,
     int thumbnailW,
     int thumbnailH
@@ -439,6 +559,7 @@ bool SaveSystem::CreateSave(
     out << index       << "\n";
     out << GetCurrentTime() << "\n";
     out << SerializeAffection(affection) << "\n";
+    out << SerializeRecords(records) << "\n";
 
     out.close();
 
@@ -461,7 +582,8 @@ bool SaveSystem::LoadSave(
     std::string& outScriptFile,
     std::string& outChapterName,
     int& index,
-    std::map<std::string, int>& outAffection
+    std::map<std::string, int>& outAffection,
+    std::vector<AffectionRecord>& outRecords
 )
 {
     SaveData data;
@@ -473,6 +595,7 @@ bool SaveSystem::LoadSave(
     outChapterName = data.chapterName;
     index          = data.index;
     outAffection   = data.affection;
+    outRecords     = data.records;
 
     return true;
 }
@@ -526,6 +649,7 @@ bool SaveSystem::RenameSave(
     out << data.index       << "\n";
     out << data.time        << "\n";
     out << SerializeAffection(data.affection) << "\n";
+    out << SerializeRecords(data.records) << "\n";
 
     out.close();
 

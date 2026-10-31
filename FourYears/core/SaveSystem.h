@@ -9,6 +9,9 @@
 #include <SDL.h>
 
 
+#include "../story/RouteManager.h"
+
+
 
 // ==========================================================
 // 存档槽位
@@ -27,16 +30,19 @@ constexpr int SAVE_SLOT_COUNT = 10;
 //
 // 一份存档的完整快照。
 //
-// 存档文件格式（6 行纯文本，UTF-8）：
+// 存档文件格式（7 行纯文本，UTF-8）：
 //   1. displayName     显示名
 //   2. scriptFile      脚本路径
 //   3. chapterName     章节显示名
 //   4. index           事件下标
 //   5. time            保存时间
 //   6. affection       好感度（李君浩:10,张瀚宇:15）
+//   7. records         好感度变化历史（可选）
 //
-// 缩略图不写进这 6 行，而是单独存成 slotN.png 放在同一目录。
-// 这样旧版存档（没有图）依然能读，只是列表里不显示缩略图。
+// 第 7 行是后加的。旧存档只有 6 行，读的时候 getline 失败就当作
+// 空历史，不影响读档。
+//
+// 缩略图不写进这 7 行，而是单独存成 slotN.png 放在同一目录。
 
 struct SaveData
 {
@@ -51,6 +57,9 @@ struct SaveData
 
     std::string time;
     std::map<std::string, int> affection;
+
+    // 好感度变化历史。旧存档没有，为空。
+    std::vector<AffectionRecord> records;
 
     // 槽位号 1~10。0 表示无效/未使用。
     int slot = 0;
@@ -101,6 +110,7 @@ public:
         const std::string& chapterName,
         int index,
         const std::map<std::string, int>& affection,
+        const std::vector<AffectionRecord>& records,
         const void* thumbnailPixels = nullptr,
         int thumbnailW = 0,
         int thumbnailH = 0
@@ -111,7 +121,8 @@ public:
         std::string& outScriptFile,
         std::string& outChapterName,
         int& index,
-        std::map<std::string, int>& outAffection
+        std::map<std::string, int>& outAffection,
+        std::vector<AffectionRecord>& outRecords
     );
 
     // 清空槽位（删 dat 和 png）。

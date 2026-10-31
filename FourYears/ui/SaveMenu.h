@@ -55,7 +55,8 @@ public:
         std::string& outScriptFile,
         std::string& outChapterName,
         int& outIndex,
-        std::map<std::string, int>& outAffection
+        std::map<std::string, int>& outAffection,
+        std::vector<AffectionRecord>& outRecords
     );
 
     void Delete(SaveSystem& saveSystem);
@@ -94,7 +95,8 @@ public:
         const std::string& scriptFile,
         const std::string& chapterName,
         int index,
-        const std::map<std::string, int>& affection
+        const std::map<std::string, int>& affection,
+        const std::vector<AffectionRecord>& records
     );
 
     void HandleRenameKey(SDL_Keycode sym, SaveSystem& saveSystem);
@@ -163,6 +165,7 @@ private:
     std::string pendingChapterName;
     int pendingIndex = 0;
     std::map<std::string, int> pendingAffection;
+    std::vector<AffectionRecord> pendingRecords;
 
     std::vector<unsigned char> pendingThumbnail;   // RGBA32
     int pendingThumbW = 0;

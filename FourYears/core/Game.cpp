@@ -703,7 +703,8 @@ void Game::HandleKeyDown()
                 story.GetCurrentFile(),
                 ChapterNameFromScript(story.GetCurrentFile()),
                 story.GetIndex(),
-                story.GetRouteManager().GetAllAffection()
+                story.GetRouteManager().GetAllAffection(),
+                story.GetRouteManager().GetRecords()
             );
         }
         break;
@@ -1352,13 +1353,15 @@ void Game::OnActivateCurrentState()
         std::string chapterName;
         int idx = 0;
         std::map<std::string, int> aff;
+        std::vector<AffectionRecord> recs;
 
         if(ui.GetSaveMenu().Confirm(
             saveSystem,
             scriptFile,
             chapterName,
             idx,
-            aff
+            aff,
+            recs
         ))
         {
             if(!scriptFile.empty() && story.Load(scriptFile))
@@ -1366,6 +1369,7 @@ void Game::OnActivateCurrentState()
                 if(idx >= 0 && idx < (int)story.events.size())
                 {
                     story.GetRouteManager().SetAllAffection(aff);
+                    story.GetRouteManager().SetRecords(recs);
                     story.SetIndex(idx);
 
                     // 读档后立绘也要清掉，重新按事件重建
@@ -1405,8 +1409,8 @@ void Game::OnActivateCurrentState()
             // 新游戏必须清空上一轮的好感度与历史，
             // 否则二周目会带着上周目的数值直接锁死结局。
             story.GetRouteManager().SetAllAffection({});
+            story.GetRouteManager().ClearRecords();
 
-            // 换章节时重置 BGM 状态
             // 立绘清干净，避免上一轮残留
             for(int i = 0; i < 3; i++)
             {

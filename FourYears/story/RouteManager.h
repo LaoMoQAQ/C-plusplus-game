@@ -73,6 +73,13 @@ public:
 
     const std::vector<AffectionRecord>& GetRecords() const;
 
+    // 读档时恢复好感度变化历史。
+    // 存档里用 "角色|变化量|来源" 的紧凑格式，这里直接替换整个列表。
+    void SetRecords(const std::vector<AffectionRecord>& data);
+
+    // 清空历史（新游戏用）
+    void ClearRecords();
+
 
 
 private:
