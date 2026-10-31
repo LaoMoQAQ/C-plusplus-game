@@ -904,6 +904,7 @@ void Game::UpdateScene()
     StoryEvent e = story.GetCurrentEvent();
 
 
+
     // ---- 背景 ----
 
     if(!e.background.empty())
@@ -1022,19 +1023,18 @@ void Game::Render()
 
     if(bgToDraw)
     {
-        // 暂停菜单用毛玻璃（模糊 + 白色磨砂），其它二级菜单用普通模糊。
+        // 暂停菜单用毛玻璃（模糊 + 白色磨砂）。
         //
-        // 暂停菜单原本只叠一层暗色遮罩，看起来发闷。
-        // 毛玻璃的浅色磨砂更透亮，也更符合"暂停"这种临时中断的感觉。
-        //
-        // 磨砂强度不能太高：40 会让浅色背景整片发白，
-        // 菜单文字（白色）糊在背景里看不清。18 刚好有玻璃感又不刺眼。
+        // 磨砂强度调过几轮：
+        //   40 -> 浅色背景整片发白，白字看不清
+        //   18 -> 只有模糊感，没有"玻璃"质感
+        //   28 -> 有磨砂颗粒感，白字仍然清晰
         if(st == UIState::PAUSE)
-            renderer.DrawFrostedTexture(bgToDraw, 0, 0, 18);
+            renderer.DrawFrostedTexture(bgToDraw, 0, 0, 28);
         else if(needBlur)
             renderer.DrawBlurTexture(bgToDraw, 0, 0);
         else
-            renderer.DrawTexture(bgToDraw, 0, 0);
+            renderer.DrawBackgroundCover(bgToDraw);
     }
 
 
@@ -1092,21 +1092,43 @@ void Game::Render()
     }
 
 
-    // 把当前背景告诉 DialogueUI，它用来做对话框的背景模糊
-    ui.GetDialogueUI().SetBackgroundTexture(currentBackground);
+    // 对话框的背景模糊需要"框后面那块屏幕内容"。
+    //
+    // 之前传的是 currentBackground（剧本背景图 1672x941），
+    // 和屏幕（1600x900）尺寸不一致，按屏幕坐标取区域经常越界，
+    // 结果对话框里有时是纯黑。
+    //
+    // 现在改为抓屏幕快照，尺寸天然一致。
+    //
+    // CaptureScreen 内部是 RenderReadPixels（GPU 回读），
+    // 每帧调会明显掉帧。对话框的模糊背景本来就看不出细微变化，
+    // 每 6 帧抓一次足够。
+    if(st == UIState::DIALOGUE)
+    {
+        screenCaptureCounter++;
+
+        if(screenCaptureCounter >= 6 || !renderer.GetScreenTexture())
+        {
+            screenCaptureCounter = 0;
+            renderer.CaptureScreen();
+        }
+
+        ui.GetDialogueUI().SetBackgroundTexture(renderer.GetScreenTexture());
+    }
+    else
+    {
+        ui.GetDialogueUI().SetBackgroundTexture(nullptr);
+    }
 
     ui.Render(renderer);
 
 
-    // 剧情画面下按需抓帧，供暂停背景和存档缩略图使用。
+    // 存档缩略图用的帧缓存。
     //
-    // SDL_RenderReadPixels 是 GPU -> CPU 回读，D3D 下会强制等待 GPU，
-    // 即使每 15 帧抓一次也会造成周期性卡顿（表现为画面一顿一顿）。
-    //
-    // 所以只在「确实需要」时抓：
-    //   - 玩家按 N 存新档（CaptureThumbnail 内部会同步抓）
-    //   - 玩家按 ESC 进暂停（进暂停前已经在抓）
-    // 这里不再做定时抓取，改为在进入暂停菜单的那一帧抓一次。
+    // 只有玩家按 N 存新档时才会用到，属于低频操作。
+    // 这里按需抓一次即可，不做定时抓取——
+    // SDL_RenderReadPixels 是 GPU -> CPU 回读，
+    // 每帧或定时调用都会让帧率抖动。
     if(frameGrabRequested)
         GrabFrame();
 
@@ -1416,28 +1438,31 @@ void Game::GrabFrame()
 // CapturePauseBackground
 // ==========================================================
 //
-// 把最近一帧（framePixels）做成纹理，作为暂停菜单的毛玻璃背景。
+// 暂停菜单的毛玻璃背景 = 玩家按 ESC 前看到的最后一帧。
 //
-// 为什么不用 currentBackground：
-//   那是剧本里的背景图，不含立绘、不含对话框。
-//   暂停时想要的「当前画面」应该和玩家刚才看到的完全一致。
+// 实现上直接复用 Renderer 的屏幕快照（screenShot），
+// 不再自己 RenderReadPixels 一遍。
 //
-// framePixels 是 GrabFrame 在 Present 之前抓的，
-// 所以这里是「玩家实际看到的最后一帧」。
+// 之前用自己的 framePixels，有两个问题：
+//   1. GrabFrame 改成按需触发后 frameValid 经常是 false
+//   2. 在按键处理里调 RenderReadPixels，D3D 下拿到的
+//      往往不是完整画面（只有顶部一条，其余是黑的）
+//
+// screenShot 是每帧在 Render 里、背景和立绘都画完之后抓的，
+// 尺寸和屏幕一致、内容完整。
 
 void Game::CapturePauseBackground()
 {
-    // 用最近一次有效帧做纹理。
-    //
-    // 这个函数在 OnBack() 里调用，那时玩家刚按下 ESC，
-    // framePixels 里是上一帧 Render 抓的剧情画面（含立绘和对话框），
-    // 正是想要的"当前画面"。
-    //
-    // 如果还没有任何有效帧（比如刚启动就按 ESC），
-    // 退化成用 currentBackground，至少不会全黑。
-    if(!frameValid || framePixels.empty() || frameW <= 0 || frameH <= 0)
+    SDL_Texture* shot = renderer.GetScreenTexture();
+
+    if(!shot)
         return;
 
+    int w = 0, h = 0;
+    SDL_QueryTexture(shot, nullptr, nullptr, &w, &h);
+
+    if(w <= 0 || h <= 0)
+        return;
 
     SDL_Renderer* r = renderer.GetSDLRenderer();
 
@@ -1446,7 +1471,7 @@ void Game::CapturePauseBackground()
 
 
     // 尺寸变了就重建
-    if(!pauseBackground || pauseBgW != frameW || pauseBgH != frameH)
+    if(!pauseBackground || pauseBgW != w || pauseBgH != h)
     {
         if(pauseBackground)
         {
@@ -1457,26 +1482,29 @@ void Game::CapturePauseBackground()
         pauseBackground = SDL_CreateTexture(
             r,
             SDL_PIXELFORMAT_RGBA32,
-            SDL_TEXTUREACCESS_STATIC,
-            frameW, frameH
+            SDL_TEXTUREACCESS_TARGET,
+            w, h
         );
 
         if(!pauseBackground)
             return;
 
-        pauseBgW = frameW;
-        pauseBgH = frameH;
+        pauseBgW = w;
+        pauseBgH = h;
     }
 
 
-    SDL_UpdateTexture(
-        pauseBackground,
-        nullptr,
-        framePixels.data(),
-        frameW * 4
-    );
+    // 把 screenShot 拷进 pauseBackground
+    SDL_SetTextureBlendMode(pauseBackground, SDL_BLENDMODE_NONE);
 
-    SDL_SetTextureBlendMode(pauseBackground, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderTarget(r, pauseBackground);
+    SDL_SetRenderDrawColor(r, 0, 0, 0, 255);
+    SDL_RenderClear(r);
+
+    SDL_Rect full = { 0, 0, w, h };
+    SDL_RenderCopy(r, shot, nullptr, &full);
+
+    SDL_SetRenderTarget(r, nullptr);
 }
 
 
@@ -1529,10 +1557,11 @@ void Game::OnActivateCurrentState()
                     currentBackground = nullptr;
                     autoPlayTimer = 0.0f;
 
+                    // 读档同样立即切换，理由同「开始游戏」分支
                     if(!ApplyCurrentEvent())
                         ReturnToTitle();
                     else
-                        ui.SetState(UIState::DIALOGUE);
+                        ui.SetStateImmediate(UIState::DIALOGUE);
                 }
             }
         }
@@ -1574,10 +1603,14 @@ void Game::OnActivateCurrentState()
 
             autoPlayTimer = 0.0f;
 
+            // 立即切到剧情，不走黑幕过渡。
+            //
+            // 这里背景、立绘、对话框都已经按第一个事件设置好了，
+            // 再走「压黑 -> 切换 -> 淡入」只会让玩家看到黑一下。
             if(!ApplyCurrentEvent())
                 ReturnToTitle();
             else
-                ui.SetState(UIState::DIALOGUE);
+                ui.SetStateImmediate(UIState::DIALOGUE);
 
             break;
         }
@@ -1797,12 +1830,8 @@ void Game::OnBack()
     {
         // 截下玩家刚才看到的画面，作为暂停菜单的毛玻璃背景。
         //
-        // 这里同步抓一次：虽然 RenderReadPixels 会等 GPU，
-        // 但只发生在按 ESC 的瞬间（不是每帧），玩家感知不到。
-        // 抓到的就是渲染目标里的上一帧内容——正是想要的"当前画面"。
-        frameGrabRequested = true;
-        GrabFrame();
-
+        // 直接用 Render 里抓好的屏幕快照，不在这里 RenderReadPixels
+        // （按键处理时机下读到的内容不完整，只有顶部一条）。
         CapturePauseBackground();
 
         // 每次打开暂停菜单都回到第一项。

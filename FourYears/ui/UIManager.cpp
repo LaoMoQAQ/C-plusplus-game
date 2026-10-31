@@ -27,12 +27,41 @@ void UIManager::SetState(UIState state)
 
 
 
+// ==========================================================
+// SetStateImmediate
+// ==========================================================
+//
+// 直接切状态，不播黑幕过渡。
+//
+// 「主菜单 -> 剧情」走这个：那一瞬间背景、立绘、对话框都已经
+// 按事件设置好了，再压黑一次纯属多余，玩家看到的就是黑一下。
+
+void UIManager::SetStateImmediate(UIState state)
+{
+    currentState = state;
+    pendingState = state;
+
+    transition = TransState::NONE;
+    alpha = 1.0f;
+}
+
+
+
+
+
+// ==========================================================
+// GetState
+// ==========================================================
+//
+// 只返回 currentState，不返回 pendingState。
+//
+// 之前过渡期间返回 pendingState，而 Render() 用的是 currentState，
+// 两者不一致：画面还在画旧菜单，输入却已经按新菜单处理。
+// 结果是过渡动画期间按方向键会操作到"还没显示出来的"菜单，
+// 表现为画面乱跳、像闪屏。
 
 UIState UIManager::GetState() const
 {
-    if(transition != TransState::NONE)
-        return pendingState;
-
     return currentState;
 }
 

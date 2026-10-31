@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cmath>
+#include <vector>
 
 #include "Renderer.h"
 
@@ -208,6 +209,80 @@ void Renderer::ClearTextCache()
 
 
 
+// ==========================================================
+// CaptureScreen / GetScreenTexture
+// ==========================================================
+//
+// 把当前渲染目标内容抓进一张纹理。
+//
+// 用途：对话框要在框内显示"框后面那块屏幕内容"的模糊版。
+// 之前传的是剧本背景图，尺寸 1672x941 和屏幕 1600x900 不一致，
+// 按屏幕坐标取区域经常越界，结果纯黑。
+//
+// 抓屏幕的好处是尺寸天然一致，坐标直接对应。
+
+void Renderer::CaptureScreen()
+{
+    if(!renderer)
+        return;
+
+    int w = 0, h = 0;
+    SDL_RenderGetLogicalSize(renderer, &w, &h);
+
+    if(w <= 0 || h <= 0)
+        SDL_GetRendererOutputSize(renderer, &w, &h);
+
+    if(w <= 0 || h <= 0)
+        return;
+
+
+    if(!screenShot || screenShotW != w || screenShotH != h)
+    {
+        if(screenShot)
+        {
+            SDL_DestroyTexture(screenShot);
+            screenShot = nullptr;
+        }
+
+        screenShot = SDL_CreateTexture(
+            renderer,
+            SDL_PIXELFORMAT_RGBA32,
+            SDL_TEXTUREACCESS_STATIC,
+            w, h
+        );
+
+        if(!screenShot)
+            return;
+
+        screenShotW = w;
+        screenShotH = h;
+    }
+
+    std::vector<unsigned char> pixels((size_t)w * h * 4);
+
+    if(SDL_RenderReadPixels(
+           renderer, nullptr,
+           SDL_PIXELFORMAT_RGBA32,
+           pixels.data(), w * 4) != 0)
+    {
+        return;
+    }
+
+    SDL_UpdateTexture(screenShot, nullptr, pixels.data(), w * 4);
+    SDL_SetTextureBlendMode(screenShot, SDL_BLENDMODE_BLEND);
+}
+
+
+
+
+SDL_Texture* Renderer::GetScreenTexture()
+{
+    return screenShot;
+}
+
+
+
+
 
 void Renderer::DrawTexture(
     SDL_Texture* texture,
@@ -235,6 +310,60 @@ void Renderer::DrawTexture(
     if(!texture || w <= 0 || h <= 0) return;
 
     SDL_Rect dst = { x, y, w, h };
+
+    SDL_RenderCopy(renderer, texture, nullptr, &dst);
+}
+
+
+
+
+// ==========================================================
+// DrawBackgroundCover
+// ==========================================================
+//
+// 背景图铺满屏幕，保持宽高比（cover）。
+//
+// 背景资源是 1672x941，逻辑屏幕 1600x900。
+// 直接 DrawTexture(tex, 0, 0) 按原尺寸画，
+// 右边和下边会被裁掉一部分，比例也会失真。
+//
+// 这里按 cover 规则：缩放到刚好铺满，多出的部分居中裁掉。
+
+void Renderer::DrawBackgroundCover(SDL_Texture* texture)
+{
+    if(!texture || !renderer)
+        return;
+
+    int texW = 0, texH = 0;
+    SDL_QueryTexture(texture, nullptr, nullptr, &texW, &texH);
+
+    if(texW <= 0 || texH <= 0)
+        return;
+
+
+    int screenW = 0, screenH = 0;
+    SDL_RenderGetLogicalSize(renderer, &screenW, &screenH);
+
+    if(screenW <= 0 || screenH <= 0)
+        SDL_GetRendererOutputSize(renderer, &screenW, &screenH);
+
+    if(screenW <= 0 || screenH <= 0)
+        return;
+
+
+    // 取较大的缩放比，保证两个方向都铺满
+    float scaleX = (float)screenW / (float)texW;
+    float scaleY = (float)screenH / (float)texH;
+    float scale  = scaleX > scaleY ? scaleX : scaleY;
+
+    int drawW = (int)(texW * scale + 0.5f);
+    int drawH = (int)(texH * scale + 0.5f);
+
+    SDL_Rect dst;
+    dst.x = (screenW - drawW) / 2;
+    dst.y = (screenH - drawH) / 2;
+    dst.w = drawW;
+    dst.h = drawH;
 
     SDL_RenderCopy(renderer, texture, nullptr, &dst);
 }
@@ -558,8 +687,31 @@ void Renderer::DrawBlurTexture(
     SDL_QueryTexture(texture, nullptr, nullptr, &w, &h);
     if(w <= 0 || h <= 0) return;
 
-    // 整屏模糊：不要额外白色蒙版，否则背景会发灰
-    BlurRegionTo(texture, nullptr, x, y, w, h, 0);
+    // 模糊也要按屏幕尺寸铺满，否则和背景一样会只显示一部分。
+    // 用 cover 的方式算目标矩形，和 DrawBackgroundCover 保持一致。
+    int screenW = 0, screenH = 0;
+    SDL_RenderGetLogicalSize(renderer, &screenW, &screenH);
+
+    if(screenW <= 0 || screenH <= 0)
+        SDL_GetRendererOutputSize(renderer, &screenW, &screenH);
+
+    if(screenW <= 0 || screenH <= 0)
+    {
+        screenW = w;
+        screenH = h;
+    }
+
+    float scaleX = (float)screenW / (float)w;
+    float scaleY = (float)screenH / (float)h;
+    float scale  = scaleX > scaleY ? scaleX : scaleY;
+
+    int drawW = (int)(w * scale + 0.5f);
+    int drawH = (int)(h * scale + 0.5f);
+
+    int drawX = x + (screenW - drawW) / 2;
+    int drawY = y + (screenH - drawH) / 2;
+
+    BlurRegionTo(texture, nullptr, drawX, drawY, drawW, drawH, 0);
 }
 
 
@@ -586,7 +738,30 @@ void Renderer::DrawFrostedTexture(
     SDL_QueryTexture(texture, nullptr, nullptr, &w, &h);
     if(w <= 0 || h <= 0) return;
 
-    BlurRegionTo(texture, nullptr, x, y, w, h, overlayAlpha);
+    // 同 DrawBlurTexture：按屏幕尺寸 cover 铺满
+    int screenW = 0, screenH = 0;
+    SDL_RenderGetLogicalSize(renderer, &screenW, &screenH);
+
+    if(screenW <= 0 || screenH <= 0)
+        SDL_GetRendererOutputSize(renderer, &screenW, &screenH);
+
+    if(screenW <= 0 || screenH <= 0)
+    {
+        screenW = w;
+        screenH = h;
+    }
+
+    float scaleX = (float)screenW / (float)w;
+    float scaleY = (float)screenH / (float)h;
+    float scale  = scaleX > scaleY ? scaleX : scaleY;
+
+    int drawW = (int)(w * scale + 0.5f);
+    int drawH = (int)(h * scale + 0.5f);
+
+    int drawX = x + (screenW - drawW) / 2;
+    int drawY = y + (screenH - drawH) / 2;
+
+    BlurRegionTo(texture, nullptr, drawX, drawY, drawW, drawH, overlayAlpha);
 }
 
 

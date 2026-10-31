@@ -176,6 +176,9 @@ private:
     // 抓帧计数，到阈值才真正读一次
     int frameGrabCounter = 0;
 
+    // 屏幕快照计数（对话框背景模糊用，每 N 帧抓一次）
+    int screenCaptureCounter = 0;
+
     // 进入暂停菜单时截下的当前画面，用作毛玻璃背景。
     // 暂停期间一直用这张，避免每帧重新截图。
     SDL_Texture* pauseBackground = nullptr;

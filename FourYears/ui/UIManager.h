@@ -33,6 +33,14 @@ public:
     UIManager();
 
     void SetState(UIState state);
+
+    // 立即切换，不走黑幕过渡。
+    //
+    // 用于「主菜单 -> 剧情」这种场景：此时背景和立绘已经准备好，
+    // 再走一遍「压黑 -> 切换 -> 淡入」会让玩家看到黑一下，
+    // 体感像是闪屏。
+    void SetStateImmediate(UIState state);
+
     UIState GetState() const;
     bool IsTransitioning() const;
 

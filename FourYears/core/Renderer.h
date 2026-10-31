@@ -55,6 +55,13 @@ public:
     void DrawTexture(SDL_Texture* texture, int x, int y);
     void DrawTexture(SDL_Texture* texture, int x, int y, int w, int h);
 
+    // 把纹理铺满整个逻辑屏幕，保持宽高比裁切（cover 模式）。
+    //
+    // 背景图是 1672x941，逻辑屏幕是 1600x900，尺寸不一致。
+    // 直接用 DrawTexture(tex, 0, 0) 会按原始像素画，
+    // 超出部分被裁掉、比例也会失真。
+    void DrawBackgroundCover(SDL_Texture* texture);
+
 
 
     // ---- 矩形 ----
@@ -98,6 +105,26 @@ public:
         Uint8 overlayAlpha
     );
 
+
+
+    // ==========================================================
+    // 屏幕快照
+    // ==========================================================
+    //
+    // 把当前渲染目标（即已经画好的画面）存进内部纹理。
+    //
+    // 对话框的背景模糊需要"框后面那块屏幕内容"。
+    // 之前传的是剧本背景图（1672x941），和屏幕（1600x900）
+    // 尺寸不一致，按屏幕坐标取区域经常取到画面外，结果纯黑。
+    //
+    // 正确做法是从"当前屏幕"取，尺寸天然一致。
+
+    // 抓当前屏幕内容到内部纹理
+    void CaptureScreen();
+
+    // 上一步抓到的屏幕纹理，没抓过返回 nullptr
+    SDL_Texture* GetScreenTexture();
+
     // [新增] 把纹理的一块区域模糊后画到目标矩形
     // 用于对话框这类"背景模糊"效果
     void DrawBlurredRegion(
@@ -127,9 +154,11 @@ private:
     // 结果接近高斯模糊，放大后过渡平滑得多。
     //
     // 级别数由 BLUR_STEPS 控制，每级尺寸减半。
-    // 1280x720 的图降 4 级后是 80x45，足够糊，开销也可以忽略。
-
-    static constexpr int BLUR_STEPS = 4;
+    //
+    // 3 级：1600x900 -> 800 -> 400 -> 200，保留形状轮廓，
+    //       像隔着磨砂玻璃看，能看出"后面有东西"。
+    // 4 级：降到 100x56，糊成一片色块，只有"糊"没有"玻璃"。
+    static constexpr int BLUR_STEPS = 3;
 
     SDL_Renderer* renderer = nullptr;
     TTF_Font*     font = nullptr;
@@ -149,6 +178,11 @@ private:
     SDL_Texture* roundB = nullptr;
     int roundAW = 0, roundAH = 0;
     int roundBW = 0, roundBH = 0;
+
+    // 屏幕快照纹理（供对话框背景模糊使用）
+    SDL_Texture* screenShot = nullptr;
+    int screenShotW = 0;
+    int screenShotH = 0;
 
     // 确保离屏纹理是 w*h 大小，返回是否成功
     bool EnsureTarget(SDL_Texture*& tex, int& texW, int& texH, int w, int h);
