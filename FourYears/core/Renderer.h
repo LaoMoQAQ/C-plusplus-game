@@ -86,6 +86,18 @@ public:
         Uint8 overlayAlpha
     );
 
+    // 圆角裁剪版毛玻璃区域。
+    //
+    // 对话框要的是「圆角框里透出模糊背景」，
+    // 直接画矩形模糊会露出四个方角。
+    // 这里按圆角逐行裁剪，只画圆角内的部分。
+    void DrawFrostedRegionRound(
+        SDL_Texture* texture,
+        int x, int y, int w, int h,
+        int radius,
+        Uint8 overlayAlpha
+    );
+
     // [新增] 把纹理的一块区域模糊后画到目标矩形
     // 用于对话框这类"背景模糊"效果
     void DrawBlurredRegion(
@@ -127,6 +139,16 @@ private:
     SDL_Texture* blurPong = nullptr;
     int pingW = 0, pingH = 0;
     int pongW = 0, pongH = 0;
+
+    // 圆角区域模糊专用缓冲。
+    //
+    // 不能复用 blurPing/blurPong：那张纹理最后要被设成 BLEND
+    // 画到屏幕，下次再当渲染目标时会把内容混到黑底上，整块变黑。
+    // 这里用独立的 roundA/roundB，画完立刻恢复 BLENDMODE_NONE。
+    SDL_Texture* roundA = nullptr;
+    SDL_Texture* roundB = nullptr;
+    int roundAW = 0, roundAH = 0;
+    int roundBW = 0, roundBH = 0;
 
     // 确保离屏纹理是 w*h 大小，返回是否成功
     bool EnsureTarget(SDL_Texture*& tex, int& texW, int& texH, int w, int h);

@@ -388,8 +388,12 @@ bool Renderer::EnsureTarget(
         return false;
     }
 
-    // 放大时用线性插值，缩小同理
-    SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
+    // 关键：渲染目标必须用 NONE 混合。
+    //
+    // 之前这里设了 BLENDMODE_BLEND，结果往它上面 RenderCopy 时
+    // 内容会和清屏的黑色混合，整块变黑（背景、对话框模糊全黑）。
+    // 需要透明叠加的地方在绘制时临时设 BLEND 即可。
+    SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_NONE);
     SDL_SetTextureScaleMode(tex, SDL_ScaleModeLinear);
 
     texW = w;
@@ -422,9 +426,13 @@ void Renderer::ReleaseBlurTargets()
 {
     if(blurPing) { SDL_DestroyTexture(blurPing); blurPing = nullptr; }
     if(blurPong) { SDL_DestroyTexture(blurPong); blurPong = nullptr; }
+    if(roundA)   { SDL_DestroyTexture(roundA);   roundA   = nullptr; }
+    if(roundB)   { SDL_DestroyTexture(roundB);   roundB   = nullptr; }
 
     pingW = pingH = 0;
     pongW = pongH = 0;
+    roundAW = roundAH = 0;
+    roundBW = roundBH = 0;
 }
 
 
@@ -576,6 +584,238 @@ void Renderer::DrawFrostedTexture(
     if(w <= 0 || h <= 0) return;
 
     BlurRegionTo(texture, nullptr, x, y, w, h, overlayAlpha);
+}
+
+
+
+
+// ==========================================================
+// DrawFrostedRegionRound
+// ==========================================================
+//
+// 圆角矩形区域内的模糊背景。
+//
+// 之前对话框的做法是「先画矩形模糊区，再叠圆角灰底」，
+// 结果四个角露出方形的模糊块，看起来框是方的。
+//
+// 这里改成按圆角形状裁剪：
+//   1. 先把模糊结果画到离屏纹理（和区域同尺寸）
+//   2. 再逐行只把圆角内的部分 copy 到屏幕
+//
+// 逐行裁剪用 SDL_RenderCopy 的 src 矩形实现，
+// 不需要 stencil buffer，也不需要 OpenGL。
+
+void Renderer::DrawFrostedRegionRound(
+    SDL_Texture* texture,
+    int x, int y, int w, int h,
+    int radius,
+    Uint8 overlayAlpha
+)
+{
+    if(!texture || !renderer || w <= 0 || h <= 0)
+        return;
+
+    if(radius < 0) radius = 0;
+    if(radius * 2 > w) radius = w / 2;
+    if(radius * 2 > h) radius = h / 2;
+
+
+    // ---- 1. 取源区域（纹理坐标） ----
+
+    int texW = 0, texH = 0;
+    SDL_QueryTexture(texture, nullptr, nullptr, &texW, &texH);
+    if(texW <= 0 || texH <= 0) return;
+
+
+    int screenW = 0, screenH = 0;
+    SDL_RenderGetLogicalSize(renderer, &screenW, &screenH);
+
+    if(screenW <= 0 || screenH <= 0)
+        SDL_GetRendererOutputSize(renderer, &screenW, &screenH);
+
+    if(screenW <= 0 || screenH <= 0)
+    {
+        screenW = texW;
+        screenH = texH;
+    }
+
+
+    SDL_Rect src;
+    src.x = (int)((long long)x * texW / screenW);
+    src.y = (int)((long long)y * texH / screenH);
+    src.w = (int)((long long)w * texW / screenW);
+    src.h = (int)((long long)h * texH / screenH);
+
+    if(src.x < 0) src.x = 0;
+    if(src.y < 0) src.y = 0;
+    if(src.x + src.w > texW) src.w = texW - src.x;
+    if(src.y + src.h > texH) src.h = texH - src.y;
+    if(src.w <= 0 || src.h <= 0) return;
+
+
+    // ==========================================================
+    // 用专用缓冲，不要复用 blurPing/blurPong
+    // ==========================================================
+    //
+    // 之前的实现复用 blurPing 做中间结果，最后又把它设成 BLEND
+    // 去画到屏幕。结果下次它再当渲染目标时，
+    // RenderCopy 会把内容混合到清屏的黑色上，整块变黑——
+    // 表现为背景和对话框全黑。
+    //
+    // 这里用两个专属纹理：
+    //   roundA  : 区域尺寸，先放源区域，最后放放大后的模糊结果
+    //   roundB  : 降采样中间级
+    // roundA 只在"当渲染目标"和"当纹理源"两种身份间切换，
+    // 且每次切换前都重置混合模式，不会残留状态。
+
+    if(!EnsureTarget(roundA, roundAW, roundAH, w, h))
+        return;
+
+    if(!EnsureTarget(roundB, roundBW, roundBH, (w + 1) / 2, (h + 1) / 2))
+        return;
+
+
+    // ---- 2. 源区域 -> roundA ----
+
+    {
+        SDL_SetRenderTarget(renderer, roundA);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+
+        SDL_Rect dstFull = { 0, 0, w, h };
+        SDL_RenderCopy(renderer, texture, &src, &dstFull);
+
+        SDL_SetRenderTarget(renderer, nullptr);
+    }
+
+
+    // ---- 3. 多级降采样：roundA -> roundB -> roundA -> ... ----
+    //
+    // 注意：不能在同一张纹理上原地缩放，
+    // 所以每级交替，且每次都按目标尺寸重建。
+
+    SDL_Texture* cur = roundA;
+    int curW = w, curH = h;
+
+    for(int i = 0; i < BLUR_STEPS; i++)
+    {
+        int nw = curW / 2;
+        int nh = curH / 2;
+        if(nw < 2 || nh < 2) break;
+
+        bool toB = (cur == roundA);
+
+        SDL_Texture* next = toB ? roundB : roundA;
+
+        int& nW = toB ? roundBW : roundAW;
+        int& nH = toB ? roundBH : roundAH;
+
+        if(!EnsureTarget(next, nW, nH, nw, nh))
+            break;
+
+        DownsampleInto(cur, curW, curH, next, nw, nh);
+
+        cur = next;
+        curW = nw;
+        curH = nh;
+    }
+
+
+    // ---- 4. 放大回区域尺寸 ----
+
+    // 找一个和 cur 不同的缓冲放大
+    SDL_Texture* big = (cur == roundA) ? roundB : roundA;
+    int& bigW = (cur == roundA) ? roundBW : roundAW;
+    int& bigH = (cur == roundA) ? roundBH : roundAH;
+
+    if(!EnsureTarget(big, bigW, bigH, w, h))
+        return;
+
+    {
+        SDL_SetRenderTarget(renderer, big);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+
+        SDL_Rect full = { 0, 0, w, h };
+        SDL_RenderCopy(renderer, cur, nullptr, &full);
+
+        SDL_SetRenderTarget(renderer, nullptr);
+    }
+
+
+    // ---- 5. 按圆角形状逐行画到屏幕 ----
+    //
+    // 画之前临时设 BLEND，画完立刻恢复 NONE。
+    // 不恢复的话，这张纹理下次当渲染目标会出问题。
+
+    SDL_SetTextureBlendMode(big, SDL_BLENDMODE_BLEND);
+
+    for(int row = 0; row < h; row++)
+    {
+        int inset = 0;
+
+        if(row < radius)
+        {
+            double vy = (double)(radius - row);
+            inset = radius - (int)sqrt(
+                (double)(radius * radius) - vy * vy
+            );
+        }
+        else if(row >= h - radius)
+        {
+            double vy = (double)(row - (h - radius) + 1);
+            if(vy > radius) vy = radius;
+            inset = radius - (int)sqrt(
+                (double)(radius * radius) - vy * vy
+            );
+        }
+
+        if(inset < 0) inset = 0;
+        if(inset * 2 >= w) continue;
+
+        SDL_Rect s = { inset, row, w - inset * 2, 1 };
+        SDL_Rect d = { x + inset, y + row, w - inset * 2, 1 };
+
+        SDL_RenderCopy(renderer, big, &s, &d);
+    }
+
+    SDL_SetTextureBlendMode(big, SDL_BLENDMODE_NONE);
+
+
+    // ---- 6. 白色磨砂叠加（同样按圆角裁剪） ----
+
+    if(overlayAlpha > 0)
+    {
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, overlayAlpha);
+
+        for(int row = 0; row < h; row++)
+        {
+            int inset = 0;
+
+            if(row < radius)
+            {
+                double vy = (double)(radius - row);
+                inset = radius - (int)sqrt(
+                    (double)(radius * radius) - vy * vy
+                );
+            }
+            else if(row >= h - radius)
+            {
+                double vy = (double)(row - (h - radius) + 1);
+                if(vy > radius) vy = radius;
+                inset = radius - (int)sqrt(
+                    (double)(radius * radius) - vy * vy
+                );
+            }
+
+            if(inset < 0) inset = 0;
+            if(inset * 2 >= w) continue;
+
+            SDL_Rect d = { x + inset, y + row, w - inset * 2, 1 };
+            SDL_RenderFillRect(renderer, &d);
+        }
+    }
 }
 
 

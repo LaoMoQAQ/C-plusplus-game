@@ -189,14 +189,20 @@ void DialogueUI::Render(Renderer& renderer)
 
 
 
-    // ---- 1. 背景模糊 ----
+    // ---- 1. 背景模糊（圆角裁剪） ----
+    //
+    // 以前这里画的是矩形模糊区，再叠圆角灰底，
+    // 四个角会露出方形的模糊块，看起来框是方的。
+    // 改用 DrawFrostedRegionRound 按圆角形状裁剪。
 
     if(backgroundTexture)
     {
-        renderer.DrawBlurredRegion(
+        renderer.DrawFrostedRegionRound(
             backgroundTexture,
             BOX_X, boxY,
-            BOX_W, boxH
+            BOX_W, boxH,
+            BOX_RADIUS,
+            0
         );
     }
 

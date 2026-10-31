@@ -983,10 +983,20 @@ void Game::Render()
 
     SDL_Texture* bgToDraw = nullptr;
 
-    if(useGameBackground)
+    // 暂停菜单优先用「刚才截下的当前画面」，
+    // 这样毛玻璃背后就是玩家暂停前的所见，而不是剧本背景图。
+    if(st == UIState::PAUSE && pauseBackground)
+    {
+        bgToDraw = pauseBackground;
+    }
+    else if(useGameBackground)
+    {
         bgToDraw = currentBackground ? currentBackground : menuBg;
+    }
     else
+    {
         bgToDraw = menuBg;
+    }
 
 
     if(bgToDraw)
@@ -1230,6 +1240,13 @@ void Game::Shutdown()
 
     // ---- 子系统（顺序不能改） ----
 
+    if(pauseBackground)
+    {
+        SDL_DestroyTexture(pauseBackground);
+        pauseBackground = nullptr;
+        pauseBgW = pauseBgH = 0;
+    }
+
     saveSystem.ClearThumbnails();
     fontManager.Shutdown();
     resourceManager.Destroy();
@@ -1340,6 +1357,68 @@ void Game::GrabFrame()
         framePixels.data(),
         w * 4
     );
+}
+
+
+
+
+// ==========================================================
+// CapturePauseBackground
+// ==========================================================
+//
+// 把最近一帧（framePixels）做成纹理，作为暂停菜单的毛玻璃背景。
+//
+// 为什么不用 currentBackground：
+//   那是剧本里的背景图，不含立绘、不含对话框。
+//   暂停时想要的「当前画面」应该和玩家刚才看到的完全一致。
+//
+// framePixels 是 GrabFrame 在 Present 之前抓的，
+// 所以这里是「玩家实际看到的最后一帧」。
+
+void Game::CapturePauseBackground()
+{
+    if(framePixels.empty() || frameW <= 0 || frameH <= 0)
+        return;
+
+
+    SDL_Renderer* r = renderer.GetSDLRenderer();
+
+    if(!r)
+        return;
+
+
+    // 尺寸变了就重建
+    if(!pauseBackground || pauseBgW != frameW || pauseBgH != frameH)
+    {
+        if(pauseBackground)
+        {
+            SDL_DestroyTexture(pauseBackground);
+            pauseBackground = nullptr;
+        }
+
+        pauseBackground = SDL_CreateTexture(
+            r,
+            SDL_PIXELFORMAT_RGBA32,
+            SDL_TEXTUREACCESS_STATIC,
+            frameW, frameH
+        );
+
+        if(!pauseBackground)
+            return;
+
+        pauseBgW = frameW;
+        pauseBgH = frameH;
+    }
+
+
+    SDL_UpdateTexture(
+        pauseBackground,
+        nullptr,
+        framePixels.data(),
+        frameW * 4
+    );
+
+    SDL_SetTextureBlendMode(pauseBackground, SDL_BLENDMODE_BLEND);
 }
 
 
@@ -1658,6 +1737,10 @@ void Game::OnBack()
 
     if(st == UIState::DIALOGUE)
     {
+        // 截下玩家刚才看到的画面，作为暂停菜单的毛玻璃背景。
+        // 必须在切状态之前截，否则 GrabFrame 已经不再更新。
+        CapturePauseBackground();
+
         // 每次打开暂停菜单都回到第一项。
         // 不重置的话会保留上次的选择（比如上次点了"返回标题"，
         // 下次按 ESC 高亮块还停在那里，容易误触）。

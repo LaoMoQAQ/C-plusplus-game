@@ -75,6 +75,9 @@ private:
     // Present 之前把整帧读回缓存，供 CaptureThumbnail 用
     void GrabFrame();
 
+    // 把最近一帧做成纹理，用于暂停菜单的毛玻璃背景
+    void CapturePauseBackground();
+
     // ---- 剧情事件 ----
 
     // 把 story 当前事件同步到画面（背景/立绘/BGM/SE + 对话框 + 选项）。
@@ -161,6 +164,12 @@ private:
     std::vector<unsigned char> framePixels;
     int frameW = 0;
     int frameH = 0;
+
+    // 进入暂停菜单时截下的当前画面，用作毛玻璃背景。
+    // 暂停期间一直用这张，避免每帧重新截图。
+    SDL_Texture* pauseBackground = nullptr;
+    int pauseBgW = 0;
+    int pauseBgH = 0;
 
 
 
