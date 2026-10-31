@@ -991,7 +991,16 @@ void Game::Render()
 
     if(bgToDraw)
     {
-        if(needBlur)
+        // 暂停菜单用毛玻璃（模糊 + 白色磨砂），其它二级菜单用普通模糊。
+        //
+        // 暂停菜单原本只叠一层暗色遮罩，看起来发闷。
+        // 毛玻璃的浅色磨砂更透亮，也更符合"暂停"这种临时中断的感觉。
+        //
+        // 磨砂强度不能太高：40 会让浅色背景整片发白，
+        // 菜单文字（白色）糊在背景里看不清。18 刚好有玻璃感又不刺眼。
+        if(st == UIState::PAUSE)
+            renderer.DrawFrostedTexture(bgToDraw, 0, 0, 18);
+        else if(needBlur)
             renderer.DrawBlurTexture(bgToDraw, 0, 0);
         else
             renderer.DrawTexture(bgToDraw, 0, 0);
@@ -1648,7 +1657,13 @@ void Game::OnBack()
     UIState st = ui.GetState();
 
     if(st == UIState::DIALOGUE)
+    {
+        // 每次打开暂停菜单都回到第一项。
+        // 不重置的话会保留上次的选择（比如上次点了"返回标题"，
+        // 下次按 ESC 高亮块还停在那里，容易误触）。
+        ui.GetPauseMenu().Reset();
         ui.SetState(UIState::PAUSE);
+    }
     else if(st == UIState::PAUSE)
         ui.SetState(UIState::DIALOGUE);
     else if(st == UIState::SAVE)

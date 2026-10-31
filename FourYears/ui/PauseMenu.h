@@ -44,6 +44,11 @@ private:
     static constexpr int ITEM_W   = 400;
     static constexpr int ITEM_H   = 50;
 
+    // 暂停菜单的暗色遮罩透明度。
+    // 背景已经是毛玻璃（白色磨砂），这里只要很淡一层压亮度，
+    // 用 UILayout::OVERLAY_A(120) 会把玻璃质感完全盖掉。
+    static constexpr Uint8 PAUSE_OVERLAY_A = 30;
+
 
     float displayHighlightY = 230.0f;
 

@@ -78,6 +78,14 @@ public:
     // 把整张纹理模糊后按原始尺寸画到 (x, y)
     void DrawBlurTexture(SDL_Texture* texture, int x, int y);
 
+    // 毛玻璃：模糊整屏，再叠一层半透明白做出磨砂质感。
+    // overlayAlpha 0~255，越大越白越"磨砂"。
+    void DrawFrostedTexture(
+        SDL_Texture* texture,
+        int x, int y,
+        Uint8 overlayAlpha
+    );
+
     // [新增] 把纹理的一块区域模糊后画到目标矩形
     // 用于对话框这类"背景模糊"效果
     void DrawBlurredRegion(
@@ -95,15 +103,51 @@ public:
 
 private:
 
-    static constexpr int BLUR_DIVISOR = 4;
+    // ==========================================================
+    // 毛玻璃
+    // ==========================================================
+    //
+    // 做法：把源纹理逐级降到很小的尺寸，再一次性放大回去。
+    //
+    // 单纯「缩到 1/4 再放大」的问题是一次线性采样只平均了 4x4 个像素，
+    // 边缘还是能看出一格一格的方块感。
+    // 多级降采样让每一级只做 2x 缩放，等于连续多次盒式滤波，
+    // 结果接近高斯模糊，放大后过渡平滑得多。
+    //
+    // 级别数由 BLUR_STEPS 控制，每级尺寸减半。
+    // 1280x720 的图降 4 级后是 80x45，足够糊，开销也可以忽略。
 
+    static constexpr int BLUR_STEPS = 4;
 
-    SDL_Renderer* renderer;
-    TTF_Font*     font;
+    SDL_Renderer* renderer = nullptr;
+    TTF_Font*     font = nullptr;
 
-    SDL_Texture* blurTarget = nullptr;
-    int blurW = 0;
-    int blurH = 0;
+    // 中间级缓冲。blurPing 和 blurPong 交替使用，各自记尺寸。
+    SDL_Texture* blurPing = nullptr;
+    SDL_Texture* blurPong = nullptr;
+    int pingW = 0, pingH = 0;
+    int pongW = 0, pongH = 0;
+
+    // 确保离屏纹理是 w*h 大小，返回是否成功
+    bool EnsureTarget(SDL_Texture*& tex, int& texW, int& texH, int w, int h);
+
+    // 把 src 降采样到 dst
+    void DownsampleInto(
+        SDL_Texture* src, int srcW, int srcH,
+        SDL_Texture* dst, int dstW, int dstH
+    );
+
+    // 模糊一块源区域并画到目标矩形。内部函数。
+    void BlurRegionTo(
+        SDL_Texture* texture,
+        const SDL_Rect* srcRect,
+        int dstX, int dstY,
+        int dstW, int dstH,
+        Uint8 overlayAlpha
+    );
+
+    // 释放所有离屏纹理
+    void ReleaseBlurTargets();
 
 
 

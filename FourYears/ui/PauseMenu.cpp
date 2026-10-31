@@ -39,14 +39,16 @@ void PauseMenu::Update(float delta)
 void PauseMenu::Render(Renderer& renderer)
 {
     // 遮罩
+    //
+    // 背景已经由 Game 画成毛玻璃（模糊 + 白色磨砂），
+    // 这里再压一层全黑会把玻璃质感盖死。
+    // 改成很淡的一层暗色，只用来压一点背景亮度，保证文字可读。
     renderer.DrawFilledRect(
         0, 0,
         UILayout::SCREEN_W,
         UILayout::SCREEN_H,
-        UILayout::OVERLAY_R,
-        UILayout::OVERLAY_G,
-        UILayout::OVERLAY_B,
-        UILayout::OVERLAY_A
+        0, 0, 0,
+        PAUSE_OVERLAY_A
     );
 
 
