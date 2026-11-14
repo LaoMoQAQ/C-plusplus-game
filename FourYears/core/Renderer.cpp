@@ -545,7 +545,42 @@ void Renderer::DownsampleInto(
     SDL_Rect full = { 0, 0, dstW, dstH };
     SDL_RenderCopy(renderer, src, nullptr, &full);
 
+    RestoreMainTarget();
+}
+
+
+
+
+// ==========================================================
+// RestoreMainTarget
+// ==========================================================
+//
+// 切回主渲染目标，并重设 viewport 为整个逻辑屏幕。
+//
+// 这是整套模糊实现里最关键的一步：
+//   SDL_SetRenderTarget(renderer, nullptr) 只换目标，
+//   viewport 会停留在上一个目标（可能只有 200x112）的尺寸。
+//   不重设的话，之后画的背景、立绘、对话框都会被裁到左上角，
+//   表现为「只画了顶部一条，其余全黑」——玩家看到的就是闪屏。
+
+void Renderer::RestoreMainTarget()
+{
+    if(!renderer)
+        return;
+
     SDL_SetRenderTarget(renderer, nullptr);
+
+    int w = 0, h = 0;
+    SDL_RenderGetLogicalSize(renderer, &w, &h);
+
+    if(w <= 0 || h <= 0)
+        SDL_GetRendererOutputSize(renderer, &w, &h);
+
+    if(w > 0 && h > 0)
+    {
+        SDL_Rect full = { 0, 0, w, h };
+        SDL_RenderSetViewport(renderer, &full);
+    }
 }
 
 
@@ -614,7 +649,7 @@ void Renderer::BlurRegionTo(
 
     SDL_Rect dstFull = { 0, 0, s.w, s.h };
     SDL_RenderCopy(renderer, texture, &s, &dstFull);
-    SDL_SetRenderTarget(renderer, nullptr);
+    RestoreMainTarget();
 
 
     // ---- 2. 多级降采样 ----
@@ -832,45 +867,43 @@ void Renderer::DrawFrostedRegionRound(
 
 
     // ==========================================================
-    // 用专用缓冲，不要复用 blurPing/blurPong
+    // 用两张固定尺寸的缓冲，全程尺寸不变
     // ==========================================================
     //
-    // 之前的实现复用 blurPing 做中间结果，最后又把它设成 BLEND
-    // 去画到屏幕。结果下次它再当渲染目标时，
-    // RenderCopy 会把内容混合到清屏的黑色上，整块变黑——
-    // 表现为背景和对话框全黑。
+    // 之前的实现把 roundA/roundB 轮流重建为降采样后的尺寸，
+    // 下一轮再重建回原尺寸，导致：
+    //   - 源纹理被覆盖
+    //   - 渲染目标尺寸频繁变化，viewport 错乱
+    //   - 最终画面只画了顶部一条
     //
-    // 这里用两个专属纹理：
-    //   roundA  : 区域尺寸，先放源区域，最后放放大后的模糊结果
-    //   roundB  : 降采样中间级
-    // roundA 只在"当渲染目标"和"当纹理源"两种身份间切换，
-    // 且每次切换前都重置混合模式，不会残留状态。
+    // 现在改成：
+    //   roundA / roundB 都是 w x h 的固定尺寸
+    //   降采样结果画到固定区域的左上角，最后再放大取回来
 
     if(!EnsureTarget(roundA, roundAW, roundAH, w, h))
         return;
 
-    if(!EnsureTarget(roundB, roundBW, roundBH, (w + 1) / 2, (h + 1) / 2))
+    if(!EnsureTarget(roundB, roundBW, roundBH, w, h))
         return;
 
 
     // ---- 2. 源区域 -> roundA ----
 
-    {
-        SDL_SetRenderTarget(renderer, roundA);
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        SDL_RenderClear(renderer);
+    SDL_SetRenderTarget(renderer, roundA);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
 
+    {
         SDL_Rect dstFull = { 0, 0, w, h };
         SDL_RenderCopy(renderer, texture, &src, &dstFull);
-
-        SDL_SetRenderTarget(renderer, nullptr);
     }
+    RestoreMainTarget();
 
 
-    // ---- 3. 多级降采样：roundA -> roundB -> roundA -> ... ----
+    // ---- 3. 逐级缩小，在 roundA / roundB 之间倒手 ----
     //
-    // 注意：不能在同一张纹理上原地缩放，
-    // 所以每级交替，且每次都按目标尺寸重建。
+    // 每级都缩到"当前尺寸的一半"，画到目标纹理的左上角，
+    // 目标纹理本身尺寸不变，所以不会触发重建。
 
     SDL_Texture* cur = roundA;
     int curW = w, curH = h;
@@ -881,18 +914,25 @@ void Renderer::DrawFrostedRegionRound(
         int nh = curH / 2;
         if(nw < 2 || nh < 2) break;
 
-        bool toB = (cur == roundA);
+        SDL_Texture* next = (cur == roundA) ? roundB : roundA;
 
-        SDL_Texture* next = toB ? roundB : roundA;
+        SDL_SetRenderTarget(renderer, next);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
 
-        // 各自独立的尺寸记录，不能共用
-        int& nW = toB ? roundBW : roundAW;
-        int& nH = toB ? roundBH : roundAH;
+        {
+            // 关键：src 必须限定为「上一级的有效区域」。
+            //
+            // 目标纹理尺寸固定是 w x h，但有效内容只在左上角
+            // curW x curH 那块。用 nullptr 当 src 会把整张纹理
+            // （大部分是黑的）都缩进去，越缩越黑，
+            // 最后画出来就是一片纯黑。
+            SDL_Rect srcSmall = { 0, 0, curW, curH };
+            SDL_Rect dst = { 0, 0, nw, nh };
 
-        if(!EnsureTarget(next, nW, nH, nw, nh))
-            break;
-
-        DownsampleInto(cur, curW, curH, next, nw, nh);
+            SDL_RenderCopy(renderer, cur, &srcSmall, &dst);
+        }
+        RestoreMainTarget();
 
         cur = next;
         curW = nw;
@@ -902,30 +942,21 @@ void Renderer::DrawFrostedRegionRound(
 
     // ---- 4. 放大回区域尺寸 ----
 
-    // 找一个和 cur 不同的缓冲放大
     SDL_Texture* big = (cur == roundA) ? roundB : roundA;
-    int& bigW = (cur == roundA) ? roundBW : roundAW;
-    int& bigH = (cur == roundA) ? roundBH : roundAH;
 
-    if(!EnsureTarget(big, bigW, bigH, w, h))
-        return;
+    SDL_SetRenderTarget(renderer, big);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
 
     {
-        SDL_SetRenderTarget(renderer, big);
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        SDL_RenderClear(renderer);
-
-        SDL_Rect full = { 0, 0, w, h };
-        SDL_RenderCopy(renderer, cur, nullptr, &full);
-
-        SDL_SetRenderTarget(renderer, nullptr);
+        SDL_Rect srcSmall = { 0, 0, curW, curH };
+        SDL_Rect dstFull  = { 0, 0, w, h };
+        SDL_RenderCopy(renderer, cur, &srcSmall, &dstFull);
     }
+    RestoreMainTarget();
 
 
     // ---- 5. 按圆角形状逐行画到屏幕 ----
-    //
-    // 画之前临时设 BLEND，画完立刻恢复 NONE。
-    // 不恢复的话，这张纹理下次当渲染目标会出问题。
 
     SDL_SetTextureBlendMode(big, SDL_BLENDMODE_BLEND);
 

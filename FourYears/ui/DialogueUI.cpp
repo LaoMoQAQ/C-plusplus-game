@@ -16,7 +16,11 @@ namespace
     constexpr Uint8 BOX_R = 20;
     constexpr Uint8 BOX_G = 20;
     constexpr Uint8 BOX_B = 20;
-    constexpr Uint8 BOX_A = 200;
+    // 对话框底色不透明度。
+    //
+    // 200 会把底下那层"背景模糊"完全盖住，看起来就是一块纯黑。
+    // 降到 150 之后模糊能透出来，接近常见 galgame 的半透明对话框。
+    constexpr Uint8 BOX_A = 150;
 
     constexpr int BOX_RADIUS = 24;
 

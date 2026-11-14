@@ -1092,33 +1092,15 @@ void Game::Render()
     }
 
 
-    // 对话框的背景模糊需要"框后面那块屏幕内容"。
+    // 对话框的背景模糊源。
     //
-    // 之前传的是 currentBackground（剧本背景图 1672x941），
-    // 和屏幕（1600x900）尺寸不一致，按屏幕坐标取区域经常越界，
-    // 结果对话框里有时是纯黑。
+    // 用 currentBackground（剧本背景图），不要抓屏幕：
+    //   SDL_RenderReadPixels 在 D3D 后端读出的数据是错的，
+    //   贴回去会在对话框里出现一张压扁的怪图。
     //
-    // 现在改为抓屏幕快照，尺寸天然一致。
-    //
-    // CaptureScreen 内部是 RenderReadPixels（GPU 回读），
-    // 每帧调会明显掉帧。对话框的模糊背景本来就看不出细微变化，
-    // 每 6 帧抓一次足够。
-    if(st == UIState::DIALOGUE)
-    {
-        screenCaptureCounter++;
-
-        if(screenCaptureCounter >= 6 || !renderer.GetScreenTexture())
-        {
-            screenCaptureCounter = 0;
-            renderer.CaptureScreen();
-        }
-
-        ui.GetDialogueUI().SetBackgroundTexture(renderer.GetScreenTexture());
-    }
-    else
-    {
-        ui.GetDialogueUI().SetBackgroundTexture(nullptr);
-    }
+    // 背景图是 1672x941、屏幕是 1600x900，
+    // DrawFrostedRegionRound 内部会做坐标换算，尺寸不一致没关系。
+    ui.GetDialogueUI().SetBackgroundTexture(currentBackground);
 
     ui.Render(renderer);
 

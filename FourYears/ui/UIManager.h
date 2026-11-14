@@ -25,6 +25,22 @@ enum class UIState
 
 
 
+// ==========================================================
+// UIManager
+// ==========================================================
+//
+// 状态机分发。
+//
+// 设计说明（重要）：
+//   早期版本每次切状态都做「全屏压黑 -> 切换 -> 淡入」，
+//   alpha 从 1 降到 0 再升回 1。问题有两个：
+//     1. 中间必然有一帧纯黑，玩家看到的就是闪屏
+//     2. galgame 的常规做法不是全屏黑幕，菜单直接出现即可
+//
+//   现在改为：状态立即切换，不做全屏黑幕。
+//   菜单自身的过渡感由各菜单内部的动画提供
+//   （高亮块滑动、对话框高度缓动等）。
+
 class UIManager
 {
 
@@ -32,16 +48,15 @@ public:
 
     UIManager();
 
+    // 切换状态。立即生效，不做全屏黑幕。
     void SetState(UIState state);
 
-    // 立即切换，不走黑幕过渡。
-    //
-    // 用于「主菜单 -> 剧情」这种场景：此时背景和立绘已经准备好，
-    // 再走一遍「压黑 -> 切换 -> 淡入」会让玩家看到黑一下，
-    // 体感像是闪屏。
+    // 保留这个名字兼容旧调用，行为和 SetState 一样。
     void SetStateImmediate(UIState state);
 
     UIState GetState() const;
+
+    // 过渡已移除，恒为 false。保留接口供 Game 判断。
     bool IsTransitioning() const;
 
     void Update(float delta);
@@ -69,23 +84,6 @@ public:
 private:
 
     UIState currentState;
-    UIState pendingState;
-
-
-    enum class TransState
-    {
-        NONE,
-        OUT,
-        IN
-    };
-
-    TransState transition = TransState::NONE;
-
-    float alpha = 1.0f;
-
-    // [修改] 0.08 -> 0.18，单程约 0.1 秒
-    static constexpr float FADE_SPEED = 0.18f;
-
 
 
     DialogueUI    dialogueUI;

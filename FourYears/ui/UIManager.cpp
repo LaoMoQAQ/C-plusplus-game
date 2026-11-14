@@ -5,12 +5,7 @@
 UIManager::UIManager()
 {
     currentState = UIState::START;
-    pendingState = UIState::START;
-
-    transition = TransState::NONE;
-    alpha = 1.0f;
 }
-
 
 
 
@@ -19,65 +14,30 @@ UIManager::UIManager()
 // SetState
 // ==========================================================
 //
-// 切换状态，带黑幕过渡。
+// 立即切状态，不做全屏黑幕。
 //
-// 判断只看 currentState 和"是否正在往同一目标过渡"，
-// 不要用 pendingState 做提前返回的依据。
+// 早期版本走「压黑 -> 切换 -> 淡入」：
+//   alpha 1 -> 0 -> 1，中间必然出现一帧纯黑，
+//   玩家看到的就是闪屏，而且在 galgame 里很出戏。
 //
-// 之前写成 state == currentState || state == pendingState 就 return，
-// 一旦 pendingState 因为某次过渡被打断而残留旧值，
-// 后续所有切到那个状态的操作都会被静默忽略——
-// 表现为按 ESC 没反应、或者停在某个菜单出不来。
+// 现在直接切。菜单切换的观感由各菜单自己的动画承担
+// （高亮块滑动、对话框高度缓动等）。
 
 void UIManager::SetState(UIState state)
 {
-    // 已经在目标状态，且没有过渡在跑：什么都不用做
-    if(state == currentState && transition == TransState::NONE)
-        return;
-
-    // 已经在往同一个目标过渡：不重启动画
-    if(transition != TransState::NONE && state == pendingState)
-        return;
-
-    pendingState = state;
-    transition = TransState::OUT;
+    currentState = state;
 }
 
 
 
-
-// ==========================================================
-// SetStateImmediate
-// ==========================================================
-//
-// 直接切状态，不播黑幕过渡。
-//
-// 「主菜单 -> 剧情」走这个：那一瞬间背景、立绘、对话框都已经
-// 按事件设置好了，再压黑一次纯属多余，玩家看到的就是黑一下。
 
 void UIManager::SetStateImmediate(UIState state)
 {
     currentState = state;
-    pendingState = state;
-
-    transition = TransState::NONE;
-    alpha = 1.0f;
 }
 
 
 
-
-
-// ==========================================================
-// GetState
-// ==========================================================
-//
-// 只返回 currentState，不返回 pendingState。
-//
-// 之前过渡期间返回 pendingState，而 Render() 用的是 currentState，
-// 两者不一致：画面还在画旧菜单，输入却已经按新菜单处理。
-// 结果是过渡动画期间按方向键会操作到"还没显示出来的"菜单，
-// 表现为画面乱跳、像闪屏。
 
 UIState UIManager::GetState() const
 {
@@ -87,12 +47,10 @@ UIState UIManager::GetState() const
 
 
 
-
 bool UIManager::IsTransitioning() const
 {
-    return transition != TransState::NONE;
+    return false;
 }
-
 
 
 
@@ -101,50 +59,15 @@ bool UIManager::IsTransitioning() const
 // Update
 // ==========================================================
 //
-// 1. 推进过渡动画
-// 2. 推进各菜单内部动画（高亮块滑动）
+// 推进各菜单内部动画（高亮块滑动、对话框高度缓动等）。
 
 void UIManager::Update(float delta)
 {
-    // ---- 过渡 ----
-    //
-    // 过渡速度同样按 60 FPS 标定，用 SmoothFactor 换算，
-    // 保证不同帧率下淡入淡出的时长一致。
-
-    float step = SmoothFactor(FADE_SPEED, delta);
-
-    if(transition == TransState::OUT)
-    {
-        alpha -= step;
-
-        if(alpha <= 0.0f)
-        {
-            alpha = 0.0f;
-            currentState = pendingState;
-            transition = TransState::IN;
-        }
-    }
-    else if(transition == TransState::IN)
-    {
-        alpha += step;
-
-        if(alpha >= 1.0f)
-        {
-            alpha = 1.0f;
-            transition = TransState::NONE;
-        }
-    }
-
-
-    // ---- 菜单内动画 ----
-
-    // 全调一遍，非当前菜单也无所谓
     startMenu.Update(delta);
     pauseMenu.Update(delta);
     configMenu.Update(delta);
     saveMenu.Update(delta);
 }
-
 
 
 
@@ -177,22 +100,7 @@ void UIManager::Render(Renderer& renderer)
         affectionMenu.Render(renderer);
         break;
     }
-
-
-    if(alpha < 1.0f)
-    {
-        Uint8 a = (Uint8)((1.0f - alpha) * 255.0f);
-
-        renderer.DrawFilledRect(
-            0, 0,
-            UILayout::SCREEN_W,
-            UILayout::SCREEN_H,
-            0, 0, 0,
-            a
-        );
-    }
 }
-
 
 
 
@@ -230,7 +138,6 @@ void UIManager::HandleInput(int key)
 
 
 
-
 void UIManager::HandleMouseMove(int x, int y)
 {
     switch(currentState)
@@ -242,7 +149,6 @@ void UIManager::HandleMouseMove(int x, int y)
     default: break;
     }
 }
-
 
 
 
@@ -274,7 +180,6 @@ MenuMouseResult UIManager::HandleMouseClick(int x, int y)
 
 
 
-
 void UIManager::HandleMouseWheel(int delta)
 {
     switch(currentState)
@@ -287,7 +192,6 @@ void UIManager::HandleMouseWheel(int delta)
         break;
     }
 }
-
 
 
 

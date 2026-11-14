@@ -187,6 +187,22 @@ private:
     // 确保离屏纹理是 w*h 大小，返回是否成功
     bool EnsureTarget(SDL_Texture*& tex, int& texW, int& texH, int w, int h);
 
+    // ==========================================================
+    // 恢复主渲染目标
+    // ==========================================================
+    //
+    // SDL_SetRenderTarget(renderer, nullptr) 只切换目标，
+    // 不会把 viewport 恢复成整个屏幕。
+    //
+    // 离屏渲染时目标尺寸可能只有 200x112（降采样缓冲），
+    // 切回主目标后 viewport 仍是那个小尺寸，
+    // 后续所有绘制都会被裁到左上角一小块——
+    // 表现就是背景只画了顶部一条、下面全黑，玩家看到的是闪屏。
+    //
+    // 所以每次切回主目标都必须调用这个函数重设 viewport。
+
+    void RestoreMainTarget();
+
     // 把 src 降采样到 dst
     void DownsampleInto(
         SDL_Texture* src, int srcW, int srcH,
