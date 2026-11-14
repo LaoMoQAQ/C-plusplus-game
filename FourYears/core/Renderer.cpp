@@ -621,7 +621,7 @@ void Renderer::BlurRegionTo(
         return;
 
 
-    // ---- 1. 把源区域画到 blurPing（原始尺寸） ----
+    // ---- 1. 取源区域 ----
 
     SDL_Rect s;
     if(srcRect)
@@ -640,24 +640,37 @@ void Renderer::BlurRegionTo(
         return;
 
 
+    // ==========================================================
+    // 用固定尺寸缓冲，避免 viewport 错乱
+    // ==========================================================
+    //
+    // 老实现把 blurPing/blurPong 轮流重建为降采样后的尺寸，
+    // 渲染目标尺寸频繁变化，SDL 的 viewport 会停在小尺寸上，
+    // 之后画的背景/立绘被裁到左上角——表现为闪屏、只画顶部一条。
+    //
+    // 现在两张缓冲都固定为 s.w x s.h，降采样结果只画到左上角。
+
     if(!EnsureTarget(blurPing, pingW, pingH, s.w, s.h))
         return;
+
+    if(!EnsureTarget(blurPong, pongW, pongH, s.w, s.h))
+        return;
+
+
+    // ---- 2. 源区域 -> blurPing ----
 
     SDL_SetRenderTarget(renderer, blurPing);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
-    SDL_Rect dstFull = { 0, 0, s.w, s.h };
-    SDL_RenderCopy(renderer, texture, &s, &dstFull);
+    {
+        SDL_Rect dstFull = { 0, 0, s.w, s.h };
+        SDL_RenderCopy(renderer, texture, &s, &dstFull);
+    }
     RestoreMainTarget();
 
 
-    // ---- 2. 多级降采样 ----
-    //
-    // 每张纹理必须用自己的尺寸记录。
-    // 之前无论哪张都写 pongW/pongH，导致 blurPing 的记录被污染，
-    // EnsureTarget 误判尺寸没变而不重建，最后拿到的是错尺寸的旧纹理，
-    // 放大到全屏就成了"只截了一小块"。
+    // ---- 3. 逐级缩小 ----
 
     SDL_Texture* cur = blurPing;
     int curW = s.w;
@@ -667,23 +680,22 @@ void Renderer::BlurRegionTo(
     {
         int nw = curW / 2;
         int nh = curH / 2;
+        if(nw < 2 || nh < 2) break;
 
-        // 太小就停，避免降到 0
-        if(nw < 2 || nh < 2)
-            break;
+        SDL_Texture* next = (cur == blurPing) ? blurPong : blurPing;
 
-        bool usePong = (cur == blurPing);
+        SDL_SetRenderTarget(renderer, next);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
 
-        SDL_Texture* next = usePong ? blurPong : blurPing;
-
-        // 用各自独立的尺寸记录
-        int& nW = usePong ? pongW : pingW;
-        int& nH = usePong ? pongH : pingH;
-
-        if(!EnsureTarget(next, nW, nH, nw, nh))
-            break;
-
-        DownsampleInto(cur, curW, curH, next, nw, nh);
+        {
+            // src 必须限定为上一级的有效区域，
+            // 否则会把整张纹理（大部分是黑的）都缩进去。
+            SDL_Rect srcSmall = { 0, 0, curW, curH };
+            SDL_Rect dst = { 0, 0, nw, nh };
+            SDL_RenderCopy(renderer, cur, &srcSmall, &dst);
+        }
+        RestoreMainTarget();
 
         cur = next;
         curW = nw;
@@ -691,13 +703,18 @@ void Renderer::BlurRegionTo(
     }
 
 
-    // ---- 3. 放大画到目标位置 ----
+    // ---- 4. 放大画到目标位置 ----
 
     SDL_Rect out = { dstX, dstY, dstW, dstH };
-    SDL_RenderCopy(renderer, cur, nullptr, &out);
+
+    {
+        SDL_Rect srcSmall = { 0, 0, curW, curH };
+        SDL_SetTextureBlendMode(cur, SDL_BLENDMODE_NONE);
+        SDL_RenderCopy(renderer, cur, &srcSmall, &out);
+    }
 
 
-    // ---- 4. 叠一层半透明白，做出"磨砂"质感 ----
+    // ---- 5. 白色磨砂叠加 ----
 
     if(overlayAlpha > 0)
     {
