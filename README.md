@@ -557,14 +557,14 @@ Windows 下打包用的是 **`C:/Windows/System32/tar.exe`**（bsdtar），
 
 验证方法：
 
-    python -c "import zipfile; zipfile.ZipFile('release/FourYears-v0.5.0.zip').testzip()"
+    python -c "import zipfile; zipfile.ZipFile('release/FourYears-v0.6.0.zip').testzip()"
 
 没抛异常才是真 zip。
 
 ## 上传 Release
 
 1. 打开 GitHub 仓库 → 右侧 Releases → Draft a new release
-2. Tag 填新版本号（如 `v0.5.0`）
+2. Tag 填新版本号（如 `v0.6.0`）
 3. Title 写发布标题
 4. Description 写更新日志（Markdown）
 5. 把 zip 拖入附件区

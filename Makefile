@@ -16,7 +16,7 @@
 #   Windows 下强制用 MSYS2 的 bash，避免依赖 PATH 里是否有 rm / mkdir。
 # ==========================================================
 
-VERSION := 0.5.0
+VERSION := 0.6.0
 
 ifeq ($(OS),Windows_NT)
 
