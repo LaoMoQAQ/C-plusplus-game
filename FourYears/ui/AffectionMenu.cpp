@@ -123,15 +123,10 @@ void AffectionMenu::Render(Renderer& renderer)
 
     // ---- 标题 ----
 
-    renderer.DrawText("好感度", 740, 70);
-
-    renderer.DrawFilledRect(
-        700, 115, 200, 2,
-        UILayout::LINE_R,
-        UILayout::LINE_G,
-        UILayout::LINE_B,
-        UILayout::LINE_A
-    );
+    if(fontManager)
+        DrawMenuTitle(renderer, *fontManager, "好感度", 70);
+    else
+        renderer.DrawText("好感度", 740, 70);
 
 
 
@@ -168,13 +163,13 @@ void AffectionMenu::Render(Renderer& renderer)
             value = it->second;
 
 
-        // 名字
-        renderer.DrawText(name, 500, y);
+        // 名字（右对齐到进度条左侧）
+        renderer.DrawText(name, 470, y);
 
 
         // 进度条背景
         renderer.DrawFilledRoundRect(
-            650, y + 6,
+            660, y + 6,
             400, 24,
             8,
             40, 40, 40, 200
@@ -189,7 +184,7 @@ void AffectionMenu::Render(Renderer& renderer)
         if(filledW > 0)
         {
             renderer.DrawFilledRoundRect(
-                650, y + 6,
+                660, y + 6,
                 filledW, 24,
                 8,
                 90, 140, 210, 230
@@ -212,27 +207,40 @@ void AffectionMenu::Render(Renderer& renderer)
     // ==========================================================
     // 下半部分：变化历史
     // ==========================================================
+    //
+    // 布局：标题居中，下面是表格。
+    //
+    // 原来序号/角色/数值分散在 500/600/900 三个位置，
+    // 看起来零散；页码 [1/2] 在 800，又和底部提示条（约 828）挤在一起。
+    //
+    // 现在：
+    //   序号右对齐到 640，角色左对齐 680，数值右对齐 940
+    //   页码移到 792，提示条在 850，两者不再重叠
 
-    int hy = 380;
+    int hy = 372;
 
-    renderer.DrawText("变化历史", 720, hy);
-
-    renderer.DrawFilledRect(
-        660, hy + 45, 280, 2,
-        UILayout::LINE_R,
-        UILayout::LINE_G,
-        UILayout::LINE_B,
-        UILayout::LINE_A
-    );
+    if(fontManager)
+        DrawMenuTitle(renderer, *fontManager, "变化历史", hy, 12, 280, 28);
+    else
+    {
+        renderer.DrawText("变化历史", 720, hy);
+        renderer.DrawFilledRect(
+            660, hy + 45, 280, 2,
+            UILayout::LINE_R,
+            UILayout::LINE_G,
+            UILayout::LINE_B,
+            UILayout::LINE_A
+        );
+    }
 
 
     const auto& records = routeManager->GetRecords();
 
-    hy += 85;
+    hy += 78;
 
     if(records.empty())
     {
-        renderer.DrawText("（暂无记录）", 660, hy);
+        renderer.DrawText("（暂无记录）", 700, hy);
     }
     else
     {
@@ -250,11 +258,11 @@ void AffectionMenu::Render(Renderer& renderer)
             std::string idxStr =
                 "#" + std::to_string(idx + 1);
 
-            renderer.DrawText(idxStr, 500, hy);
+            renderer.DrawText(idxStr, 600, hy);
 
 
             // 角色
-            renderer.DrawText(rec.character, 600, hy);
+            renderer.DrawText(rec.character, 680, hy);
 
 
             // 变化值（带正负号）
@@ -268,7 +276,7 @@ void AffectionMenu::Render(Renderer& renderer)
             renderer.DrawText(deltaStr, 900, hy);
 
 
-            hy += 45;
+            hy += 44;
         }
 
 
@@ -284,7 +292,15 @@ void AffectionMenu::Render(Renderer& renderer)
             "[" + std::to_string(currentPage) +
             " / " + std::to_string(totalPages) + "]";
 
-        renderer.DrawText(pageStr, 740, 800);
+        // 页码居中，位置在最后一行记录之下、提示条之上。
+        // 原来是写死 740（并不居中），y=800 又和提示条（约 828）挤在一起。
+        int pw = 0, ph = 0;
+        TTF_Font* pf = fontManager ? fontManager->GetFont() : nullptr;
+
+        if(pf)
+            TTF_SizeUTF8(pf, pageStr.c_str(), &pw, &ph);
+
+        renderer.DrawText(pageStr, 800 - pw / 2, 788);
     }
 
 
@@ -293,6 +309,8 @@ void AffectionMenu::Render(Renderer& renderer)
     //
     // 不判断 totalPages：这里已经出了上面对 records 的作用域。
     // 「↑↓ 翻页」在不足一页时按了也只是无效果，留着不影响。
+    //
+    // y=845：页码在 788，提示条高约 60，两者不重叠。
 
     if(fontManager)
     {

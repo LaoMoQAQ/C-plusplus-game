@@ -200,15 +200,10 @@ void SaveMenu::Render(Renderer& renderer)
     std::string title =
         (page == SavePage::LOAD) ? "读取存档" : "存档管理";
 
-    renderer.DrawText(title, 700, 100);
-
-    renderer.DrawFilledRect(
-        650, 150, 300, 2,
-        UILayout::LINE_R,
-        UILayout::LINE_G,
-        UILayout::LINE_B,
-        UILayout::LINE_A
-    );
+    if(fontManager)
+        DrawMenuTitle(renderer, *fontManager, title.c_str(), 100, 14, 300);
+    else
+        renderer.DrawText(title, 700, 100);
 
 
     // ---- 高亮块 ----

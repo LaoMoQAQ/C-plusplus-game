@@ -63,15 +63,10 @@ void ConfigMenu::Render(Renderer& renderer)
 
     // ---- 标题 ----
 
-    renderer.DrawText("设置", 740, 100);
-
-    renderer.DrawFilledRect(
-        700, 150, 200, 2,
-        UILayout::LINE_R,
-        UILayout::LINE_G,
-        UILayout::LINE_B,
-        UILayout::LINE_A
-    );
+    if(fontManager)
+        DrawMenuTitle(renderer, *fontManager, "设置", 100);
+    else
+        renderer.DrawText("设置", 740, 100);
 
 
     if(config == nullptr)

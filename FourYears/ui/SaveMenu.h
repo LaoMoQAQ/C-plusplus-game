@@ -184,26 +184,29 @@ private:
     static constexpr int ROWS = 5;
 
     static constexpr int CELL_W   = 660;
-    static constexpr int CELL_H   = 118;
+    static constexpr int CELL_H   = 104;      // 原来 118，压扁一点给底部腾空间
     static constexpr int CELL_GAP_X = 60;
-    static constexpr int CELL_GAP_Y = 12;
+    static constexpr int CELL_GAP_Y = 10;
 
     // 网格整体水平居中：
     //   总宽 = 2*660 + 60 = 1380，左右各留 110
     static constexpr int GRID_X =
         (UILayout::SCREEN_W - (CELL_W * COLS + CELL_GAP_X * (COLS - 1))) / 2;
 
+    // 纵向：从 186 开始，5 行
+    //   最后一格底部 = 186 + 4*(104+10) + 104 = 746
+    //   提示条顶部约 800，留有 54px 间隙，不再重叠
     static constexpr int GRID_Y = 186;
 
-    // 缩略图尺寸（16:9）
-    static constexpr int THUMB_W = 152;
-    static constexpr int THUMB_H = 86;
+    // 缩略图尺寸（16:9），高度跟着格子压到 72
+    static constexpr int THUMB_W = 128;
+    static constexpr int THUMB_H = 72;
 
     // 文字相对单元格的偏移。
     // 正文是 32 号字，行距必须大于 32，否则两行会叠在一起。
     static constexpr int TEXT_DX = THUMB_W + 20;
-    static constexpr int TEXT_DY = 8;
-    static constexpr int TEXT_GAP = 34;
+    static constexpr int TEXT_DY = 4;
+    static constexpr int TEXT_GAP = 32;
 
     // 文字区可用宽度（由 Game 里实测的字宽推算，留一点余量）
     static constexpr int TEXT_MAX_W = CELL_W - TEXT_DX - 12;

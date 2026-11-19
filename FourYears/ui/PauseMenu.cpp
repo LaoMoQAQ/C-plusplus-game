@@ -53,15 +53,10 @@ void PauseMenu::Render(Renderer& renderer)
 
 
     // 标题
-    renderer.DrawText("暂停", 740, 150);
-
-    renderer.DrawFilledRect(
-        700, 200, 200, 2,
-        UILayout::LINE_R,
-        UILayout::LINE_G,
-        UILayout::LINE_B,
-        UILayout::LINE_A
-    );
+    if(fontManager)
+        DrawMenuTitle(renderer, *fontManager, "暂停", 150);
+    else
+        renderer.DrawText("暂停", 740, 150);
 
 
     // 高亮块

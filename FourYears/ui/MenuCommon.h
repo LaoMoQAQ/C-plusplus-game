@@ -163,8 +163,7 @@ inline void DrawKeyHints(
     int y,
     std::initializer_list<KeyHint> hints,
     int centerX = UILayout::SCREEN_W / 2
-)
-{
+){
     TTF_Font* keyFont  = fontMgr.GetFont(UILayout::KEY_SIZE);
     TTF_Font* descFont = fontMgr.GetFont(UILayout::HINT_SIZE);
 
@@ -292,6 +291,65 @@ inline void DrawKeyHints(
 
         x += dw + UILayout::HINT_GAP;
     }
+}
+
+
+
+// ==========================================================
+// 菜单标题（居中标题 + 下方短横线）
+// ==========================================================
+//
+// 原来各菜单都写死 DrawText("设置", 740, 100)，
+// 但 740 对 2 字/3 字/4 字标题都不居中——
+// 字越少偏得越明显（截图里「存档管理」明显偏左）。
+//
+// 这里按实际文字宽度算居中位置，横线也跟着居中。
+
+inline void DrawMenuTitle(
+    Renderer& renderer,
+    FontManager& fontMgr,
+    const char* title,
+    int y,
+    int lineGap = 14,       // 标题底部到横线的距离
+    int lineW   = 200,      // 横线宽度（保持各菜单一致）
+    int titleSize = 32
+)
+{
+    TTF_Font* font = fontMgr.GetFont(titleSize);
+
+    if(!font)
+        return;
+
+    int tw = 0, th = 0;
+    TTF_SizeUTF8(font, title, &tw, &th);
+
+    if(tw <= 0)
+        return;
+
+    int cx = UILayout::SCREEN_W / 2;
+
+    // 标题水平居中
+    renderer.DrawText(
+        title,
+        cx - tw / 2,
+        y,
+        font,
+        SDL_Color{ 255, 255, 255, 255 }
+    );
+
+    // 横线也居中，并且和标题同宽（不够 lineW 时用 lineW，避免太短）
+    int w = (tw > lineW) ? tw : lineW;
+
+    renderer.DrawFilledRect(
+        cx - w / 2,
+        y + th + lineGap,
+        w,
+        2,
+        UILayout::LINE_R,
+        UILayout::LINE_G,
+        UILayout::LINE_B,
+        UILayout::LINE_A
+    );
 }
 
 
