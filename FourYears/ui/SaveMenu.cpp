@@ -259,6 +259,14 @@ void SaveMenu::Render(Renderer& renderer)
         }
         else
         {
+            // 空槽位占位：暗色圆角底 + 居中的小图标式短横
+            //
+            // 原来这里写死 DrawText("空", thumbRect.x + 66, thumbRect.y + 30)，
+            // 66/30 是按旧缩略图 152x86 算的偏移。
+            // 缩略图改成 128x72 之后，「空」字就偏到了右下角。
+            //
+            // 改为按实际缩略图尺寸算居中，并把字换成更低调的破折号，
+            // 空槽位本来就该「空」，不需要一个大字提醒。
             renderer.DrawFilledRoundRect(
                 thumbRect.x, thumbRect.y,
                 thumbRect.w, thumbRect.h,
@@ -266,10 +274,12 @@ void SaveMenu::Render(Renderer& renderer)
                 30, 30, 40, 180
             );
 
-            renderer.DrawText(
-                "空",
-                thumbRect.x + 66,
-                thumbRect.y + 30
+            // 中央横线：宽 40、高 2，几何居中
+            renderer.DrawFilledRect(
+                thumbRect.x + (thumbRect.w - 40) / 2,
+                thumbRect.y + (thumbRect.h - 2) / 2,
+                40, 2,
+                110, 112, 122, 200
             );
         }
 

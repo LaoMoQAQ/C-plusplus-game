@@ -60,7 +60,9 @@ private:
     int scrollOffset = 0;
 
     // 每页显示多少条
-    static constexpr int PAGE_SIZE = 6;
+    // 每页 4 条：卡片改为两行布局后高度增加，
+    // 6 条会顶到屏幕底部的按键提示条。
+    static constexpr int PAGE_SIZE = 4;
 
 };
 
