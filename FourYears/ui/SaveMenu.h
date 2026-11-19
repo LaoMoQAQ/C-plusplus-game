@@ -44,6 +44,9 @@ public:
     // Game 在初始化时绑定，Render 用它取缩略图纹理。
     void SetSaveSystem(SaveSystem* system);
 
+    // 按键提示需要按字号取字体
+    void SetFontManager(FontManager* fm) { fontManager = fm; }
+
     // 当前选中的槽位号 1~10
     int GetChoice() const;
     void Reset();
@@ -147,6 +150,9 @@ private:
     // 用于取缩略图纹理。由 Game 绑定，可为空。
     SaveSystem* saveSystem = nullptr;
 
+    // 按键提示按字号取字体，未设置时提示条不画
+    FontManager* fontManager = nullptr;
+
     bool confirmingDelete = false;
 
 
@@ -177,12 +183,16 @@ private:
     static constexpr int COLS = 2;
     static constexpr int ROWS = 5;
 
-    static constexpr int CELL_W   = 690;
+    static constexpr int CELL_W   = 660;
     static constexpr int CELL_H   = 118;
     static constexpr int CELL_GAP_X = 60;
     static constexpr int CELL_GAP_Y = 12;
 
-    static constexpr int GRID_X = 70;
+    // 网格整体水平居中：
+    //   总宽 = 2*660 + 60 = 1380，左右各留 110
+    static constexpr int GRID_X =
+        (UILayout::SCREEN_W - (CELL_W * COLS + CELL_GAP_X * (COLS - 1))) / 2;
+
     static constexpr int GRID_Y = 186;
 
     // 缩略图尺寸（16:9）

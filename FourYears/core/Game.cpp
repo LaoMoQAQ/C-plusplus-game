@@ -256,6 +256,10 @@ bool Game::Init()
 
     ui.GetStartMenu().SetFontManager(&fontManager);
     ui.GetConfigMenu().SetConfig(&config);
+    ui.GetConfigMenu().SetFontManager(&fontManager);
+    ui.GetSaveMenu().SetFontManager(&fontManager);
+    ui.GetPauseMenu().SetFontManager(&fontManager);
+    ui.GetAffectionMenu().SetFontManager(&fontManager);
     ui.GetAffectionMenu().SetRouteManager(&story.GetRouteManager());
     ui.GetSaveMenu().SetSaveSystem(&saveSystem);
 
@@ -290,6 +294,7 @@ bool Game::Init()
 
 
     ui.SetState(UIState::START);
+
 
 
     // 资源和状态都就绪了，先渲染一帧再显示窗口。

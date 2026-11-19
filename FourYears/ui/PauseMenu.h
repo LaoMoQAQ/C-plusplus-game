@@ -17,6 +17,9 @@ public:
 
     PauseMenu();
 
+    // 按键提示需要按字号取字体
+    void SetFontManager(FontManager* fm) { fontManager = fm; }
+
     void Render(Renderer& renderer);
     void HandleInput(int key);
     void HandleMouseMove(int x, int y);
@@ -30,6 +33,9 @@ public:
 
 
 private:
+
+    // 按键提示按字号取字体，未设置时提示条不画
+    FontManager* fontManager = nullptr;
 
     static constexpr int ITEM_COUNT = 6;
 

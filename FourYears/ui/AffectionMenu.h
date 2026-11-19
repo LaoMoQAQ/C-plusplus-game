@@ -30,6 +30,9 @@ public:
 
     void SetRouteManager(RouteManager* rm);
 
+    // 按键提示需要按字号取字体
+    void SetFontManager(FontManager* fm) { fontManager = fm; }
+
     void Render(Renderer& renderer);
 
     void Reset();
@@ -47,6 +50,9 @@ public:
 
 
 private:
+
+    // 按键提示按字号取字体，未设置时提示条不画
+    FontManager* fontManager = nullptr;
 
     RouteManager* routeManager = nullptr;
 

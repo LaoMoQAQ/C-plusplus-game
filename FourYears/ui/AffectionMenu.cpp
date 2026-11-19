@@ -285,26 +285,25 @@ void AffectionMenu::Render(Renderer& renderer)
             " / " + std::to_string(totalPages) + "]";
 
         renderer.DrawText(pageStr, 740, 800);
-
-        // 提示
-        if(totalPages > 1)
-        {
-            renderer.DrawText(
-                "↑ ↓ 翻页",
-                720, 840
-            );
-        }
     }
 
 
 
-    // ---- 返回 ----
+    // ---- 按键提示 ----
+    //
+    // 不判断 totalPages：这里已经出了上面对 records 的作用域。
+    // 「↑↓ 翻页」在不足一页时按了也只是无效果，留着不影响。
 
-    renderer.DrawText(
-        "返回 [ESC]",
-        UILayout::BACK_X,
-        UILayout::BACK_Y
-    );
+    if(fontManager)
+    {
+        DrawKeyHints(
+            renderer, *fontManager, 845,
+            {
+                { "↑↓",  "翻页" },
+                { "ESC", "返回" }
+            }
+        );
+    }
 }
 
 

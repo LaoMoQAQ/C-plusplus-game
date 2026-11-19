@@ -94,11 +94,17 @@ void PauseMenu::Render(Renderer& renderer)
     }
 
 
-    renderer.DrawText(
-        "返回 [ESC]",
-        UILayout::BACK_X,
-        UILayout::BACK_Y
-    );
+    if(fontManager)
+    {
+        DrawKeyHints(
+            renderer, *fontManager, 800,
+            {
+                { "↑↓",  "选择" },
+                { "Enter", "确认" },
+                { "ESC", "返回" }
+            }
+        );
+    }
 }
 
 

@@ -18,6 +18,9 @@ public:
 
     void SetConfig(Config* config);
 
+    // 按键提示需要按字号取字体
+    void SetFontManager(FontManager* fm) { fontManager = fm; }
+
     void Render(Renderer& renderer);
 
     void HandleInput(int key);
@@ -42,6 +45,10 @@ public:
 private:
 
     Config* config;
+
+    // 按键提示按字号取字体，未设置时提示条不画（功能不受影响）
+    FontManager* fontManager = nullptr;
+
     int choice;
 
     static constexpr int ITEM_COUNT = 5;

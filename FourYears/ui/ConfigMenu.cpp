@@ -139,23 +139,34 @@ void ConfigMenu::Render(Renderer& renderer)
 
     if(confirmSave)
     {
-        renderer.DrawText("设置已修改，是否保存？", 480, 730);
-        renderer.DrawText(
-            "Y 保存并返回  /  N 不保存返回  /  ESC 取消",
-            420, 780
-        );
+        renderer.DrawText("设置已修改，是否保存？", 480, 720);
+
+        if(fontManager)
+        {
+            DrawKeyHints(
+                renderer, *fontManager, 775,
+                {
+                    { "Y",     "保存并返回" },
+                    { "N",     "不保存返回" },
+                    { "ESC",   "取消" }
+                }
+            );
+        }
     }
     else
     {
-        renderer.DrawText("← → 调整   S 保存", 620, 750);
+        if(fontManager)
+        {
+            DrawKeyHints(
+                renderer, *fontManager, 775,
+                {
+                    { "←→",  "调整" },
+                    { "S",   "保存" },
+                    { "ESC", "返回" }
+                }
+            );
+        }
     }
-
-
-    renderer.DrawText(
-        "返回 [ESC]",
-        UILayout::BACK_X,
-        UILayout::BACK_Y
-    );
 }
 
 
@@ -309,13 +320,9 @@ void ConfigMenu::HandleMouseMove(int x, int y)
 
 MenuMouseResult ConfigMenu::HandleMouseClick(int x, int y)
 {
-    if(x >= UILayout::BACK_X &&
-       x <  UILayout::BACK_X + UILayout::BACK_W &&
-       y >= UILayout::BACK_Y &&
-       y <  UILayout::BACK_Y + UILayout::BACK_H)
-    {
-        return MenuMouseResult::BACK;
-    }
+    // 返回统一用 ESC（底部有按键提示）。
+    // 右下角原来那个 "返回 [ESC]" 文本已经去掉，
+    // 点击热区一并移除，避免出现看不见的可点区域。
 
     if(confirmSave) return MenuMouseResult::NONE;
 

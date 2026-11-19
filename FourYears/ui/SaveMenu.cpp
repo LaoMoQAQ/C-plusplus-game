@@ -359,28 +359,25 @@ void SaveMenu::Render(Renderer& renderer)
     }
     else
     {
-        if(page == SavePage::LOAD)
+        if(fontManager)
         {
-            renderer.DrawText(
-                "Enter 读取  N 新建  C 复制  Delete 删除  R 重命名",
-                280, 838
-            );
-        }
-        else
-        {
-            renderer.DrawText(
-                "Enter 保存  N 新建  C 复制  Delete 删除  R 重命名",
-                280, 838
+            const char* confirmDesc =
+                (page == SavePage::LOAD) ? "读取" : "保存";
+
+            DrawKeyHints(
+                renderer, *fontManager, 828,
+                {
+                    { "↑↓←→", "选择" },
+                    { "Enter", confirmDesc },
+                    { "N",     "新建" },
+                    { "C",     "复制" },
+                    { "Del",   "删除" },
+                    { "R",     "重命名" },
+                    { "ESC",   "返回" }
+                }
             );
         }
     }
-
-
-    renderer.DrawText(
-        "返回 [ESC]",
-        UILayout::BACK_X,
-        UILayout::BACK_Y
-    );
 }
 
 
