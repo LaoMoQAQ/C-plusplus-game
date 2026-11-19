@@ -8,9 +8,61 @@
 
 ---
 
-# 环境部署与编译
+## 目录
 
-## 开发环境
+- [环境部署与编译](#环境部署与编译)
+  - [开发环境](#开发环境)
+  - [项目结构](#项目结构)
+  - [Windows（MSYS2 UCRT64）](#windowsmsys2-ucrt64)
+  - [Ubuntu / Debian](#ubuntu-debian)
+  - [Arch Linux](#arch-linux)
+  - [Fedora](#fedora)
+  - [编译](#编译)
+  - [运行](#运行)
+- [操作说明](#操作说明)
+  - [通用](#通用)
+  - [剧情对话](#剧情对话)
+  - [存档页面](#存档页面)
+  - [好感度页面](#好感度页面)
+  - [设置页面](#设置页面)
+- [剧本格式](#剧本格式)
+  - [标签表](#标签表)
+  - [立绘约定](#立绘约定)
+  - [立绘资源现状](#立绘资源现状)
+  - [补立绘的技术要求](#补立绘的技术要求)
+  - [BGM 淡入淡出](#bgm-淡入淡出)
+  - [选择语法](#选择语法)
+  - [标签与跳转](#标签与跳转)
+  - [结局分支](#结局分支)
+  - [章节切换](#章节切换)
+  - [剧情结束](#剧情结束)
+- [存档](#存档)
+  - [固定 10 格槽位](#固定-10-格槽位)
+  - [文件格式（7 行）](#文件格式7-行)
+  - [缩略图](#缩略图)
+  - [旧存档迁移](#旧存档迁移)
+  - [章节显示名](#章节显示名)
+- [注意事项](#注意事项)
+  - [行尾](#行尾)
+  - [帧率与时间](#帧率与时间)
+  - [毛玻璃与模糊](#毛玻璃与模糊)
+  - [模糊缓冲与 viewport](#模糊缓冲与-viewport)
+  - [工作目录](#工作目录)
+  - [Windows DLL](#windows-dll)
+- [打包发布](#打包发布)
+  - [一键打包](#一键打包)
+  - [⚠️ 必须用系统自带的 tar](#必须用系统自带的-tar)
+  - [上传 Release](#上传-release)
+  - [发版前本地自测](#发版前本地自测)
+- [编码规范](#编码规范)
+- [输入法](#输入法)
+- [字体与中文显示](#字体与中文显示)
+
+---
+
+## 环境部署与编译
+
+### 开发环境
 
 | 项目 | 版本 |
 |------|------|
@@ -25,7 +77,7 @@
 
 ---
 
-# 项目结构
+### 项目结构
 
 ```text
 FourYears/                 ← git 仓库根
@@ -90,76 +142,90 @@ FourYears/                 ← git 仓库根
 
 ---
 
-# Windows（MSYS2 UCRT64）
+### Windows（MSYS2 UCRT64）
 
-## 安装 MSYS2
+#### 安装 MSYS2
 
 https://www.msys2.org/
 
-## 更新软件源
+#### 更新软件源
 
-    pacman -Syu
+```bash
+pacman -Syu
+```
 
-## 安装依赖
+#### 安装依赖
 
-    pacman -S \
-    mingw-w64-ucrt-x86_64-gcc \
-    mingw-w64-ucrt-x86_64-SDL2 \
-    mingw-w64-ucrt-x86_64-SDL2_image \
-    mingw-w64-ucrt-x86_64-SDL2_ttf \
-    mingw-w64-ucrt-x86_64-SDL2_mixer \
-    make
-
----
-
-# Ubuntu / Debian
-
-    sudo apt update
-    sudo apt install \
-    g++ make pkg-config \
-    libsdl2-dev libsdl2-image-dev \
-    libsdl2-ttf-dev libsdl2-mixer-dev
+```bash
+pacman -S \
+mingw-w64-ucrt-x86_64-gcc \
+mingw-w64-ucrt-x86_64-SDL2 \
+mingw-w64-ucrt-x86_64-SDL2_image \
+mingw-w64-ucrt-x86_64-SDL2_ttf \
+mingw-w64-ucrt-x86_64-SDL2_mixer \
+make
+```
 
 ---
 
-# Arch Linux
+### Ubuntu / Debian
 
-    sudo pacman -Syu
-    sudo pacman -S gcc make pkg-config sdl2 sdl2_image sdl2_ttf sdl2_mixer
-
----
-
-# Fedora
-
-    sudo dnf install gcc-c++ make pkg-config \
-    SDL2-devel SDL2_image-devel SDL2_ttf-devel SDL2_mixer-devel
+```bash
+sudo apt update
+sudo apt install \
+g++ make pkg-config \
+libsdl2-dev libsdl2-image-dev \
+libsdl2-ttf-dev libsdl2-mixer-dev
+```
 
 ---
 
-# 编译
+### Arch Linux
 
-## 一键编译
+```bash
+sudo pacman -Syu
+sudo pacman -S gcc make pkg-config sdl2 sdl2_image sdl2_ttf sdl2_mixer
+```
+
+---
+
+### Fedora
+
+```bash
+sudo dnf install gcc-c++ make pkg-config \
+SDL2-devel SDL2_image-devel SDL2_ttf-devel SDL2_mixer-devel
+```
+
+---
+
+### 编译
+
+#### 一键编译
 
 在仓库根目录执行：
 
-    make
+```bash
+make
+```
 
 `Makefile` 会自动判断平台。输出：
 
 - Windows：`FourYears/game.exe`
 - Linux：`game`
 
-## 增量编译与头文件依赖
+#### 增量编译与头文件依赖
 
 每个 `.cpp` 单独编译到 `build/obj/**.o`，并自动生成 `.d` 依赖文件。
 
 **修改任何 `.h` 之后直接 `make` 即可**，不需要再 `make clean`。
 
-## 如果 `make` 命令找不到
+#### 如果 `make` 命令找不到
 
 Windows 下 `make` 默认不在 PATH 里，需要显式调用：
 
-    C:/msys64/usr/bin/make.exe
+```bash
+C:/msys64/usr/bin/make.exe
+```
 
 或者在 MSYS2 UCRT64 终端里执行（该终端已把 `/usr/bin` 加进 PATH）。
 `Makefile` 内部已经强制使用 MSYS2 的 bash 并补全了 `/usr/bin`，
@@ -167,22 +233,26 @@ Windows 下 `make` 默认不在 PATH 里，需要显式调用：
 
 ---
 
-# 运行
+### 运行
 
-## Windows
+#### Windows
 
-    cd FourYears
-    ./game.exe
+```bash
+cd FourYears
+./game.exe
+```
 
-## Linux
+#### Linux
 
-    ./game
+```bash
+./game
+```
 
 ---
 
-# 操作说明
+## 操作说明
 
-## 通用
+### 通用
 
 | 操作 | 键鼠 |
 |---|---|
@@ -190,7 +260,7 @@ Windows 下 `make` 默认不在 PATH 里，需要显式调用：
 | 确认 | Enter 或鼠标点击 |
 | 返回 | ESC 或点击「返回 [ESC]」 |
 
-## 剧情对话
+### 剧情对话
 
 | 操作 | 键鼠 |
 |---|---|
@@ -198,7 +268,7 @@ Windows 下 `make` 默认不在 PATH 里，需要显式调用：
 | 打开暂停菜单 | ESC |
 | 选择分支 | ↑ / ↓ 或鼠标悬停，Enter 或鼠标点击确认 |
 
-## 存档页面
+### 存档页面
 
 固定 10 格槽位，2 列 x 5 行。
 
@@ -216,11 +286,11 @@ Windows 下 `make` 默认不在 PATH 里，需要显式调用：
 
 新建 / 重命名支持中文输入，输入法拼音会显示在输入框下方。
 
-## 好感度页面
+### 好感度页面
 
 显示好感度进度条和变化历史。↑ / ↓ 或鼠标滚轮翻页。
 
-## 设置页面
+### 设置页面
 
 | 操作 | 键鼠 |
 |---|---|
@@ -239,11 +309,11 @@ Windows 下 `make` 默认不在 PATH 里，需要显式调用：
 
 ---
 
-# 剧本格式
+## 剧本格式
 
 剧本是 UTF-8 纯文本，放在 `FourYears/script/` 下。
 
-## 标签表
+### 标签表
 
 | 标签 | 写法 | 作用 |
 |---|---|---|
@@ -267,7 +337,7 @@ Windows 下 `make` 默认不在 PATH 里，需要显式调用：
 
 带参数的标签**单行和两行写法都支持**。
 
-## 立绘约定
+### 立绘约定
 
 **`[立绘 ...]` 必须紧跟在对应角色的 `[角色名]` 之前**，中间不能夹别的 `[角色名]`。
 
@@ -278,7 +348,7 @@ Windows 下 `make` 默认不在 PATH 里，需要显式调用：
 
 换立绘时**自动淡入淡出**。
 
-## 立绘资源现状
+### 立绘资源现状
 
 | 文件 | 尺寸 | 说明 |
 |---|---|---|
@@ -291,40 +361,24 @@ Windows 下 `make` 默认不在 PATH 里，需要显式调用：
 `happy.png` 虽然是占位图，但剧本里有多处引用，**不要删**——
 删了会导致该位置立绘加载失败、不显示。补美术时直接覆盖即可。
 
-## 用 AI 生成立绘
-
-工具链在 `E:\fouryears workspace\imagegen\`，完整文档见该目录的 `README.md`。
-
-**现状：能稳定出图，但产出达不到本项目要求。**
-
-已做到：
-- ComfyUI + DirectML 连续出图不 OOM（38~42 秒/张）
-- ControlNet OpenPose 控制全身站姿
-- 泛洪填充 / PS 魔棒抠图
-- 多 seed 批量 + 自动评分筛选
-
-做不到：
-- 稳定出「白底 + 全身 + 无装饰 + 指定服装」
-- 构图随机（半身/全身/侧身都可能）
-- 服装上会印文字
-- 分辨率上限 512x768
-
-根因不是显存，是 **DirectML 不支持 LoRA**。
-PyTorch 被 `torch-directml` 锁在 2.4.1，而 `peft` 和 ComfyUI 的
-LoRA 加载器都要求 2.5+。要稳定出立绘，LoRA 几乎是必需的。
-
-试过的底模里只有 **Realistic Vision V5.1** 画风正确（写实照片风），
-其余（SD1.5 / MeinaMix / Counterfeit / DreamShaper）都会强加装饰。
+### 补立绘的技术要求
 
 **游戏代码不关心立绘怎么来的**，只要满足：
-RGBA PNG、透明背景、高度约 700px、
-放在 `FourYears/resource/character/<角色>/<表情>.png`。
+
+- RGBA PNG，透明背景
+- 高度约 700px（宽度按比例）
+- 放在 `FourYears/resource/character/<角色>/<表情>.png`
 
 角色清单：吴鸿涛（男）、李君浩（女）、张瀚宇（女）。
 
+表情文件名与剧本里的 `[立绘 ...]` 标签对应，新增表情不需要改代码。
+
+> 曾尝试用本地 Stable Diffusion + ComfyUI 批量生成，结论是**达不到要求**（DirectML 不支持 LoRA，无法约束「白底全身 + 指定服装」）。
+> 完整踩坑记录见 [docs/ai-sprite-generation.md](docs/ai-sprite-generation.md)。
+
 ---
 
-## BGM 淡入淡出
+### BGM 淡入淡出
 
 `AudioManager` 换曲走"先淡出旧曲、再换曲淡入"，各 500 ms。
 
@@ -333,9 +387,9 @@ SDL_mixer 只有一条音乐通道，做不了真正的交叉淡化，
 
 `Game::Update()` 每帧调 `audioManager.Update(delta)` 推进切换。
 
-## 选择语法
+### 选择语法
 
-```
+```text
 [选择]
 
 1. 显示文本 | 好感度变化 -> 跳转目标
@@ -347,9 +401,9 @@ SDL_mixer 只有一条音乐通道，做不了真正的交叉淡化，
 - `->` 后是跳转目标：`#标签名` 跳同文件；`script/xxx.txt` 加载外部脚本；省略则不跳转
 - 三段中只有显示文本必填
 
-## 标签与跳转
+### 标签与跳转
 
-```
+```text
 [选择]
 
 1. A 选项 | 李君浩 +10 -> #branch_a
@@ -370,9 +424,9 @@ SDL_mixer 只有一条音乐通道，做不了真正的交叉淡化，
 
 标签名不要重名。
 
-## 结局分支
+### 结局分支
 
-```
+```text
 [结局分支]
 
 李君浩 -> script/li_junhao_route.txt
@@ -393,16 +447,16 @@ SDL_mixer 只有一条音乐通道，做不了真正的交叉淡化，
 | 张瀚宇 ≥ 70 且高于李君浩 | 张瀚宇线 |
 | 都 < 70 或相等 | 单人结局 |
 
-## 章节切换
+### 章节切换
 
-```
+```text
 [下一章]
 script/chapter02.txt
 ```
 
 路径要相对工作目录 `FourYears/` 写全。
 
-## 剧情结束
+### 剧情结束
 
 结局文件末尾写 `[END]`。播完最后一句后自动回到标题画面。
 
@@ -410,11 +464,11 @@ script/chapter02.txt
 
 ---
 
-# 存档
+## 存档
 
 目录：`FourYears/save/`
 
-## 固定 10 格槽位
+### 固定 10 格槽位
 
 | 文件 | 内容 |
 |---|---|
@@ -425,9 +479,9 @@ script/chapter02.txt
 
 界面是 2 列 x 5 行。键盘 ↑↓ 在本列内移动，←→ 切换列；鼠标悬停选中。
 
-## 文件格式（7 行）
+### 文件格式（7 行）
 
-```
+```text
 显示名
 脚本路径
 章节显示名
@@ -445,7 +499,7 @@ index
 缩略图**不写进这 7 行**，单独存成同名的 `.png`。
 这样旧存档（没有图）依然能读，只是列表里显示占位框。
 
-## 缩略图
+### 缩略图
 
 按 `N` 新建存档时，会把当前剧情画面截下来缩成 320x180，输完名字后
 和 `.dat` 一起落盘。
@@ -454,14 +508,14 @@ index
 把整帧缓存到 `framePixels`，`CaptureThumbnail()` 只做缩放。
 **不要在按键处理里直接读像素**——那时当前帧还没画出来。
 
-## 旧存档迁移
+### 旧存档迁移
 
 旧版本用 `save_<毫秒时间戳>.dat` 无限列表。新版启动时会把这些文件
 按写入时间倒序填进空槽位，然后改名为 `slotN.dat`。
 
 槽位填满后剩下的旧文件保持原样，不会删除。
 
-## 章节显示名
+### 章节显示名
 
 `Game.cpp` 顶部 `ChapterNameFromScript()` **用数字解析**：
 - `chapter01.txt` → `第1章`
@@ -472,9 +526,9 @@ index
 
 ---
 
-# 注意事项
+## 注意事项
 
-## 行尾
+### 行尾
 
 项目用 `.gitattributes` 统一成 LF，提交时 git 会自动转换。
 
@@ -482,7 +536,7 @@ index
 这条经验来自旧工具链，已经无法复现。保留 LF 约定是为了 diff 干净，
 不用再当成"踩坑"来防。
 
-## 帧率与时间
+### 帧率与时间
 
 主循环用 `SDL_GetPerformanceCounter()` 算真实 delta，所有动画和
 打字速度都按 delta 推进，帧率无关。
@@ -490,30 +544,67 @@ index
 垂直同步优先；检测到 Present 不阻塞（窗口被遮挡、远程桌面等情况）
 时自动兜底限到 60 FPS。实测稳定 59~60 FPS。
 
-## 毛玻璃与模糊
+### 毛玻璃与模糊
 
-`Renderer` 里有两个模糊接口：
+`Renderer` 提供的模糊接口：
 
 | 接口 | 用途 |
 |---|---|
-| `DrawBlurTexture` | 普通模糊（整屏） |
-| `DrawFrostedTexture` | 毛玻璃 = 模糊 + 白色磨砂叠加 |
-| `DrawBlurredRegion` | 只模糊纹理的一块区域（对话框背景） |
+| `DrawBlurTexture` | 整屏模糊（按 cover 铺满屏幕） |
+| `DrawFrostedTexture` | 毛玻璃 = 模糊 + 白色磨砂叠加（暂停菜单用） |
+| `DrawFrostedRegionRound` | 圆角区域内模糊（对话框背景用） |
+| `DrawBlurredRegion` | 矩形区域模糊（旧接口，保留但已无调用） |
 
-实现是**多级降采样**：每级尺寸减半，连做 4 级，再放大回去。
+实现是**多级降采样**：每级尺寸减半，连做 `BLUR_STEPS` 级，再放大回去。
 
 老实现是「一次缩到 1/4 再放大」，单次线性采样只平均 4x4 像素，
 放大后方块感明显。多级降采样每级只做 2x 缩放，连续盒式滤波
 在数学上趋近高斯模糊，过渡平滑得多。
 
-1600x900 的图降 4 级后是 100x56，开销可以忽略。
+当前 `BLUR_STEPS = 3`（1600x900 → 800 → 400 → 200）。
 
-**注意**：暂停菜单的磨砂强度（`DrawFrostedTexture` 的第三个参数）
-不能太高。40 会让浅色背景整片发白，白色菜单文字糊在背景里看不清；
-18 刚好有玻璃感又不刺眼。
+- 3 级保留形状轮廓，像隔着磨砂玻璃看，能看出「后面有东西」
+- 4 级会降到 100x56，糊成一片色块，只剩「糊」没有「玻璃」
+
+**⚠️ 改这两个参数前先读这里**
+
+**磨砂强度**（`DrawFrostedTexture` 第三个参数）当前是 **28**。
+调过几轮：40 会让浅色背景整片发白、白色菜单文字糊在背景里看不清；
+18 只有模糊感没有玻璃颗粒感；28 兼顾两者。
+
+**离屏模糊缓冲的尺寸必须固定。** 这是本项目最容易踩的坑，
+详见下面「模糊缓冲与 viewport」。
+
+### 模糊缓冲与 viewport
+
+**症状**：背景只画出顶部一条、下方全黑，看起来像闪屏。
+
+**根因**：`SDL_SetRenderTarget(renderer, nullptr)` **不会恢复 viewport**。
+它会停留在上一个渲染目标的尺寸上。
+
+如果模糊实现把中间缓冲轮流重建为降采样后的尺寸：
+
+```cpp
+// 错误写法
+EnsureTarget(next, nW, nH, nw, nh);   // 1600x900 -> 800x450 -> 400x225 -> 200x112
+```
+
+那么切回主目标后 viewport 仍是 200x112，之后画的背景、立绘全被裁到左上角。
+
+**正确做法**：
+
+1. 中间缓冲用**固定尺寸**（等于模糊区域大小），降采样结果只画到左上角，
+   渲染目标尺寸全程不变
+2. 降采样时 `src` 必须限定为上一级的有效区域（`{0,0,curW,curH}`），
+   不能用 `nullptr`——那会把整张纹理的黑边也缩进去，越缩越黑
+3. 切回主目标统一走 `RestoreMainTarget()`，它会在
+   `SDL_SetRenderTarget(renderer, nullptr)` 之后显式重设 viewport
+
+`DrawFrostedRegionRound`（对话框）和 `BlurRegionTo`（暂停菜单）
+都曾因这个问题导致闪屏，修复方式相同。
 
 ---
-## 工作目录
+### 工作目录
 
 **必须从 `FourYears/` 目录运行**，所有资源路径都是相对这个目录的。
 
@@ -521,31 +612,35 @@ index
 字体加载失败、剧本打不开、背景全黑——一个纯黑窗口。
 `.vscode/tasks.json` 里的 "Run FourYears" 任务已经设置了正确的 `cwd`。
 
-## Windows DLL
+### Windows DLL
 
 运行时需要：
 
-    SDL2.dll
-    SDL2_image.dll
-    SDL2_mixer.dll
-    SDL2_ttf.dll
+```text
+SDL2.dll
+SDL2_image.dll
+SDL2_mixer.dll
+SDL2_ttf.dll
+```
 
 以及 `ntldd` 输出的 MinGW 运行时和第三方依赖。
 
 ---
 
-# 打包发布
+## 打包发布
 
-## 一键打包
+### 一键打包
 
-    make release
+```bash
+make release
+```
 
 产物：`release/FourYears-v<版本号>.zip`（版本号在 `Makefile` 顶部的 `VERSION`）。
 
 这个目标会：清理 `release/` → 复制 exe / config.ini / resource / script →
 用 `ntldd` 自动收集全部依赖 DLL → 打包成 zip。
 
-## ⚠️ 必须用系统自带的 tar
+### ⚠️ 必须用系统自带的 tar
 
 Windows 下打包用的是 **`C:/Windows/System32/tar.exe`**（bsdtar），
 它支持按扩展名自动选择 zip 格式。
@@ -557,11 +652,13 @@ Windows 下打包用的是 **`C:/Windows/System32/tar.exe`**（bsdtar），
 
 验证方法：
 
-    python -c "import zipfile; zipfile.ZipFile('release/FourYears-v0.6.0.zip').testzip()"
+```bash
+python -c "import zipfile; zipfile.ZipFile('release/FourYears-v0.6.0.zip').testzip()"
+```
 
 没抛异常才是真 zip。
 
-## 上传 Release
+### 上传 Release
 
 1. 打开 GitHub 仓库 → 右侧 Releases → Draft a new release
 2. Tag 填新版本号（如 `v0.6.0`）
@@ -570,7 +667,7 @@ Windows 下打包用的是 **`C:/Windows/System32/tar.exe`**（bsdtar），
 5. 把 zip 拖入附件区
 6. Publish release
 
-## 发版前本地自测
+### 发版前本地自测
 
 解压 zip 到任意目录，从 `FourYears/` 里跑 `game.exe`，确认：
 主菜单正常、能进游戏、BGM/音效正常、能存档读档、中文输入正常、
@@ -578,20 +675,22 @@ Windows 下打包用的是 **`C:/Windows/System32/tar.exe`**（bsdtar），
 
 ---
 
-# 编码规范
+## 编码规范
 
 源代码和剧情文本统一 UTF-8。
 
 Windows 编译必须加：
 
-    -finput-charset=UTF-8
-    -fexec-charset=UTF-8
+```bash
+-finput-charset=UTF-8
+-fexec-charset=UTF-8
+```
 
 C++ 标准：C++17。Makefile 已配置。
 
 ---
 
-# 输入法
+## 输入法
 
 Windows 中文输入法激活时，字母键会被 IME 拦截。`Game::SetInputMode(bool)` 动态切换：
 
@@ -602,14 +701,14 @@ Windows 中文输入法激活时，字母键会被 IME 拦截。`Game::SetInputM
 
 **候选词窗**：SDL2 在游戏窗口里通常不显示 IME 候选词窗。当前方案用**输入框下方的拼音提示**代替：
 
-```
+```text
 新建存档: _
 拼音: xinjiancundang
 ```
 
 ---
 
-# 字体与中文显示
+## 字体与中文显示
 
 使用 `resource/font/simhei.ttf`。
 
