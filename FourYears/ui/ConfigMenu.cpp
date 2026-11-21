@@ -48,16 +48,17 @@ void ConfigMenu::Update(float delta)
 
 void ConfigMenu::Render(Renderer& renderer)
 {
-    // ---- 全屏遮罩 ----
+    // ---- 玻璃面板背景 ----
 
-    renderer.DrawFilledRect(
-        0, 0,
-        UILayout::SCREEN_W,
-        UILayout::SCREEN_H,
-        UILayout::OVERLAY_R,
-        UILayout::OVERLAY_G,
-        UILayout::OVERLAY_B,
-        UILayout::OVERLAY_A
+    // 面板把五个设置项包住：上下各留 60，左右各留 30
+    // 面板要包住标题（y≈100）+ 5 个设置项（180~400）+ 提示条（775~815）
+    // 所以纵向 56 到 852，高度 796。
+    DrawMenuBackdrop(
+        renderer,
+        (float)(MENU_X - 30),
+        56.0f,
+        (float)(ITEM_W + 60),
+        796.0f
     );
 
 

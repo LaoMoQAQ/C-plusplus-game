@@ -182,16 +182,20 @@ void SaveMenu::Update(float delta)
 
 void SaveMenu::Render(Renderer& renderer)
 {
-    // ---- 全屏遮罩 ----
+    // ---- 玻璃面板背景 ----
+    //
+    // 面板把 10 个槽位整体包住：
+    //   网格从 GRID_X 开始、宽 1380，左右各留 30 边距
+    //   纵向从 186 到 746，上下各留 80 左右
 
-    renderer.DrawFilledRect(
-        0, 0,
-        UILayout::SCREEN_W,
-        UILayout::SCREEN_H,
-        UILayout::OVERLAY_R,
-        UILayout::OVERLAY_G,
-        UILayout::OVERLAY_B,
-        UILayout::OVERLAY_A
+    // 面板要包住：标题（y≈100）+ 10 个槽位（186~746）+ 底部提示条（828~866）
+    // 所以纵向从 56 一直到 884，高度 828。
+    DrawMenuBackdrop(
+        renderer,
+        (float)(GRID_X - 26),
+        56.0f,
+        (float)(CELL_W * COLS + CELL_GAP_X * (COLS - 1) + 52),
+        828.0f
     );
 
 

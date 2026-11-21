@@ -107,16 +107,15 @@ void AffectionMenu::HandleMouseWheel(int delta)
 
 void AffectionMenu::Render(Renderer& renderer)
 {
-    // ---- 全屏遮罩 ----
+    // ---- 玻璃面板背景 ----
+    //
+    // 面板盖住"标题 + 两条好感度 + 变化历史 + 页码"整块内容。
+    // 内容大致在 x 470~1130、y 70~800 之间，四周各留 40 左右。
 
-    renderer.DrawFilledRect(
-        0, 0,
-        UILayout::SCREEN_W,
-        UILayout::SCREEN_H,
-        UILayout::OVERLAY_R,
-        UILayout::OVERLAY_G,
-        UILayout::OVERLAY_B,
-        UILayout::OVERLAY_A
+    DrawMenuBackdrop(
+        renderer,
+        430.0f, 40.0f,
+        740.0f, 780.0f
     );
 
 

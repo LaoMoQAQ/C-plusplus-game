@@ -354,6 +354,44 @@ inline void DrawMenuTitle(
 
 
 
+
+
+// ==========================================================
+// 菜单玻璃背景
+// ==========================================================
+//
+// 各二级菜单统一的"压暗 + 玻璃面板"组合。
+//
+// 用法：在 Render 最开头调用一次，之后所有内容直接画，
+// 面板会自然成为背景。
+
+inline void DrawMenuBackdrop(
+    Renderer& renderer,
+    float panelX, float panelY,
+    float panelW, float panelH,
+    float radius = 22.0f
+)
+{
+    // 全屏压暗。背景已经是 EndScene 生成的强模糊，
+    // 这里只补一点点，避免面板外太亮抢戏。
+    renderer.DrawFilledRect(
+        0, 0,
+        UILayout::SCREEN_W, UILayout::SCREEN_H,
+        0, 0, 0,
+        70
+    );
+
+    // 玻璃面板
+    renderer.DrawGlassPanel(
+        panelX, panelY, panelW, panelH,
+        radius,
+        0.04f, 0.045f, 0.06f,
+        0.52f,      // 通透度
+        0.96f,      // 整体不透明度
+        24.0f       // 投影强度
+    );
+}
+
 // ==========================================================
 // MenuMouseResult
 // ==========================================================
