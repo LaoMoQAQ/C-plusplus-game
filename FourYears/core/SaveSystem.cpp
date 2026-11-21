@@ -1,5 +1,7 @@
 #include "SaveSystem.h"
 
+#include "Renderer.h"
+
 #include <fstream>
 #include <iostream>
 #include <filesystem>
@@ -743,7 +745,9 @@ SDL_Texture* SaveSystem::GetThumbnail(
     int slot
 )
 {
-    if(!renderer)
+    // GL 移植后不再依赖 SDL_Renderer。
+    // renderer 参数保留只为兼容，真正上传走 targetRenderer。
+    if(!renderer && !targetRenderer)
         return nullptr;
 
     auto it = thumbCache.find(slot);
@@ -763,7 +767,11 @@ SDL_Texture* SaveSystem::GetThumbnail(
 
         if(surface)
         {
-            entry.texture = SDL_CreateTextureFromSurface(renderer, surface);
+            if(targetRenderer)
+                entry.texture = targetRenderer->CreateTextureFromSurface(surface);
+            else
+                entry.texture = SDL_CreateTextureFromSurface(renderer, surface);
+
             SDL_FreeSurface(surface);
         }
     }

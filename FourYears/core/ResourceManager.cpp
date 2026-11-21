@@ -1,5 +1,7 @@
 #include "ResourceManager.h"
 
+#include "Renderer.h"
+
 
 #include <iostream>
 
@@ -115,16 +117,18 @@ SDL_Texture* ResourceManager::LoadTexture(
 
 
 
-    SDL_Texture* texture =
-        SDL_CreateTextureFromSurface(
+    SDL_Texture* texture = nullptr;
 
-            renderer,
-
-            surface
-
-        );
-
-
+    // GL 路径：交给 Renderer 上传，拿到假句柄。
+    // 旧的 renderer 参数已废弃，只在 targetRenderer 没绑定时做兜底。
+    if(targetRenderer)
+    {
+        texture = targetRenderer->CreateTextureFromSurface(surface);
+    }
+    else if(renderer)
+    {
+        texture = SDL_CreateTextureFromSurface(renderer, surface);
+    }
 
     SDL_FreeSurface(surface);
 
@@ -151,8 +155,11 @@ SDL_Texture* ResourceManager::LoadTexture(
 
 
 
-    // 打开 alpha 混合，立绘淡入淡出需要
-    SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+    // GL 路径下 texture 是假句柄，不能传给任何 SDL_* 函数。
+    // 混合模式在 Renderer 里已经固定为 SRC_ALPHA / ONE_MINUS_SRC_ALPHA，
+    // 这里什么都不用做。
+    if(!targetRenderer)
+        SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
 
     textures[path] = texture;
 

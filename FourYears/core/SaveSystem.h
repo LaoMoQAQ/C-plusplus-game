@@ -12,6 +12,9 @@
 #include "../story/RouteManager.h"
 
 
+class Renderer;
+
+
 
 // ==========================================================
 // 存档槽位
@@ -88,6 +91,9 @@ class SaveSystem
 {
 
 public:
+    // 绑定渲染器。GL 路径下缩略图上传走它，必须在上传前调用。
+    void SetRenderer(Renderer* r) { targetRenderer = r; }
+
 
     SaveSystem();
 
@@ -154,6 +160,9 @@ public:
 
 
 private:
+    // 缩略图上传用。GL 移植后不再依赖 SDL_Renderer。
+    Renderer* targetRenderer = nullptr;
+
 
     std::string savePath;
 

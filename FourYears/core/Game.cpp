@@ -128,6 +128,24 @@ bool Game::Init()
     config.Load("config.ini");
 
 
+    // OpenGL 属性必须在创建窗口之前设置。
+    //
+    // 请求 3.3 Core：
+    //   - 液体玻璃的着色器用了 texture()、in/out、uniform 等 3.3 语法
+    //   - Core Profile 强制要求 VAO，我们本来就用了
+    // 如果驱动只给到 3.0，Renderer::Init 会退回到 #version 130。
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
+                        SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
+    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+
+
     // 先隐藏创建窗口，等资源和首帧准备好再显示。
     //
     // 之前用 SDL_WINDOW_SHOWN 直接显示，从窗口出现到第一次 Present
@@ -139,7 +157,7 @@ bool Game::Init()
         SDL_WINDOWPOS_CENTERED,
         config.GetWidth(),
         config.GetHeight(),
-        SDL_WINDOW_HIDDEN
+        SDL_WINDOW_HIDDEN | SDL_WINDOW_OPENGL
     );
 
     if(!window)
@@ -184,12 +202,13 @@ bool Game::Init()
         return false;
 
 
+    // GL 下用 Renderer 自己的逻辑分辨率，不再用 SDL_RenderSetLogicalSize。
+    renderer.SetLogicalSize(config.GetWidth(), config.GetHeight());
 
-    SDL_RenderSetLogicalSize(
-        renderer.GetSDLRenderer(),
-        config.GetWidth(),
-        config.GetHeight()
-    );
+
+    // 绑定渲染器：纹理上传走 GL，不再依赖 SDL_Renderer。
+    resourceManager.SetRenderer(&renderer);
+    saveSystem.SetRenderer(&renderer);
 
 
 
@@ -978,9 +997,23 @@ void Game::UpdateScene()
 
 void Game::Render()
 {
-    renderer.Clear();
-
     UIState st = ui.GetState();
+
+    // GL 帧管线：
+    //   BeginScene   场景（背景 + 立绘）画进 FBO
+    //   EndScene     生成模糊纹理并输出到屏幕
+    //   UI 绘制      直接画在屏幕上
+    //   Present      交换缓冲
+    //
+    // 暂停 / 存档 / 设置等菜单需要整屏强模糊背景，
+    // 通过 EndScene(true) 让背景走强模糊分支。
+    bool needFrostedBackdrop =
+        st == UIState::PAUSE ||
+        st == UIState::SAVE ||
+        st == UIState::CONFIG ||
+        st == UIState::AFFECTION;
+
+    renderer.BeginScene();
 
 
     bool useGameBackground = false;
@@ -1010,13 +1043,15 @@ void Game::Render()
 
     SDL_Texture* bgToDraw = nullptr;
 
-    // 暂停菜单优先用「刚才截下的当前画面」，
-    // 这样毛玻璃背后就是玩家暂停前的所见，而不是剧本背景图。
-    if(st == UIState::PAUSE && pauseBackground)
-    {
-        bgToDraw = pauseBackground;
-    }
-    else if(useGameBackground)
+    // GL 移植后暂停背景改用剧本背景图 + EndScene 的强模糊分支。
+    //
+    // 原来那套「抓当前帧当暂停背景」是为 SDL_Renderer 的 D3D 后端准备的，
+    // 在 GL 下 pauseBackground 会指向 sceneTex 自己，
+    // BeginScene 一清屏就变成全黑。
+    //
+    // EndScene(true) 已经把整屏做了强模糊，视觉效果就是
+    // 「玩家暂停前的画面被磨砂了」，比抓帧更简单也更稳。
+    if(useGameBackground)
     {
         bgToDraw = currentBackground ? currentBackground : menuBg;
     }
@@ -1026,21 +1061,10 @@ void Game::Render()
     }
 
 
+    // 背景直接画进场景 FBO。
+    // 模糊 / 压暗由 EndScene 统一处理，这里只负责把原图铺满。
     if(bgToDraw)
-    {
-        // 暂停菜单用毛玻璃（模糊 + 白色磨砂）。
-        //
-        // 磨砂强度调过几轮：
-        //   40 -> 浅色背景整片发白，白字看不清
-        //   18 -> 只有模糊感，没有"玻璃"质感
-        //   28 -> 有磨砂颗粒感，白字仍然清晰
-        if(st == UIState::PAUSE)
-            renderer.DrawFrostedTexture(bgToDraw, 0, 0, 28);
-        else if(needBlur)
-            renderer.DrawBlurTexture(bgToDraw, 0, 0);
-        else
-            renderer.DrawBackgroundCover(bgToDraw);
-    }
+        renderer.DrawBackgroundCover(bgToDraw);
 
 
     // 立绘：只在 DIALOGUE 状态画
@@ -1063,11 +1087,9 @@ void Game::Render()
 
 
             int texW = 0, texH = 0;
-            SDL_QueryTexture(
-                sp.texture,
-                nullptr, nullptr,
-                &texW, &texH
-            );
+
+            if(!renderer.GetTextureSize(sp.texture, texW, texH))
+                continue;
 
             if(texW <= 0 || texH <= 0) continue;
 
@@ -1079,33 +1101,29 @@ void Game::Render()
             int drawY = (config.GetHeight() - drawH) / 2;
 
 
-            // 应用透明度
-            SDL_SetTextureAlphaMod(
+            // 立绘淡入淡出：GL 下走 DrawTextureEx 的 alpha 参数，
+            // 不能再用 SDL_SetTextureAlphaMod（那是 SDL_Texture 专用，
+            // 传假句柄会直接崩）。
+            renderer.DrawTextureEx(
                 sp.texture,
-                (Uint8)(sp.alpha * 255.0f)
+                (float)drawX, (float)drawY,
+                (float)drawW, (float)drawH,
+                sp.alpha
             );
-
-            renderer.DrawTexture(
-                sp.texture,
-                drawX, drawY,
-                drawW, drawH
-            );
-
-            // 恢复，避免影响其他绘制
-            SDL_SetTextureAlphaMod(sp.texture, 255);
         }
     }
 
 
+    // 场景结束：生成模糊纹理并输出到屏幕。
+    // 之后所有 UI 都直接画在屏幕上（正片叠底到已合成的场景之上）。
+    renderer.EndScene(needFrostedBackdrop);
+
+
     // 对话框的背景模糊源。
     //
-    // 用 currentBackground（剧本背景图），不要抓屏幕：
-    //   SDL_RenderReadPixels 在 D3D 后端读出的数据是错的，
-    //   贴回去会在对话框里出现一张压扁的怪图。
-    //
-    // 背景图是 1672x941、屏幕是 1600x900，
-    // DrawFrostedRegionRound 内部会做坐标换算，尺寸不一致没关系。
-    ui.GetDialogueUI().SetBackgroundTexture(currentBackground);
+    // GL 下场景纹理一直在显存里，直接取即可，
+    // 不需要 CPU 回读，也不会有 D3D 那种"读出错数据"的问题。
+    ui.GetDialogueUI().SetBackgroundTexture(renderer.GetScreenTexture());
 
     ui.Render(renderer);
 
@@ -1113,9 +1131,6 @@ void Game::Render()
     // 存档缩略图用的帧缓存。
     //
     // 只有玩家按 N 存新档时才会用到，属于低频操作。
-    // 这里按需抓一次即可，不做定时抓取——
-    // SDL_RenderReadPixels 是 GPU -> CPU 回读，
-    // 每帧或定时调用都会让帧率抖动。
     if(frameGrabRequested)
         GrabFrame();
 
@@ -1385,37 +1400,11 @@ void Game::GrabFrame()
 
     frameGrabRequested = false;
 
-    SDL_Renderer* r = renderer.GetSDLRenderer();
-
-    if(!r)
-        return;
-
-    int w = config.GetWidth();
-    int h = config.GetHeight();
-
-    if(w <= 0 || h <= 0)
-        return;
-
-    size_t need = (size_t)w * h * 4;
-
-    if(framePixels.size() != need)
-    {
-        framePixels.resize(need);
-        frameW = w;
-        frameH = h;
-    }
-
-    if(SDL_RenderReadPixels(
-           r,
-           nullptr,
-           SDL_PIXELFORMAT_RGBA32,
-           framePixels.data(),
-           w * 4) != 0)
-    {
-        return;
-    }
-
-    frameValid = true;
+    // GL 下读像素要走 Renderer 的 GL 回读，不能用 SDL_RenderReadPixels。
+    // 说明：这个功能只服务存档缩略图，属于低频操作。
+    // 移植 GL 期间先置空，缩略图会显示占位框，不影响游戏本体。
+    // TODO: 接上 glReadPixels 后再恢复。
+    frameValid = false;
 }
 
 
@@ -1440,58 +1429,19 @@ void Game::GrabFrame()
 
 void Game::CapturePauseBackground()
 {
+    // GL 下不需要拷贝：EndScene 已经把合成好的场景留在 sceneTex 里，
+    // 而暂停时的背景本来就是"最终模糊后的画面"，
+    // 由 Game::Render 的 needFrostedBackdrop 分支统一处理。
+    //
+    // 所以这里只把 pauseBackground 指向场景纹理，供渲染时复用。
     SDL_Texture* shot = renderer.GetScreenTexture();
 
     if(!shot)
         return;
 
-    int w = 0, h = 0;
-    SDL_QueryTexture(shot, nullptr, nullptr, &w, &h);
-
-    if(w <= 0 || h <= 0)
-        return;
-
-    SDL_Renderer* r = renderer.GetSDLRenderer();
-
-    if(!r)
-        return;
-
-
-    // 尺寸变了就重建
-    if(!pauseBackground || pauseBgW != w || pauseBgH != h)
-    {
-        if(pauseBackground)
-        {
-            SDL_DestroyTexture(pauseBackground);
-            pauseBackground = nullptr;
-        }
-
-        pauseBackground = SDL_CreateTexture(
-            r,
-            SDL_PIXELFORMAT_RGBA32,
-            SDL_TEXTUREACCESS_TARGET,
-            w, h
-        );
-
-        if(!pauseBackground)
-            return;
-
-        pauseBgW = w;
-        pauseBgH = h;
-    }
-
-
-    // 把 screenShot 拷进 pauseBackground
-    SDL_SetTextureBlendMode(pauseBackground, SDL_BLENDMODE_NONE);
-
-    SDL_SetRenderTarget(r, pauseBackground);
-    SDL_SetRenderDrawColor(r, 0, 0, 0, 255);
-    SDL_RenderClear(r);
-
-    SDL_Rect full = { 0, 0, w, h };
-    SDL_RenderCopy(r, shot, nullptr, &full);
-
-    SDL_SetRenderTarget(r, nullptr);
+    pauseBackground = shot;
+    pauseBgW = config.GetWidth();
+    pauseBgH = config.GetHeight();
 }
 
 
