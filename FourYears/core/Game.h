@@ -173,6 +173,9 @@ private:
     // 否则启动时会黑屏闪烁。改成每 N 帧抓一次。
     bool frameGrabRequested = false;
 
+    // 当前剧本文件路径。换章时用来判断是否要播标题卡。
+    std::string currentScript;
+
     // 抓帧计数，到阈值才真正读一次
     int frameGrabCounter = 0;
 

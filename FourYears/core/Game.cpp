@@ -279,6 +279,7 @@ bool Game::Init()
     ui.GetSaveMenu().SetFontManager(&fontManager);
     ui.GetPauseMenu().SetFontManager(&fontManager);
     ui.GetAffectionMenu().SetFontManager(&fontManager);
+    ui.GetChapterTitle().SetFontManager(&fontManager);
     ui.GetAffectionMenu().SetRouteManager(&story.GetRouteManager());
     ui.GetSaveMenu().SetSaveSystem(&saveSystem);
 
@@ -313,7 +314,6 @@ bool Game::Init()
 
 
     ui.SetState(UIState::START);
-
 
 
     // 资源和状态都就绪了，先渲染一帧再显示窗口。
@@ -640,6 +640,16 @@ void Game::HandleTextInput()
 
 void Game::HandleKeyDown()
 {
+    // 章节标题卡播放期间：任意键跳过，其余输入一律吞掉。
+    //
+    // 不拦截的话，玩家在这一秒多的动画里按 Enter
+    // 会直接把第一句对话跳过去。
+    if(ui.GetChapterTitle().IsActive())
+    {
+        ui.GetChapterTitle().Skip();
+        return;
+    }
+
     UIState st = ui.GetState();
 
 
@@ -1399,11 +1409,25 @@ void Game::GrabFrame()
 
     frameGrabRequested = false;
 
-    // GL 下读像素要走 Renderer 的 GL 回读，不能用 SDL_RenderReadPixels。
-    // 说明：这个功能只服务存档缩略图，属于低频操作。
-    // 移植 GL 期间先置空，缩略图会显示占位框，不影响游戏本体。
-    // TODO: 接上 glReadPixels 后再恢复。
-    frameValid = false;
+    // GL 下走 Renderer::ReadPixels（内部是 glReadPixels）。
+    // 只服务存档缩略图，属于低频操作，回读开销可以接受。
+    int w = 0, h = 0;
+
+    if(!renderer.ReadPixels(framePixels, w, h))
+    {
+        frameValid = false;
+        return;
+    }
+
+    if(w <= 0 || h <= 0)
+    {
+        frameValid = false;
+        return;
+    }
+
+    frameW = w;
+    frameH = h;
+    frameValid = true;
 }
 
 
@@ -1860,6 +1884,26 @@ void Game::ConfirmChoice()
 
     if(story.Load(target))
     {
+        // 播放章节标题卡。
+        //
+        // 只在"换到另一个章节文件"时播，同一章内的跳转不播。
+        // 主线章节由 ChapterNameFromScript 解析出「第 N 章」，
+        // 结局文件走它自己的特判名称。
+        if(target != currentScript)
+        {
+            std::string chapterName = ChapterNameFromScript(target);
+
+            if(!chapterName.empty())
+            {
+                ui.GetChapterTitle().Show(
+                    chapterName,
+                    "四年 · 我们的青春"
+                );
+            }
+
+            currentScript = target;
+        }
+
         if(!ApplyCurrentEvent())
             ReturnToTitle();
     }

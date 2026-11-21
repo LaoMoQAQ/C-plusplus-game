@@ -313,6 +313,12 @@ public:
     void CaptureScreen();
     void RestoreMainTarget();
 
+    // 回读当前帧到 RGBA32 缓冲（左上原点，和窗口坐标一致）。
+    //
+    // 用于存档缩略图这类低频操作。
+    // 内部走 glReadPixels，会把 GL 的自下而上行序翻成自顶向下。
+    bool ReadPixels(std::vector<unsigned char>& out, int& w, int& h);
+
 
 private:
 

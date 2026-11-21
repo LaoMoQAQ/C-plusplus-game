@@ -8,6 +8,7 @@
 #include "SaveMenu.h"
 #include "ConfigMenu.h"
 #include "AffectionMenu.h"
+#include "ChapterTitle.h"
 
 #include "MenuCommon.h"
 
@@ -78,6 +79,7 @@ public:
     SaveMenu&      GetSaveMenu();
     ConfigMenu&    GetConfigMenu();
     AffectionMenu& GetAffectionMenu();
+    ChapterTitle&  GetChapterTitle();
 
 
 
@@ -92,6 +94,7 @@ private:
     SaveMenu      saveMenu;
     ConfigMenu    configMenu;
     AffectionMenu affectionMenu;
+    ChapterTitle  chapterTitle;
 
 };
 

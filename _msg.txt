@@ -1,0 +1,36 @@
+feat: 章节标题卡 + 存档缩略图恢复（GL 回读）
+
+一、章节标题卡（移植自同学 ChapterTitle）
+
+换章时播放「第 N 章 + 副标题」：
+  淡入 0.45s → 停留 1.25s → 淡出 0.55s
+
+- 中间一块玻璃面板（和暂停菜单同一套 DrawGlassPanel 参数）
+- 全屏压暗 175 * eased
+- 面板从 96% 放大到 100%，文字同时淡入并上移 16px
+- 标题用 title.ttf 68 号，副标题用默认字体
+
+接入点：
+- UIManager 持有 ChapterTitle，Render 时叠在所有界面之上
+- Game 在 [下一章] 切换剧本文件时触发（同章内跳转不播）
+- 播放期间 HandleKeyDown 直接吞掉输入（任意键跳过），
+  避免玩家在这一秒多里按 Enter 把第一句对话跳过
+
+二、存档缩略图恢复
+
+新增 Renderer::ReadPixels：
+- 走 glReadPixels 回读当前帧
+- 把 GL 的自下而上行序翻成自顶向下，和窗口坐标一致
+- GrabFrame 改用它，framePixels 重新可用
+
+之前 GL 移植时把 GrabFrame 置空了，缩略图一直显示占位框。
+
+三、其它
+
+- Game.h 加 currentScript，记录当前剧本路径用于判断换章
+- Makefile 加入 ChapterTitle.cpp
+
+验证
+- 标题卡截图确认：玻璃面板 + 「第 1 章 / 九月 · 初见」正常显示
+- glReadPixels 回读正常（SaveScreenshot 产出 4.2MB BMP）
+- 启动、进入游戏、暂停、存档页、正常退出全通过

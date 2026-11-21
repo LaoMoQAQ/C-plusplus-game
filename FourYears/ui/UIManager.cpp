@@ -63,6 +63,8 @@ bool UIManager::IsTransitioning() const
 
 void UIManager::Update(float delta)
 {
+    chapterTitle.Update(delta);
+
     startMenu.Update(delta);
     pauseMenu.Update(delta);
     configMenu.Update(delta);
@@ -100,6 +102,11 @@ void UIManager::Render(Renderer& renderer)
         affectionMenu.Render(renderer);
         break;
     }
+
+
+    // 章节标题卡叠在所有界面之上
+    if(chapterTitle.IsActive())
+        chapterTitle.Render(renderer);
 }
 
 
@@ -224,4 +231,9 @@ ConfigMenu& UIManager::GetConfigMenu()
 AffectionMenu& UIManager::GetAffectionMenu()
 {
     return affectionMenu;
+}
+
+ChapterTitle& UIManager::GetChapterTitle()
+{
+    return chapterTitle;
 }

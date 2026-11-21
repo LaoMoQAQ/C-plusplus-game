@@ -2065,6 +2065,58 @@ bool Renderer::GetTextureSize(SDL_Texture* texture, int& w, int& h)
 // 生命周期 / 帧
 // ----------------------------------------------------------
 
+// ----------------------------------------------------------
+// 帧回读（存档缩略图用）
+// ----------------------------------------------------------
+
+bool Renderer::ReadPixels(std::vector<unsigned char>& out, int& w, int& h)
+{
+    w = 0;
+    h = 0;
+
+    if(!ready || drawableW <= 0 || drawableH <= 0)
+        return false;
+
+    // 把还没提交的四边形刷出去，否则读到的画面不完整
+    Flush();
+
+    const int dw = drawableW;
+    const int dh = drawableH;
+
+    out.resize((size_t)dw * (size_t)dh * 4);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+
+    glReadPixels(
+        0, 0, dw, dh,
+        GL_RGBA, GL_UNSIGNED_BYTE,
+        out.data()
+    );
+
+    // glReadPixels 是自下而上，我们的坐标是自顶向下，翻一次
+    {
+        const size_t rowBytes = (size_t)dw * 4;
+
+        std::vector<unsigned char> tmp(rowBytes);
+
+        for(int y = 0; y < dh / 2; y++)
+        {
+            unsigned char* a = out.data() + (size_t)y * rowBytes;
+            unsigned char* b = out.data() + (size_t)(dh - 1 - y) * rowBytes;
+
+            std::memcpy(tmp.data(), a, rowBytes);
+            std::memcpy(a, b, rowBytes);
+            std::memcpy(b, tmp.data(), rowBytes);
+        }
+    }
+
+    w = dw;
+    h = dh;
+
+    return true;
+}
+
 void Renderer::Shutdown()
 {
     Destroy();
