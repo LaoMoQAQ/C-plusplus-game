@@ -193,31 +193,25 @@ void DialogueUI::Render(Renderer& renderer)
 
 
 
-    // ---- 1. 背景模糊（圆角裁剪） ----
+    // ---- 玻璃面板 ----
     //
-    // 以前这里画的是矩形模糊区，再叠圆角灰底，
-    // 四个角会露出方形的模糊块，看起来框是方的。
-    // 改用 DrawFrostedRegionRound 按圆角形状裁剪。
+    // 原来是「矩形模糊区 + 圆角灰底」，四个角会露出模糊块。
+    // GL 移植后改用 DrawGlassPanel：
+    //   - SDF 圆角，四角干净
+    //   - 内部采样背景强模糊做折射，边缘有高光
+    //   - 参数和暂停菜单一致的观感
+    //
+    // tintAlpha 取 0.42：比菜单面板略透一点，
+    // 因为对话框面积大，太实会压住立绘。
 
-    if(backgroundTexture)
-    {
-        renderer.DrawFrostedRegionRound(
-            backgroundTexture,
-            BOX_X, boxY,
-            BOX_W, boxH,
-            BOX_RADIUS,
-            0
-        );
-    }
-
-
-
-    // ---- 2. 圆角半透明灰底 ----
-
-    renderer.DrawFilledRoundRect(
-        BOX_X, boxY, BOX_W, boxH,
-        BOX_RADIUS,
-        BOX_R, BOX_G, BOX_B, BOX_A
+    renderer.DrawGlassPanel(
+        (float)BOX_X, (float)boxY,
+        (float)BOX_W, (float)boxH,
+        (float)BOX_RADIUS,
+        0.04f, 0.045f, 0.06f,   // 深色底
+        0.42f,                   // 通透度
+        1.0f,                    // 整体不透明度
+        18.0f                    // 轻微投影
     );
 
 
