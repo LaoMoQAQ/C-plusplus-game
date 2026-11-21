@@ -50,7 +50,7 @@ private:
     // 按键提示按字号取字体，未设置时提示条不画
     FontManager* fontManager = nullptr;
 
-    static constexpr int ITEM_COUNT = 6;
+    static constexpr int ITEM_COUNT = 7;
 
     int choice;
 

@@ -11,9 +11,10 @@ PauseMenu::PauseMenu()
     items[0] = "继续游戏";
     items[1] = "保存游戏";
     items[2] = "读取存档";
-    items[3] = "好感度";
-    items[4] = "设置";
-    items[5] = "返回标题";
+    items[3] = "章节选择";
+    items[4] = "好感度";
+    items[5] = "设置";
+    items[6] = "返回标题";
 
     displayHighlightY = (float)MENU_Y;
 }

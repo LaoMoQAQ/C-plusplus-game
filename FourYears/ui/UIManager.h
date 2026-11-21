@@ -9,6 +9,7 @@
 #include "ConfigMenu.h"
 #include "AffectionMenu.h"
 #include "ChapterTitle.h"
+#include "ChapterMenu.h"
 
 #include "MenuCommon.h"
 
@@ -21,7 +22,8 @@ enum class UIState
     PAUSE,
     SAVE,
     CONFIG,
-    AFFECTION
+    AFFECTION,
+    CHAPTER
 };
 
 
@@ -80,6 +82,7 @@ public:
     ConfigMenu&    GetConfigMenu();
     AffectionMenu& GetAffectionMenu();
     ChapterTitle&  GetChapterTitle();
+    ChapterMenu&   GetChapterMenu();
 
 
 
@@ -95,6 +98,7 @@ private:
     ConfigMenu    configMenu;
     AffectionMenu affectionMenu;
     ChapterTitle  chapterTitle;
+    ChapterMenu   chapterMenu;
 
 };
 

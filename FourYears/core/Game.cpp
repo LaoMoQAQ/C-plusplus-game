@@ -280,6 +280,12 @@ bool Game::Init()
     ui.GetPauseMenu().SetFontManager(&fontManager);
     ui.GetAffectionMenu().SetFontManager(&fontManager);
     ui.GetChapterTitle().SetFontManager(&fontManager);
+
+    // 剧情树：扫一遍 script/ 目录，供章节选择用
+    storyGraph.Build("script", "script/chapter01.txt");
+    storyGraph.LoadProgress("save/progress.dat");
+    ui.GetChapterMenu().SetGraph(&storyGraph);
+    ui.GetChapterMenu().SetFontManager(&fontManager);
     ui.GetAffectionMenu().SetRouteManager(&story.GetRouteManager());
     ui.GetSaveMenu().SetSaveSystem(&saveSystem);
 
@@ -1021,7 +1027,8 @@ void Game::Render()
         st == UIState::PAUSE ||
         st == UIState::SAVE ||
         st == UIState::CONFIG ||
-        st == UIState::AFFECTION;
+        st == UIState::AFFECTION ||
+        st == UIState::CHAPTER;
 
     renderer.BeginScene();
 
@@ -1034,7 +1041,8 @@ void Game::Render()
     }
     else if(st == UIState::SAVE ||
             st == UIState::CONFIG ||
-            st == UIState::AFFECTION)
+            st == UIState::AFFECTION ||
+            st == UIState::CHAPTER)
     {
         useGameBackground = (lastState == UIState::PAUSE);
     }
@@ -1044,7 +1052,8 @@ void Game::Render()
         st == UIState::PAUSE ||
         st == UIState::SAVE ||
         st == UIState::CONFIG ||
-        st == UIState::AFFECTION;
+        st == UIState::AFFECTION ||
+        st == UIState::CHAPTER;
 
 
     SDL_Texture* menuBg = resourceManager.GetTexture(
@@ -1529,6 +1538,47 @@ void Game::OnActivateCurrentState()
     }
 
 
+    // ---- 章节选择 ----
+
+    if(st == UIState::CHAPTER)
+    {
+        std::string file = ui.GetChapterMenu().GetSelectedFile();
+
+        // 未解锁的章节不给进
+        if(!file.empty() && ui.GetChapterMenu().CanEnterSelected())
+        {
+            if(story.Load(file))
+            {
+                // 从章节开头播，清掉上一章残留
+                for(int i = 0; i < 3; i++)
+                {
+                    sprites[i].texture = nullptr;
+                    sprites[i].alpha = 0.0f;
+                    sprites[i].targetAlpha = 0.0f;
+                }
+
+                currentBackground = nullptr;
+                autoPlayTimer = 0.0f;
+                currentScript = file;
+
+                // 播放章节标题卡
+                std::string title = StoryGraph::TitleFor(file);
+                std::string sub   = StoryGraph::SubtitleFor(file);
+
+                if(!title.empty())
+                    ui.GetChapterTitle().Show(title, sub);
+
+                if(!ApplyCurrentEvent())
+                    ReturnToTitle();
+                else
+                    ui.SetStateImmediate(UIState::DIALOGUE);
+            }
+        }
+
+        return;
+    }
+
+
     // ---- 主菜单 ----
 
     if(st == UIState::START)
@@ -1624,19 +1674,27 @@ void Game::OnActivateCurrentState()
             break;
 
         case 3:
+            // 章节选择
             lastState = UIState::PAUSE;
-            ui.GetAffectionMenu().Reset();   // [新增] 重置滚动
+            ui.GetChapterMenu().Reset();
+            ui.GetChapterMenu().FocusFirstUnvisited();
+            ui.SetState(UIState::CHAPTER);
+            break;
+
+        case 4:
+            lastState = UIState::PAUSE;
+            ui.GetAffectionMenu().Reset();
             ui.SetState(UIState::AFFECTION);
             break;
-            
-        case 4:
+
+        case 5:
             lastState = UIState::PAUSE;
             configBackup = config;
             ui.GetConfigMenu().SetConfig(&config);
             ui.SetState(UIState::CONFIG);
             break;
 
-        case 5:
+        case 6:
             ui.SetState(UIState::START);
             break;
         }

@@ -64,6 +64,7 @@ bool UIManager::IsTransitioning() const
 void UIManager::Update(float delta)
 {
     chapterTitle.Update(delta);
+    chapterMenu.Update(delta);
 
     startMenu.Update(delta);
     pauseMenu.Update(delta);
@@ -101,6 +102,10 @@ void UIManager::Render(Renderer& renderer)
     case UIState::AFFECTION:
         affectionMenu.Render(renderer);
         break;
+
+    case UIState::CHAPTER:
+        chapterMenu.Render(renderer);
+        break;
     }
 
 
@@ -137,6 +142,10 @@ void UIManager::HandleInput(int key)
         affectionMenu.HandleInput(key);
         break;
 
+    case UIState::CHAPTER:
+        chapterMenu.HandleInput(key);
+        break;
+
     default:
         break;
     }
@@ -153,6 +162,7 @@ void UIManager::HandleMouseMove(int x, int y)
     case UIState::PAUSE:  pauseMenu.HandleMouseMove(x, y);  break;
     case UIState::SAVE:   saveMenu.HandleMouseMove(x, y);   break;
     case UIState::CONFIG: configMenu.HandleMouseMove(x, y); break;
+    case UIState::CHAPTER: chapterMenu.HandleMouseMove(x, y); break;
     default: break;
     }
 }
@@ -178,6 +188,9 @@ MenuMouseResult UIManager::HandleMouseClick(int x, int y)
 
     case UIState::AFFECTION:
         return affectionMenu.HandleMouseClick(x, y);
+
+    case UIState::CHAPTER:
+        return chapterMenu.HandleMouseClick(x, y);
 
     default:
         return MenuMouseResult::NONE;
@@ -236,4 +249,9 @@ AffectionMenu& UIManager::GetAffectionMenu()
 ChapterTitle& UIManager::GetChapterTitle()
 {
     return chapterTitle;
+}
+
+ChapterMenu& UIManager::GetChapterMenu()
+{
+    return chapterMenu;
 }

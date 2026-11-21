@@ -18,6 +18,7 @@
 
 
 #include "../story/Story.h"
+#include "../story/StoryGraph.h"
 
 #include "../ui/UIManager.h"
 
@@ -172,6 +173,9 @@ private:
     // SDL_RenderReadPixels 会强制 GPU 同步，不能每帧都调，
     // 否则启动时会黑屏闪烁。改成每 N 帧抓一次。
     bool frameGrabRequested = false;
+
+    // 剧情树（章节选择用）。初始化时扫描 script/ 目录建一次。
+    StoryGraph storyGraph;
 
     // 当前剧本文件路径。换章时用来判断是否要播标题卡。
     std::string currentScript;
