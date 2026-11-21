@@ -593,6 +593,19 @@ void Renderer::Destroy()
 
         DestroyPrograms();
 
+        // 释放所有通过 CreateTextureFromSurface 上传的纹理。
+        // 漏掉这一步会残留 GPU 资源，而且 SDL_GL_DeleteContext
+        // 之后那些 id 就再也回收不了了。
+        for(auto& kv : glTextures)
+        {
+            if(kv.second.id)
+            {
+                GLuint id = kv.second.id;
+                glDeleteTextures(1, &id);
+            }
+        }
+        glTextures.clear();
+
         SDL_GL_DeleteContext(glContext);
         glContext = nullptr;
     }

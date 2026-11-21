@@ -1292,12 +1292,11 @@ void Game::Shutdown()
 
     // ---- 子系统（顺序不能改） ----
 
-    if(pauseBackground)
-    {
-        SDL_DestroyTexture(pauseBackground);
-        pauseBackground = nullptr;
-        pauseBgW = pauseBgH = 0;
-    }
+    // pauseBackground 在 GL 下只是一个指向场景纹理的假句柄，
+    // 不能传给 SDL_DestroyTexture（会访问违例）。
+    // 场景纹理由 Renderer::Shutdown 统一释放。
+    pauseBackground = nullptr;
+    pauseBgW = pauseBgH = 0;
 
     saveSystem.ClearThumbnails();
     fontManager.Shutdown();

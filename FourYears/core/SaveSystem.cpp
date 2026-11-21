@@ -792,7 +792,10 @@ void SaveSystem::InvalidateThumbnail(int slot)
         return;
 
     if(it->second.texture)
-        SDL_DestroyTexture(it->second.texture);
+        if(targetRenderer)
+            targetRenderer->DestroyTexture(it->second.texture);
+        else
+            SDL_DestroyTexture(it->second.texture);
 
     thumbCache.erase(it);
 }
@@ -805,7 +808,10 @@ void SaveSystem::ClearThumbnails()
     for(auto& pair : thumbCache)
     {
         if(pair.second.texture)
-            SDL_DestroyTexture(pair.second.texture);
+            if(targetRenderer)
+                targetRenderer->DestroyTexture(pair.second.texture);
+            else
+                SDL_DestroyTexture(pair.second.texture);
     }
 
     thumbCache.clear();

@@ -215,7 +215,10 @@ void ResourceManager::Destroy()
     {
         if(pair.second)
         {
-            SDL_DestroyTexture(pair.second);
+            if(targetRenderer)
+                targetRenderer->DestroyTexture(pair.second);
+            else
+                SDL_DestroyTexture(pair.second);
         }
     }
 
