@@ -1797,11 +1797,36 @@ void Game::OnAdvanceDialogue()
     }
 
 
+    // 记下调用前的剧本路径，Next() 内部可能因为 [下一章] 换文件
+    std::string fileBefore = story.GetCurrentFile();
+
     if(!story.Next())
     {
         // 剧本真的走完了：回标题，别把最后一句挂在屏幕上
         ReturnToTitle();
         return;
+    }
+
+    // [下一章] 是 Story::Next() 内部消化的，不走 Game 的换章分支，
+    // 所以标题卡要在这里补。
+    // 只看文件是否真的变了：同一章内推进 currentFile 不变。
+    {
+        std::string fileAfter = story.GetCurrentFile();
+
+        if(!fileAfter.empty() && fileAfter != fileBefore)
+        {
+            currentScript = fileAfter;
+
+            std::string chapterName = ChapterNameFromScript(fileAfter);
+
+            if(!chapterName.empty())
+            {
+                ui.GetChapterTitle().Show(
+                    chapterName,
+                    StoryGraph::SubtitleFor(fileAfter)
+                );
+            }
+        }
     }
 
 

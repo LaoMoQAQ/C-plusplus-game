@@ -267,14 +267,20 @@ void ChapterMenu::HandleInput(int key)
     if(n <= 0)
         return;
 
-    if(key == SDLK_UP)
+    // 参数约定：1 = 上，2 = 下
+    //
+    // 这是 UIManager::HandleInput(int) 的统一约定，
+    // 由 Game::HandleKeyDown 里的 ui.HandleInput(1) / (2) 传入。
+    // 之前这里写的是比较 SDLK_UP / SDLK_DOWN，永远不成立，
+    // 所以键盘完全没反应。
+    if(key == 1)
     {
         choice--;
 
         if(choice < 0)
             choice = n - 1;
     }
-    else if(key == SDLK_DOWN)
+    else if(key == 2)
     {
         choice++;
 
