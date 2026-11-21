@@ -1318,6 +1318,9 @@ void Game::Shutdown()
     pauseBackground = nullptr;
     pauseBgW = pauseBgH = 0;
 
+    // 退出前保存章节解锁进度
+    storyGraph.SaveProgress("save/progress.dat");
+
     saveSystem.ClearThumbnails();
     fontManager.Shutdown();
     resourceManager.Destroy();
@@ -1569,6 +1572,9 @@ void Game::OnActivateCurrentState()
                 if(!title.empty())
                     ui.GetChapterTitle().Show(title, sub);
 
+                storyGraph.MarkVisited(file);
+                storyGraph.SaveProgress("save/progress.dat");
+
                 if(!ApplyCurrentEvent())
                     ReturnToTitle();
                 else
@@ -1740,6 +1746,24 @@ bool Game::ApplyCurrentEvent()
     StoryEvent e = story.GetCurrentEvent();
 
 
+    // ---- 标记当前章节已到达 ----
+    //
+    // 章节选择的解锁判定依赖 StoryGraph 的 visited 集合：
+    //   看过第 N 章 -> 解锁到第 N+1 章
+    //
+    // 之前 MarkVisited 从来没被调用过，FurthestVisitedOrder()
+    // 恒为 -1，UnlockedUpTo() 恒为 0，结果只有第 1 章能选。
+    //
+    // 放在这里是因为 ApplyCurrentEvent 是「真正显示出这一句」的地方，
+    // 章节选择跳转、读档、[下一章] 换章、新游戏都会经过它。
+    {
+        std::string cur = story.GetCurrentFile();
+
+        if(!cur.empty())
+            storyGraph.MarkVisited(cur);
+    }
+
+
     // ---- 结束标记 ----
 
     if(e.isEnd)
@@ -1845,6 +1869,9 @@ void Game::OnAdvanceDialogue()
                     StoryGraph::SubtitleFor(fileAfter)
                 );
             }
+
+            // 换章立刻落盘，避免玩家中途退出丢掉解锁进度
+            storyGraph.SaveProgress("save/progress.dat");
         }
     }
 

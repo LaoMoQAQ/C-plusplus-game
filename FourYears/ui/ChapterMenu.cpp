@@ -188,8 +188,11 @@ void ChapterMenu::Render(Renderer& renderer)
 
         int iy = LIST_Y + i * LIST_GAP;
 
-        // 已走过打勾，未解锁显示成灰
-        std::string prefix = node->visited ? "✓ " : "  ";
+        // 已走过打个圆点标记。
+        //
+        // 原来用的是 U+2713（✓），simhei.ttf 没有这个字形，
+        // 渲染出来是个空方框。换成 U+00B7（·）这个常见字符。
+        std::string prefix = node->visited ? "· " : "  ";
 
         if(idx == choice)
             prefix += "> ";
