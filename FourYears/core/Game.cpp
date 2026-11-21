@@ -515,6 +515,7 @@ void Game::Run()
         if(deltaTime < 0.0f) deltaTime = 0.0f;
 
         HandleEvents();
+
         Update();
         Render();
 
@@ -1613,6 +1614,24 @@ void Game::OnActivateCurrentState()
 
             autoPlayTimer = 0.0f;
 
+            // 新游戏也要播章节标题卡。
+            //
+            // 之前只有章节选择和 [下一章] 会播，
+            // 从主菜单「开始游戏」进来是直接进第一句，没有开场。
+            currentScript = "script/chapter01.txt";
+
+            {
+                std::string cn = ChapterNameFromScript(currentScript);
+
+                if(!cn.empty())
+                {
+                    ui.GetChapterTitle().Show(
+                        cn,
+                        StoryGraph::SubtitleFor(currentScript)
+                    );
+                }
+            }
+
             // 立即切到剧情，不走黑幕过渡。
             //
             // 这里背景、立绘、对话框都已经按第一个事件设置好了，
@@ -1890,6 +1909,8 @@ void Game::OnBack()
     else if(st == UIState::CONFIG)
         ui.SetState(lastState);
     else if(st == UIState::AFFECTION)
+        ui.SetState(lastState);
+    else if(st == UIState::CHAPTER)
         ui.SetState(lastState);
 }
 

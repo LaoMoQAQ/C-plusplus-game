@@ -155,14 +155,14 @@ void ChapterMenu::Render(Renderer& renderer)
 
 
     // ---- 高亮块 ----
-
-    int row = choice - scroll;
-
-    int hlY = LIST_Y + row * LIST_GAP;
+    //
+    // 用 displayHighlightY（Update 里平滑过的值），
+    // 不用 choice 直接算出来的目标位置，
+    // 否则鼠标移动时高亮块会瞬移，没有过渡动画。
 
     renderer.DrawFilledRoundRect(
         PANEL_X + PAD_X - 14,
-        hlY - 8,
+        (int)displayHighlightY - 8,
         PANEL_W - PAD_X * 2 + 28,
         ROW_H,
         UILayout::HL_RADIUS,
@@ -198,19 +198,32 @@ void ChapterMenu::Render(Renderer& renderer)
 
         bool locked = graph && !graph->CanEnter(idx);
 
-        if(locked && fontManager)
+        // 字号统一：选中 / 未选中都用 smallFont（22 号）。
+        //
+        // 之前非 locked 分支走的是 DrawText(text, x, y) 这个重载，
+        // 它用的是 Renderer 的默认字体（32 号），
+        // 所以看起来「未选中的字特别大」，而且和副标题不在一个尺度上。
+        TTF_Font* rowFont = smallFont ? smallFont : fontManager->GetFont();
+
+        if(locked)
         {
             renderer.DrawText(
                 text,
                 PANEL_X + PAD_X,
                 iy,
-                smallFont ? smallFont : fontManager->GetFont(),
+                rowFont,
                 SDL_Color{ 120, 124, 134, 255 }
             );
         }
         else
         {
-            renderer.DrawText(text, PANEL_X + PAD_X, iy);
+            renderer.DrawText(
+                text,
+                PANEL_X + PAD_X,
+                iy,
+                rowFont,
+                SDL_Color{ 245, 246, 252, 255 }
+            );
         }
 
 
